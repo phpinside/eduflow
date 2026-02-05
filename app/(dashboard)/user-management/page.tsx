@@ -415,6 +415,22 @@ export default function UserManagementPage() {
               </Select>
             </div>
 
+            <div className="space-y-2">
+              <Label>系统推荐试课</Label>
+              <Select 
+                value={editForm.recommendedForTrial === true ? "true" : editForm.recommendedForTrial === false ? "false" : "false"} 
+                onValueChange={(value) => setEditForm({...editForm, recommendedForTrial: value === "true"})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="选择是否推荐试课" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="true">是</SelectItem>
+                  <SelectItem value="false">否</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {(editForm.roles?.includes(Role.SALES)) && (
               <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
                 <div className="space-y-2">

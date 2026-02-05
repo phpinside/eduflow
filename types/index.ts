@@ -23,6 +23,7 @@ export interface User {
   wechatQrCode?: string      // 个人微信二维码图片
   campusName?: string        // 9800校区名称
   campusAccount?: string     // 9800校区账号
+  recommendedForTrial?: boolean // 系统推荐试课
   createdAt: Date
   updatedAt: Date
 }
