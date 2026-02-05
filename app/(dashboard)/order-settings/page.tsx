@@ -22,7 +22,7 @@ const GRADES = ["小学1-6年级", "初中1-3年级", "高中1-3年级"] as cons
 const COURSE_TYPES = ["试课", "正课"] as const
 
 const formSchema = z.object({
-  isTakingOrders: z.boolean().default(true),
+  isTakingOrders: z.boolean(),
   subjects: z.array(z.string()).refine((value) => value.length > 0, {
     message: "请至少选择一个科目",
   }),

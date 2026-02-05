@@ -65,7 +65,7 @@ const formSchema = z.object({
   trialPrice: z.coerce.number().min(0, "价格不能为负数"),
   trialDuration: z.coerce.number().min(0, "时长不能为负数"),
   trialReward: z.coerce.number().min(0, "金额不能为负数"),
-  isEnabled: z.boolean().default(true),
+  isEnabled: z.boolean(),
 })
 
 export default function PriceSettingsPage() {
@@ -75,7 +75,7 @@ export default function PriceSettingsPage() {
   const [subjectFilter, setSubjectFilter] = React.useState<string>("ALL")
 
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema) as any,
     defaultValues: {
       subject: "",
       grade: "",

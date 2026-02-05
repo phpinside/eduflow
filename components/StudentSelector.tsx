@@ -68,7 +68,7 @@ export function StudentSelector({ onSelect }: StudentSelectorProps) {
                   />
                   <div className="flex flex-col">
                     <span>{student.name}</span>
-                    <span className="text-xs text-muted-foreground">{student.phone || student.parentPhone}</span>
+                    <span className="text-xs text-muted-foreground">{student.parentPhone}</span>
                   </div>
                 </CommandItem>
               ))}
