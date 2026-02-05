@@ -1,0 +1,286 @@
+"use client"
+
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import * as z from "zod"
+import { toast } from "sonner"
+
+import { Button } from "@/components/ui/button"
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+} from "@/components/ui/form"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+
+const SUBJECTS = ["数学", "物理", "英语", "化学", "生物", "语文", "历史", "地理", "政治"] as const
+const GRADES = ["小学1-6年级", "初中1-3年级", "高中1-3年级"] as const
+const COURSE_TYPES = ["试课", "正课"] as const
+
+const formSchema = z.object({
+  isTakingOrders: z.boolean().default(true),
+  subjects: z.array(z.string()).refine((value) => value.length > 0, {
+    message: "请至少选择一个科目",
+  }),
+  grades: z.array(z.string()).refine((value) => value.length > 0, {
+    message: "请至少选择一个年级",
+  }),
+  courseTypes: z.array(z.string()).refine((value) => value.length > 0, {
+    message: "请至少选择一个课程类型",
+  }),
+})
+
+export default function OrderSettingsPage() {
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      isTakingOrders: true,
+      subjects: ["数学"],
+      grades: ["初中1-3年级"],
+      courseTypes: ["试课", "正课"],
+    },
+  })
+
+  function onSubmit(data: z.infer<typeof formSchema>) {
+    toast.success("接单设置已保存", {
+      description: "您的接单偏好已更新。",
+    })
+    console.log(data)
+  }
+
+  return (
+    <div className="container max-w-2xl py-10 mx-auto">
+      <div className="mb-8 space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight">接单设置</h1>
+        <p className="text-muted-foreground">
+          管理您的接单状态和偏好设置，以便系统为您匹配合适的订单。
+        </p>
+      </div>
+
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>接单开关</CardTitle>
+              <CardDescription>
+                开启后，系统将根据您的偏好为您推送订单。
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FormField
+                control={form.control}
+                name="isTakingOrders"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={(val) => field.onChange(val === "true")}
+                        defaultValue={field.value ? "true" : "false"}
+                        className="flex flex-row space-x-4"
+                      >
+                        <FormItem className="flex items-center space-x-2 space-y-0">
+                          <FormControl>
+                            <RadioGroupItem value="true" />
+                          </FormControl>
+                          <FormLabel className="font-normal cursor-pointer">
+                            开启接单
+                          </FormLabel>
+                        </FormItem>
+                        <FormItem className="flex items-center space-x-2 space-y-0">
+                          <FormControl>
+                            <RadioGroupItem value="false" />
+                          </FormControl>
+                          <FormLabel className="font-normal cursor-pointer">
+                            暂停接单
+                          </FormLabel>
+                        </FormItem>
+                      </RadioGroup>
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>科目偏好</CardTitle>
+              <CardDescription>选择您擅长和希望教授的科目（多选）。</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FormField
+                control={form.control}
+                name="subjects"
+                render={() => (
+                  <FormItem>
+                    <div className="grid grid-cols-3 gap-4">
+                      {SUBJECTS.map((item) => (
+                        <FormField
+                          key={item}
+                          control={form.control}
+                          name="subjects"
+                          render={({ field }) => {
+                            return (
+                              <FormItem
+                                key={item}
+                                className="flex flex-row items-start space-x-3 space-y-0"
+                              >
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value?.includes(item)}
+                                    onCheckedChange={(checked) => {
+                                      return checked
+                                        ? field.onChange([...field.value, item])
+                                        : field.onChange(
+                                            field.value?.filter(
+                                              (value) => value !== item
+                                            )
+                                          )
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormLabel className="font-normal cursor-pointer">
+                                  {item}
+                                </FormLabel>
+                              </FormItem>
+                            )
+                          }}
+                        />
+                      ))}
+                    </div>
+                     {form.formState.errors.subjects && (
+                        <p className="text-sm font-medium text-destructive mt-2">
+                          {form.formState.errors.subjects.message}
+                        </p>
+                      )}
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>年级偏好</CardTitle>
+              <CardDescription>选择您希望教授的学生年级段（多选）。</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FormField
+                control={form.control}
+                name="grades"
+                render={() => (
+                  <FormItem>
+                    <div className="grid grid-cols-1 gap-4">
+                      {GRADES.map((item) => (
+                        <FormField
+                          key={item}
+                          control={form.control}
+                          name="grades"
+                          render={({ field }) => {
+                            return (
+                              <FormItem
+                                key={item}
+                                className="flex flex-row items-start space-x-3 space-y-0"
+                              >
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value?.includes(item)}
+                                    onCheckedChange={(checked) => {
+                                      return checked
+                                        ? field.onChange([...field.value, item])
+                                        : field.onChange(
+                                            field.value?.filter(
+                                              (value) => value !== item
+                                            )
+                                          )
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormLabel className="font-normal cursor-pointer">
+                                  {item}
+                                </FormLabel>
+                              </FormItem>
+                            )
+                          }}
+                        />
+                      ))}
+                    </div>
+                     {form.formState.errors.grades && (
+                        <p className="text-sm font-medium text-destructive mt-2">
+                          {form.formState.errors.grades.message}
+                        </p>
+                      )}
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+
+           <Card>
+            <CardHeader>
+              <CardTitle>课程类型</CardTitle>
+              <CardDescription>选择您接受的课程类型（多选）。</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FormField
+                control={form.control}
+                name="courseTypes"
+                render={() => (
+                  <FormItem>
+                    <div className="flex flex-row gap-6">
+                      {COURSE_TYPES.map((item) => (
+                        <FormField
+                          key={item}
+                          control={form.control}
+                          name="courseTypes"
+                          render={({ field }) => {
+                            return (
+                              <FormItem
+                                key={item}
+                                className="flex flex-row items-start space-x-3 space-y-0"
+                              >
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value?.includes(item)}
+                                    onCheckedChange={(checked) => {
+                                      return checked
+                                        ? field.onChange([...field.value, item])
+                                        : field.onChange(
+                                            field.value?.filter(
+                                              (value) => value !== item
+                                            )
+                                          )
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormLabel className="font-normal cursor-pointer">
+                                  {item}
+                                </FormLabel>
+                              </FormItem>
+                            )
+                          }}
+                        />
+                      ))}
+                    </div>
+                     {form.formState.errors.courseTypes && (
+                        <p className="text-sm font-medium text-destructive mt-2">
+                          {form.formState.errors.courseTypes.message}
+                        </p>
+                      )}
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+
+          <Button type="submit" className="w-full" size="lg">保存设置</Button>
+        </form>
+      </Form>
+    </div>
+  )
+}
