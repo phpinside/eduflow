@@ -41,8 +41,9 @@ import {
   ChevronsLeft,
   ChevronsRight
 } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
-import { IncomeRecord, IncomeType } from "@/types"
+import { IncomeRecord, IncomeType, Role } from "@/types"
 import { getStoredIncomeRecords } from "@/lib/storage"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/AuthContext"
@@ -65,15 +66,28 @@ const INCOME_TYPE_CONFIG = {
     label: '课时费',
     color: 'bg-purple-500',
     badgeVariant: 'outline' as const
+  },
+  [IncomeType.MANAGEMENT_FEE]: {
+    label: '管理费',
+    color: 'bg-cyan-500',
+    badgeVariant: 'secondary' as const
   }
 }
 
 export default function MyIncomePage() {
   const { user } = useAuth()
   const [records, setRecords] = useState<IncomeRecord[]>([])
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(20)
-  const [jumpToPage, setJumpToPage] = useState('')
+  const [activeTab, setActiveTab] = useState('lesson-income')
+  
+  // 课时收入的分页状态
+  const [lessonCurrentPage, setLessonCurrentPage] = useState(1)
+  const [lessonPageSize, setLessonPageSize] = useState(20)
+  const [lessonJumpToPage, setLessonJumpToPage] = useState('')
+  
+  // 管理收入的分页状态
+  const [mgmtCurrentPage, setMgmtCurrentPage] = useState(1)
+  const [mgmtPageSize, setMgmtPageSize] = useState(20)
+  const [mgmtJumpToPage, setMgmtJumpToPage] = useState('')
   
   // 默认显示所有数据（方便研发人员查看）
   const [filters, setFilters] = useState({
@@ -107,10 +121,17 @@ export default function MyIncomePage() {
     setRecords(myRecords)
   }
 
-  // 筛选逻辑（开发模式：默认显示所有数据）
-  const filteredRecords = useMemo(() => {
+  // 课时收入记录筛选（试课费 + 成交奖励 + 课时费）
+  const lessonIncomeRecords = useMemo(() => {
     return records.filter(record => {
-      // 收入类型筛选（仍然保留类型筛选功能）
+      // 只显示课时相关的收入类型
+      if (record.type !== IncomeType.TRIAL_FEE && 
+          record.type !== IncomeType.DEAL_REWARD && 
+          record.type !== IncomeType.LESSON_FEE) {
+        return false
+      }
+      
+      // 收入类型筛选
       if (filters.incomeType !== 'all') {
         const typeMap: Record<string, IncomeType> = {
           'trial': IncomeType.TRIAL_FEE,
@@ -122,8 +143,7 @@ export default function MyIncomePage() {
         }
       }
       
-      // 日期范围筛选（如果用户手动修改了日期才生效）
-      // 默认的2020-2030范围会显示所有数据
+      // 日期范围筛选
       if (filters.dateRange.start && filters.dateRange.end) {
         const recordDate = new Date(record.occurredAt)
         if (recordDate < filters.dateRange.start || recordDate > filters.dateRange.end) {
@@ -135,11 +155,31 @@ export default function MyIncomePage() {
     })
   }, [records, filters])
 
-  // 统计数据计算
-  const stats = useMemo(() => {
-    const trialRecords = filteredRecords.filter(r => r.type === IncomeType.TRIAL_FEE)
-    const dealRecords = filteredRecords.filter(r => r.type === IncomeType.DEAL_REWARD)
-    const lessonRecords = filteredRecords.filter(r => r.type === IncomeType.LESSON_FEE)
+  // 管理收入记录筛选（只显示管理费）
+  const managementIncomeRecords = useMemo(() => {
+    return records.filter(record => {
+      // 只显示管理费类型
+      if (record.type !== IncomeType.MANAGEMENT_FEE) {
+        return false
+      }
+      
+      // 日期范围筛选
+      if (filters.dateRange.start && filters.dateRange.end) {
+        const recordDate = new Date(record.occurredAt)
+        if (recordDate < filters.dateRange.start || recordDate > filters.dateRange.end) {
+          return false
+        }
+      }
+      
+      return true
+    })
+  }, [records, filters])
+
+  // 课时收入统计数据计算
+  const lessonStats = useMemo(() => {
+    const trialRecords = lessonIncomeRecords.filter(r => r.type === IncomeType.TRIAL_FEE)
+    const dealRecords = lessonIncomeRecords.filter(r => r.type === IncomeType.DEAL_REWARD)
+    const lessonRecords = lessonIncomeRecords.filter(r => r.type === IncomeType.LESSON_FEE)
     
     const trialTotal = trialRecords.reduce((sum, r) => sum + r.amount, 0)
     const dealTotal = dealRecords.reduce((sum, r) => sum + r.amount, 0)
@@ -161,69 +201,168 @@ export default function MyIncomePage() {
         hours: totalHours
       }
     }
-  }, [filteredRecords])
+  }, [lessonIncomeRecords])
 
-  // 分页数据
-  const paginatedRecords = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize
-    return filteredRecords.slice(startIndex, startIndex + pageSize)
-  }, [filteredRecords, currentPage, pageSize])
-
-  const totalPages = Math.ceil(filteredRecords.length / pageSize)
-
-  // 生成页码数组（智能显示）
-  const getPageNumbers = () => {
-    const pages: (number | string)[] = []
-    const maxVisible = 7 // 最多显示7个页码
+  // 管理收入统计数据计算
+  const managementStats = useMemo(() => {
+    const totalAmount = managementIncomeRecords.reduce((sum, r) => sum + r.amount, 0)
+    const totalHours = managementIncomeRecords.reduce((sum, r) => sum + r.quantity, 0)
+    const avgFeePerHour = totalHours > 0 ? totalAmount / totalHours : 0
     
-    if (totalPages <= maxVisible) {
-      // 如果总页数少，全部显示
-      for (let i = 1; i <= totalPages; i++) {
+    return {
+      totalIncome: totalAmount,
+      totalHours: totalHours,
+      avgFeePerHour: avgFeePerHour,
+      recordCount: managementIncomeRecords.length
+    }
+  }, [managementIncomeRecords])
+
+  // 全局统计数据计算（所有收入类型）
+  const globalStats = useMemo(() => {
+    // 试课费统计
+    const trialRecords = lessonIncomeRecords.filter(r => r.type === IncomeType.TRIAL_FEE)
+    const trialAmount = trialRecords.reduce((sum, r) => sum + r.amount, 0)
+    
+    // 成交奖励统计
+    const dealRecords = lessonIncomeRecords.filter(r => r.type === IncomeType.DEAL_REWARD)
+    const dealAmount = dealRecords.reduce((sum, r) => sum + r.amount, 0)
+    
+    // 课时费统计
+    const lessonRecords = lessonIncomeRecords.filter(r => r.type === IncomeType.LESSON_FEE)
+    const lessonAmount = lessonRecords.reduce((sum, r) => sum + r.amount, 0)
+    const lessonHours = lessonRecords.reduce((sum, r) => sum + r.quantity, 0)
+    
+    // 管理费统计
+    const managementAmount = managementIncomeRecords.reduce((sum, r) => sum + r.amount, 0)
+    const managementHours = managementIncomeRecords.reduce((sum, r) => sum + r.quantity, 0)
+    
+    // 总收入 = 试课费 + 成交奖励 + 课时费 + 管理收入
+    const totalIncome = trialAmount + dealAmount + lessonAmount + managementAmount
+    
+    return {
+      totalIncome: totalIncome,
+      trialFee: {
+        amount: trialAmount,
+        count: trialRecords.length
+      },
+      dealReward: {
+        amount: dealAmount,
+        count: dealRecords.length
+      },
+      lessonFee: {
+        amount: lessonAmount,
+        hours: lessonHours
+      },
+      managementFee: {
+        amount: managementAmount,
+        hours: managementHours
+      }
+    }
+  }, [lessonIncomeRecords, managementIncomeRecords])
+
+  // 课时收入分页数据
+  const lessonPaginatedRecords = useMemo(() => {
+    const startIndex = (lessonCurrentPage - 1) * lessonPageSize
+    return lessonIncomeRecords.slice(startIndex, startIndex + lessonPageSize)
+  }, [lessonIncomeRecords, lessonCurrentPage, lessonPageSize])
+
+  const lessonTotalPages = Math.ceil(lessonIncomeRecords.length / lessonPageSize)
+
+  // 管理收入分页数据
+  const mgmtPaginatedRecords = useMemo(() => {
+    const startIndex = (mgmtCurrentPage - 1) * mgmtPageSize
+    return managementIncomeRecords.slice(startIndex, startIndex + mgmtPageSize)
+  }, [managementIncomeRecords, mgmtCurrentPage, mgmtPageSize])
+
+  const mgmtTotalPages = Math.ceil(managementIncomeRecords.length / mgmtPageSize)
+
+  // 生成页码数组（智能显示）- 课时收入
+  const getLessonPageNumbers = () => {
+    const pages: (number | string)[] = []
+    const maxVisible = 7
+    
+    if (lessonTotalPages <= maxVisible) {
+      for (let i = 1; i <= lessonTotalPages; i++) {
         pages.push(i)
       }
     } else {
-      // 总是显示第一页
       pages.push(1)
+      if (lessonCurrentPage > 3) pages.push('...')
       
-      if (currentPage > 3) {
-        pages.push('...')
-      }
-      
-      // 显示当前页附近的页码
-      const start = Math.max(2, currentPage - 1)
-      const end = Math.min(totalPages - 1, currentPage + 1)
-      
+      const start = Math.max(2, lessonCurrentPage - 1)
+      const end = Math.min(lessonTotalPages - 1, lessonCurrentPage + 1)
       for (let i = start; i <= end; i++) {
         pages.push(i)
       }
       
-      if (currentPage < totalPages - 2) {
-        pages.push('...')
-      }
-      
-      // 总是显示最后一页
-      pages.push(totalPages)
+      if (lessonCurrentPage < lessonTotalPages - 2) pages.push('...')
+      pages.push(lessonTotalPages)
     }
     
     return pages
   }
 
-  // 跳转到指定页
-  const handleJumpToPage = () => {
-    const page = parseInt(jumpToPage)
-    if (!isNaN(page) && page >= 1 && page <= totalPages) {
-      setCurrentPage(page)
-      setJumpToPage('')
+  // 生成页码数组（智能显示）- 管理收入
+  const getMgmtPageNumbers = () => {
+    const pages: (number | string)[] = []
+    const maxVisible = 7
+    
+    if (mgmtTotalPages <= maxVisible) {
+      for (let i = 1; i <= mgmtTotalPages; i++) {
+        pages.push(i)
+      }
+    } else {
+      pages.push(1)
+      if (mgmtCurrentPage > 3) pages.push('...')
+      
+      const start = Math.max(2, mgmtCurrentPage - 1)
+      const end = Math.min(mgmtTotalPages - 1, mgmtCurrentPage + 1)
+      for (let i = start; i <= end; i++) {
+        pages.push(i)
+      }
+      
+      if (mgmtCurrentPage < mgmtTotalPages - 2) pages.push('...')
+      pages.push(mgmtTotalPages)
+    }
+    
+    return pages
+  }
+
+  // 跳转到指定页 - 课时收入
+  const handleLessonJumpToPage = () => {
+    const page = parseInt(lessonJumpToPage)
+    if (!isNaN(page) && page >= 1 && page <= lessonTotalPages) {
+      setLessonCurrentPage(page)
+      setLessonJumpToPage('')
       toast.success(`已跳转到第 ${page} 页`)
     } else {
-      toast.error(`请输入 1-${totalPages} 之间的页码`)
+      toast.error(`请输入 1-${lessonTotalPages} 之间的页码`)
     }
   }
 
-  // 改变每页显示数量
-  const handlePageSizeChange = (newSize: number) => {
-    setPageSize(newSize)
-    setCurrentPage(1) // 重置到第一页
+  // 跳转到指定页 - 管理收入
+  const handleMgmtJumpToPage = () => {
+    const page = parseInt(mgmtJumpToPage)
+    if (!isNaN(page) && page >= 1 && page <= mgmtTotalPages) {
+      setMgmtCurrentPage(page)
+      setMgmtJumpToPage('')
+      toast.success(`已跳转到第 ${page} 页`)
+    } else {
+      toast.error(`请输入 1-${mgmtTotalPages} 之间的页码`)
+    }
+  }
+
+  // 改变每页显示数量 - 课时收入
+  const handleLessonPageSizeChange = (newSize: number) => {
+    setLessonPageSize(newSize)
+    setLessonCurrentPage(1)
+    toast.success(`已调整为每页显示 ${newSize} 条`)
+  }
+
+  // 改变每页显示数量 - 管理收入
+  const handleMgmtPageSizeChange = (newSize: number) => {
+    setMgmtPageSize(newSize)
+    setMgmtCurrentPage(1)
     toast.success(`已调整为每页显示 ${newSize} 条`)
   }
 
@@ -250,12 +389,14 @@ export default function MyIncomePage() {
       ...prev,
       dateRange: { start, end }
     }))
-    setCurrentPage(1)
+    setLessonCurrentPage(1)
+    setMgmtCurrentPage(1)
   }
 
   // 查询
   const handleSearch = () => {
-    setCurrentPage(1)
+    setLessonCurrentPage(1)
+    setMgmtCurrentPage(1)
     toast.success('查询完成')
   }
 
@@ -268,7 +409,8 @@ export default function MyIncomePage() {
       },
       incomeType: 'all'
     })
-    setCurrentPage(1)
+    setLessonCurrentPage(1)
+    setMgmtCurrentPage(1)
     toast.success('已重置为显示所有数据')
   }
 
@@ -324,6 +466,8 @@ export default function MyIncomePage() {
             )}
           </div>
         )
+      case IncomeType.MANAGEMENT_FEE:
+        return record.relatedTeacherName || '-'
       default:
         return '-'
     }
@@ -337,6 +481,8 @@ export default function MyIncomePage() {
       case IncomeType.DEAL_REWARD:
         return '单'
       case IncomeType.LESSON_FEE:
+        return '课时'
+      case IncomeType.MANAGEMENT_FEE:
         return '课时'
       default:
         return ''
@@ -532,8 +678,11 @@ export default function MyIncomePage() {
         </CardContent>
       </Card>
 
-      {/* 统计卡片区 */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* 统计卡片区（全局） */}
+      <div className={cn(
+        "grid gap-4 md:grid-cols-3",
+        user?.roles.includes(Role.MANAGER) ? "lg:grid-cols-5" : "lg:grid-cols-4"
+      )}>
         {/* 总收入 */}
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -544,10 +693,10 @@ export default function MyIncomePage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">
-              ¥{stats.totalIncome.toLocaleString()}
+              ¥{globalStats.totalIncome.toLocaleString()}
             </div>
             <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-              所有类型收入总和（{filteredRecords.length}条记录）
+              所有类型收入总和
             </p>
           </CardContent>
         </Card>
@@ -562,10 +711,10 @@ export default function MyIncomePage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-green-900 dark:text-green-100">
-              ¥{stats.trialFee.amount.toLocaleString()}
+              ¥{globalStats.trialFee.amount.toLocaleString()}
             </div>
             <p className="text-xs text-green-700 dark:text-green-300 mt-1">
-              {stats.trialFee.count} 笔 · ¥200/次
+              {globalStats.trialFee.count} 笔 · ¥200/次
             </p>
           </CardContent>
         </Card>
@@ -580,10 +729,10 @@ export default function MyIncomePage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-orange-900 dark:text-orange-100">
-              ¥{stats.dealReward.amount.toLocaleString()}
+              ¥{globalStats.dealReward.amount.toLocaleString()}
             </div>
             <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">
-              {stats.dealReward.count} 笔 · 按规则奖励
+              {globalStats.dealReward.count} 笔 · 按规则奖励
             </p>
           </CardContent>
         </Card>
@@ -598,45 +747,76 @@ export default function MyIncomePage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-purple-900 dark:text-purple-100">
-              ¥{stats.lessonFee.amount.toLocaleString()}
+              ¥{globalStats.lessonFee.amount.toLocaleString()}
             </div>
             <p className="text-xs text-purple-700 dark:text-purple-300 mt-1">
-              {stats.lessonFee.hours.toFixed(1)} 课时 · 按课时单价
+              {globalStats.lessonFee.hours.toFixed(1)} 课时
             </p>
           </CardContent>
         </Card>
+
+        {/* 管理费（仅学管可见） */}
+        {user?.roles.includes(Role.MANAGER) && (
+          <Card className="bg-gradient-to-br from-cyan-50 to-cyan-100 dark:from-cyan-950 dark:to-cyan-900 border-cyan-200 dark:border-cyan-800">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-cyan-900 dark:text-cyan-100">
+                管理费
+              </CardTitle>
+              <DollarSign className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-cyan-900 dark:text-cyan-100">
+                ¥{globalStats.managementFee.amount.toLocaleString()}
+              </div>
+              <p className="text-xs text-cyan-700 dark:text-cyan-300 mt-1">
+                {globalStats.managementFee.hours.toFixed(1)} 课时 · ¥5/课时
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
-      {/* 记录列表 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>收入记录</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>收入类型</TableHead>
-                  <TableHead>关联信息</TableHead>
-                  <TableHead>发生时间</TableHead>
-                  <TableHead>科目</TableHead>
-                  <TableHead>年级</TableHead>
-                  <TableHead className="text-right">单价</TableHead>
-                  <TableHead className="text-right">数量</TableHead>
-                  <TableHead className="text-right">收入金额</TableHead>
-                  <TableHead>备注</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedRecords.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                      暂无收入记录
-                    </TableCell>
-                  </TableRow>
+      {/* Tab 导航和内容 */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="lesson-income">课时收入记录</TabsTrigger>
+          {user?.roles.includes(Role.MANAGER) && (
+            <TabsTrigger value="management-income">管理收入记录</TabsTrigger>
+          )}
+        </TabsList>
+
+        {/* 课时收入记录 Tab */}
+        <TabsContent value="lesson-income" className="space-y-6">
+          {/* 课时收入记录列表 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>课时收入记录</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>收入类型</TableHead>
+                      <TableHead>关联信息</TableHead>
+                      <TableHead>发生时间</TableHead>
+                      <TableHead>科目</TableHead>
+                      <TableHead>年级</TableHead>
+                      <TableHead className="text-right">单价</TableHead>
+                      <TableHead className="text-right">数量</TableHead>
+                      <TableHead className="text-right">收入金额</TableHead>
+                      <TableHead>备注</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {lessonPaginatedRecords.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                          暂无课时收入记录
+                        </TableCell>
+                      </TableRow>
                 ) : (
-                  paginatedRecords.map((record) => (
+                  lessonPaginatedRecords.map((record) => (
                     <TableRow key={record.id}>
                       <TableCell>
                         <Badge variant={INCOME_TYPE_CONFIG[record.type]?.badgeVariant}>
@@ -668,137 +848,329 @@ export default function MyIncomePage() {
             </Table>
           </div>
 
-          {/* 增强分页 */}
-          {filteredRecords.length > 0 && (
-            <div className="space-y-4 mt-4">
-              {/* 分页控制 */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                {/* 左侧：记录统计和每页数量选择 */}
-                <div className="flex items-center gap-4">
-                  <div className="text-sm text-muted-foreground">
-                    共 {filteredRecords.length} 条记录
-                    {filteredRecords.length > pageSize && (
-                      <>，显示第 {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, filteredRecords.length)} 条</>
+              {/* 课时收入分页 */}
+              {lessonIncomeRecords.length > 0 && (
+                <div className="space-y-4 mt-4">
+                  {/* 分页控制 */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    {/* 左侧：记录统计和每页数量选择 */}
+                    <div className="flex items-center gap-4">
+                      <div className="text-sm text-muted-foreground">
+                        共 {lessonIncomeRecords.length} 条记录
+                        {lessonIncomeRecords.length > lessonPageSize && (
+                          <>，显示第 {(lessonCurrentPage - 1) * lessonPageSize + 1} - {Math.min(lessonCurrentPage * lessonPageSize, lessonIncomeRecords.length)} 条</>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">每页</span>
+                        <Select
+                          value={lessonPageSize.toString()}
+                          onValueChange={(value) => handleLessonPageSizeChange(parseInt(value))}
+                        >
+                          <SelectTrigger className="w-20 h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PAGE_SIZE_OPTIONS.map(size => (
+                              <SelectItem key={size} value={size.toString()}>
+                                {size}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <span className="text-sm text-muted-foreground">条</span>
+                      </div>
+                    </div>
+
+                    {/* 右侧：分页按钮 */}
+                    {lessonTotalPages > 1 && (
+                      <div className="flex items-center gap-1">
+                        {/* 首页 */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setLessonCurrentPage(1)}
+                          disabled={lessonCurrentPage === 1}
+                          className="h-8 w-8 p-0"
+                        >
+                          <ChevronsLeft className="h-4 w-4" />
+                        </Button>
+
+                        {/* 上一页 */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setLessonCurrentPage(p => Math.max(1, p - 1))}
+                          disabled={lessonCurrentPage === 1}
+                          className="h-8 w-8 p-0"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+
+                        {/* 页码 */}
+                        {getLessonPageNumbers().map((page, index) => (
+                          <Button
+                            key={index}
+                            variant={page === lessonCurrentPage ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => typeof page === 'number' && setLessonCurrentPage(page)}
+                            disabled={typeof page !== 'number'}
+                            className="h-8 w-8 p-0"
+                          >
+                            {page}
+                          </Button>
+                        ))}
+
+                        {/* 下一页 */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setLessonCurrentPage(p => Math.min(lessonTotalPages, p + 1))}
+                          disabled={lessonCurrentPage === lessonTotalPages}
+                          className="h-8 w-8 p-0"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+
+                        {/* 末页 */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setLessonCurrentPage(lessonTotalPages)}
+                          disabled={lessonCurrentPage === lessonTotalPages}
+                          className="h-8 w-8 p-0"
+                        >
+                          <ChevronsRight className="h-4 w-4" />
+                        </Button>
+                      </div>
                     )}
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">每页</span>
-                    <Select
-                      value={pageSize.toString()}
-                      onValueChange={(value) => handlePageSizeChange(parseInt(value))}
-                    >
-                      <SelectTrigger className="w-20 h-8">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PAGE_SIZE_OPTIONS.map(size => (
-                          <SelectItem key={size} value={size.toString()}>
-                            {size}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <span className="text-sm text-muted-foreground">条</span>
-                  </div>
-                </div>
 
-                {/* 右侧：分页按钮 */}
-                {totalPages > 1 && (
-                  <div className="flex items-center gap-1">
-                    {/* 首页 */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(1)}
-                      disabled={currentPage === 1}
-                      className="h-8 w-8 p-0"
-                    >
-                      <ChevronsLeft className="h-4 w-4" />
-                    </Button>
-
-                    {/* 上一页 */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                      className="h-8 w-8 p-0"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-
-                    {/* 页码 */}
-                    {getPageNumbers().map((page, index) => (
+                  {/* 快速跳转 */}
+                  {lessonTotalPages > 1 && (
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-sm text-muted-foreground">跳转到</span>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={lessonTotalPages}
+                        value={lessonJumpToPage}
+                        onChange={(e) => setLessonJumpToPage(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleLessonJumpToPage()}
+                        className="w-16 h-8 text-center"
+                        placeholder={lessonCurrentPage.toString()}
+                      />
+                      <span className="text-sm text-muted-foreground">页</span>
                       <Button
-                        key={index}
-                        variant={page === currentPage ? "default" : "outline"}
+                        variant="outline"
                         size="sm"
-                        onClick={() => typeof page === 'number' && setCurrentPage(page)}
-                        disabled={typeof page !== 'number'}
-                        className="h-8 w-8 p-0"
+                        onClick={handleLessonJumpToPage}
+                        className="h-8"
                       >
-                        {page}
+                        跳转
                       </Button>
-                    ))}
-
-                    {/* 下一页 */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                      disabled={currentPage === totalPages}
-                      className="h-8 w-8 p-0"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-
-                    {/* 末页 */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(totalPages)}
-                      disabled={currentPage === totalPages}
-                      className="h-8 w-8 p-0"
-                    >
-                      <ChevronsRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              {/* 快速跳转 */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2">
-                  <span className="text-sm text-muted-foreground">跳转到</span>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={totalPages}
-                    value={jumpToPage}
-                    onChange={(e) => setJumpToPage(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleJumpToPage()}
-                    className="w-16 h-8 text-center"
-                    placeholder={currentPage.toString()}
-                  />
-                  <span className="text-sm text-muted-foreground">页</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleJumpToPage}
-                    className="h-8"
-                  >
-                    跳转
-                  </Button>
-                  <span className="text-xs text-muted-foreground ml-2">
-                    （共 {totalPages} 页）
-                  </span>
+                      <span className="text-xs text-muted-foreground ml-2">
+                        （共 {lessonTotalPages} 页）
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* 管理收入记录 Tab */}
+        <TabsContent value="management-income" className="space-y-6">
+          {/* 管理收入记录列表 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>管理收入记录</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>发生时间</TableHead>
+                      <TableHead>伴学教练</TableHead>
+                      <TableHead>科目</TableHead>
+                      <TableHead>年级</TableHead>
+                      <TableHead className="text-right">课时数</TableHead>
+                      <TableHead className="text-right">管理费（单价）</TableHead>
+                      <TableHead className="text-right">收入金额</TableHead>
+                      <TableHead>备注</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mgmtPaginatedRecords.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                          暂无管理收入记录
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      mgmtPaginatedRecords.map((record) => (
+                        <TableRow key={record.id}>
+                          <TableCell>
+                            {format(new Date(record.occurredAt), "yyyy-MM-dd", { locale: zhCN })}
+                          </TableCell>
+                          <TableCell>{record.relatedTeacherName || '-'}</TableCell>
+                          <TableCell>{record.subject || '-'}</TableCell>
+                          <TableCell>{record.grade || '-'}</TableCell>
+                          <TableCell className="text-right">
+                            {record.quantity} 课时
+                          </TableCell>
+                          <TableCell className="text-right">
+                            ¥{record.unitPrice}/课时
+                          </TableCell>
+                          <TableCell className="text-right font-medium text-lg">
+                            ¥{record.amount.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="max-w-[200px] truncate">
+                            {record.remarks || '-'}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* 管理收入分页 */}
+              {managementIncomeRecords.length > 0 && (
+                <div className="space-y-4 mt-4">
+                  {/* 分页控制 */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    {/* 左侧：记录统计和每页数量选择 */}
+                    <div className="flex items-center gap-4">
+                      <div className="text-sm text-muted-foreground">
+                        共 {managementIncomeRecords.length} 条记录
+                        {managementIncomeRecords.length > mgmtPageSize && (
+                          <>，显示第 {(mgmtCurrentPage - 1) * mgmtPageSize + 1} - {Math.min(mgmtCurrentPage * mgmtPageSize, managementIncomeRecords.length)} 条</>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">每页</span>
+                        <Select
+                          value={mgmtPageSize.toString()}
+                          onValueChange={(value) => handleMgmtPageSizeChange(parseInt(value))}
+                        >
+                          <SelectTrigger className="w-20 h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PAGE_SIZE_OPTIONS.map(size => (
+                              <SelectItem key={size} value={size.toString()}>
+                                {size}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <span className="text-sm text-muted-foreground">条</span>
+                      </div>
+                    </div>
+
+                    {/* 右侧：分页按钮 */}
+                    {mgmtTotalPages > 1 && (
+                      <div className="flex items-center gap-1">
+                        {/* 首页 */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setMgmtCurrentPage(1)}
+                          disabled={mgmtCurrentPage === 1}
+                          className="h-8 w-8 p-0"
+                        >
+                          <ChevronsLeft className="h-4 w-4" />
+                        </Button>
+
+                        {/* 上一页 */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setMgmtCurrentPage(p => Math.max(1, p - 1))}
+                          disabled={mgmtCurrentPage === 1}
+                          className="h-8 w-8 p-0"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+
+                        {/* 页码 */}
+                        {getMgmtPageNumbers().map((page, index) => (
+                          <Button
+                            key={index}
+                            variant={page === mgmtCurrentPage ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => typeof page === 'number' && setMgmtCurrentPage(page)}
+                            disabled={typeof page !== 'number'}
+                            className="h-8 w-8 p-0"
+                          >
+                            {page}
+                          </Button>
+                        ))}
+
+                        {/* 下一页 */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setMgmtCurrentPage(p => Math.min(mgmtTotalPages, p + 1))}
+                          disabled={mgmtCurrentPage === mgmtTotalPages}
+                          className="h-8 w-8 p-0"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+
+                        {/* 末页 */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setMgmtCurrentPage(mgmtTotalPages)}
+                          disabled={mgmtCurrentPage === mgmtTotalPages}
+                          className="h-8 w-8 p-0"
+                        >
+                          <ChevronsRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 快速跳转 */}
+                  {mgmtTotalPages > 1 && (
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-sm text-muted-foreground">跳转到</span>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={mgmtTotalPages}
+                        value={mgmtJumpToPage}
+                        onChange={(e) => setMgmtJumpToPage(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleMgmtJumpToPage()}
+                        className="w-16 h-8 text-center"
+                        placeholder={mgmtCurrentPage.toString()}
+                      />
+                      <span className="text-sm text-muted-foreground">页</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleMgmtJumpToPage}
+                        className="h-8"
+                      >
+                        跳转
+                      </Button>
+                      <span className="text-xs text-muted-foreground ml-2">
+                        （共 {mgmtTotalPages} 页）
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

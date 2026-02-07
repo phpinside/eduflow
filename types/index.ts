@@ -209,7 +209,8 @@ export interface FinancialRecord {
 export enum IncomeType {
   TRIAL_FEE = 'TRIAL_FEE',           // 试课费
   DEAL_REWARD = 'DEAL_REWARD',       // 成交奖励
-  LESSON_FEE = 'LESSON_FEE'          // 课时费
+  LESSON_FEE = 'LESSON_FEE',         // 课时费
+  MANAGEMENT_FEE = 'MANAGEMENT_FEE'  // 管理费
 }
 
 // 收入记录状态
@@ -231,6 +232,9 @@ export interface IncomeRecord {
   courseName?: string                // 课程名称（课时费需要）
   subject?: string                   // 科目
   grade?: string                     // 年级
+  relatedTeacherId?: string          // 关联的伴学教练ID（管理费需要）
+  relatedTeacherName?: string        // 关联的伴学教练姓名（管理费需要）
+  managementFeeRate?: number         // 管理费单价（如 5元/课时）
   quantity: number                   // 数量（次数/单数/课时数）
   unitPrice: number                  // 单价
   amount: number                     // 收入金额
