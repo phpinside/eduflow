@@ -88,7 +88,7 @@ export default function MarketOrderDetailsPage() {
 
   const Countdown = () => {
     const diff = differenceInSeconds(deadline, now)
-    if (diff <= 0) return <span className="text-muted-foreground font-medium text-sm">抢单已截止</span>
+    if (diff <= 0) return <span className="text-muted-foreground font-medium text-sm">申请已截止</span>
     
     const minutes = Math.floor(diff / 60)
     const seconds = diff % 60
@@ -124,7 +124,7 @@ export default function MarketOrderDetailsPage() {
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight">
-              订单详情 (抢单)
+              订单详情 (申请)
             </h1>
             <Badge variant={STATUS_COLOR_MAP[order.status]}>
               {STATUS_MAP[order.status]}

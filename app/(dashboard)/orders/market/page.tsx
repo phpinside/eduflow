@@ -359,7 +359,7 @@ export default function OrderMarketPage() {
                         onClick={() => handleApply(order.id)}
                         disabled={isExpired || isConflict}
                     >
-                        {isExpired ? "抢单结束" : isConflict ? "时间冲突" : "立即申请"}
+                        {isExpired ? "结束申请" : isConflict ? "时间冲突" : "立即申请"}
                     </Button>
                 )}
             </div>
