@@ -204,3 +204,40 @@ export interface FinancialRecord {
   remarks?: string             // 备注
   createdAt: Date              // 交易时间
 }
+
+// 收入类型枚举
+export enum IncomeType {
+  TRIAL_FEE = 'TRIAL_FEE',           // 试课费
+  DEAL_REWARD = 'DEAL_REWARD',       // 成交奖励
+  LESSON_FEE = 'LESSON_FEE'          // 课时费
+}
+
+// 收入记录状态
+export enum IncomeStatus {
+  PENDING = 'PENDING',               // 待结算
+  SETTLED = 'SETTLED'                // 已结算
+}
+
+// 收入记录接口
+export interface IncomeRecord {
+  id: string
+  type: IncomeType                   // 收入类型
+  teacherId: string                  // 伴学教练/学管ID
+  teacherName: string                // 教师姓名（冗余字段）
+  studentId?: string                 // 学员ID
+  studentName?: string               // 学员姓名
+  orderId?: string                   // 订单号（成交奖励需要）
+  feedbackId?: string                // 课后反馈ID（课时费需要）
+  courseName?: string                // 课程名称（课时费需要）
+  subject?: string                   // 科目
+  grade?: string                     // 年级
+  quantity: number                   // 数量（次数/单数/课时数）
+  unitPrice: number                  // 单价
+  amount: number                     // 收入金额
+  status: IncomeStatus               // 结算状态
+  remarks?: string                   // 备注
+  occurredAt: Date                   // 发生时间
+  settledAt?: Date                   // 结算时间
+  createdAt: Date
+  updatedAt: Date
+}

@@ -18,7 +18,8 @@ import {
   LogOut,
   Menu,
   X,
-  UserCog
+  UserCog,
+  Wallet
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -71,16 +72,17 @@ const navItems: NavItem[] = [
     icon: GraduationCap,
     roles: [Role.TUTOR, Role.MANAGER]
   },
-  {
-    title: "学生档案",
-    href: "/students",
-    icon: Users,
-    roles: [Role.SALES]
-  },
+  
   {
     title: "我的日历",
     href: "/calendar",
     icon: Calendar,
+    roles: [Role.TUTOR, Role.MANAGER]
+  },
+  {
+    title: "我的收入",
+    href: "/my-income",
+    icon: Wallet,
     roles: [Role.TUTOR, Role.MANAGER]
   },
   {
