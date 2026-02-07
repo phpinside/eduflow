@@ -20,7 +20,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
 import { Loader2, Upload, X, CheckCircle2 } from "lucide-react"
-import { Role } from "@/types"
+import { Role, UserStatus } from "@/types"
 import { cn } from "@/lib/utils"
 import { getStoredUsers, saveMockData, STORAGE_KEYS } from "@/lib/storage"
 
@@ -55,6 +55,7 @@ export default function RegisterPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [submittedRole, setSubmittedRole] = useState<Role | null>(null)
   const [qrCodePreview, setQrCodePreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -113,6 +114,13 @@ export default function RegisterPage() {
         return
       }
 
+      // Determine initial status based on role
+      // 招生老师无需审核，直接通过
+      // 伴学教练和学管需要审核
+      const initialStatus = values.role === Role.SALES 
+        ? UserStatus.APPROVED 
+        : UserStatus.PENDING
+
       // Create new user object
       const newUser = {
         id: `user-${Date.now()}`,
@@ -126,14 +134,21 @@ export default function RegisterPage() {
         createdAt: new Date(),
         updatedAt: new Date(),
         avatar: `https://api.dicebear.com/7.x/notionists/svg?seed=${values.name}`, // Auto-generate avatar
-        status: "pending", // Add status tracking
+        status: initialStatus,
       }
 
       // Save to storage
       const updatedUsers = [...currentUsers, newUser]
       saveMockData(STORAGE_KEYS.USERS, updatedUsers)
 
-      toast.success("注册申请已提交")
+      // Show different success message based on role
+      if (values.role === Role.SALES) {
+        toast.success("注册成功！可以直接登录")
+      } else {
+        toast.success("注册申请已提交，请等待审核")
+      }
+      
+      setSubmittedRole(values.role)
       setIsSubmitted(true)
     } catch (error) {
       console.error(error)
@@ -144,21 +159,54 @@ export default function RegisterPage() {
   }
 
   if (isSubmitted) {
+    // 招生老师注册成功，可以直接登录
+    if (submittedRole === Role.SALES) {
+      return (
+        <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 py-10 px-4">
+          <Card className="w-full max-w-lg shadow-lg border-0 bg-white/80 backdrop-blur-sm dark:bg-gray-900/80">
+            <CardHeader className="space-y-4 text-center">
+              <div className="mx-auto bg-green-100 p-3 rounded-full w-fit">
+                <CheckCircle2 className="h-10 w-10 text-green-600" />
+              </div>
+              <CardTitle className="text-2xl font-bold text-primary">注册成功</CardTitle>
+              <CardDescription className="text-lg">
+                您的账号已创建成功，可以直接登录使用
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6 flex flex-col items-center">
+              <div className="text-center space-y-2">
+                <p className="text-muted-foreground">招生老师账号无需审核，请点击下方按钮前往登录</p>
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-center">
+              <Button onClick={() => router.push("/login")}>
+                立即登录
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      )
+    }
+
+    // 伴学教练和学管需要审核
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 py-10 px-4">
         <Card className="w-full max-w-lg shadow-lg border-0 bg-white/80 backdrop-blur-sm dark:bg-gray-900/80">
           <CardHeader className="space-y-4 text-center">
-            <div className="mx-auto bg-green-100 p-3 rounded-full w-fit">
-              <CheckCircle2 className="h-10 w-10 text-green-600" />
+            <div className="mx-auto bg-yellow-100 p-3 rounded-full w-fit">
+              <CheckCircle2 className="h-10 w-10 text-yellow-600" />
             </div>
-            <CardTitle className="text-2xl font-bold text-primary">审核中</CardTitle>
+            <CardTitle className="text-2xl font-bold text-primary">等待审核</CardTitle>
             <CardDescription className="text-lg">
               您的账号正在审核中...
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6 flex flex-col items-center">
             <div className="text-center space-y-2">
-              <p className="text-muted-foreground">请扫码，加运营老师，加快账号审核速度</p>
+              <p className="text-muted-foreground">
+                {submittedRole === Role.TUTOR ? '伴学教练' : submittedRole === Role.MANAGER ? '学管' : ''}账号需要管理员审核通过后才能登录
+              </p>
+              <p className="text-sm text-muted-foreground">请扫码，加运营老师，加快账号审核速度</p>
             </div>
             
             <div className="relative w-48 h-48 border rounded-lg overflow-hidden bg-white p-2 shadow-sm">

@@ -32,7 +32,7 @@ import {
   SelectValue 
 } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Search, Check, X, Eye, Edit } from "lucide-react"
+import { Search, Check, X, Eye, Edit, ChevronLeft, ChevronRight } from "lucide-react"
 import { Role, User, UserStatus } from "@/types"
 import { getStoredUsers, saveMockData, STORAGE_KEYS } from "@/lib/storage"
 import { format } from "date-fns"
@@ -44,6 +44,10 @@ export default function UserManagementPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState<"pending" | "reviewed">("pending")
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
   // Reject Dialog State
   const [isRejectOpen, setIsRejectOpen] = useState(false)
@@ -151,10 +155,15 @@ export default function UserManagementPage() {
     }
   }
 
+  // Reset to page 1 when tab changes or search changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [activeTab, searchTerm])
+
   const filteredUsers = users.filter(user => {
-    // Only show SALES, TUTOR, and MANAGER roles
+    // 只显示伴学教练和学管（招生老师无需审核，不在此列表中）
     const hasAllowedRole = user.roles.some(role => 
-      [Role.SALES, Role.TUTOR, Role.MANAGER].includes(role)
+      [Role.TUTOR, Role.MANAGER].includes(role)
     )
     if (!hasAllowedRole) return false
 
@@ -163,11 +172,25 @@ export default function UserManagementPage() {
       user.phone.includes(searchTerm)
     
     if (activeTab === "pending") {
-      return matchesSearch && (!user.status || user.status === UserStatus.PENDING)
+      // 待审核：只显示待审核状态的伴学教练
+      return matchesSearch && user.status === UserStatus.PENDING
     } else {
-      return matchesSearch && (user.status === UserStatus.APPROVED || user.status === UserStatus.REJECTED)
+      // 已审核：显示已通过、已驳回或老用户
+      return matchesSearch && (!user.status || user.status === UserStatus.APPROVED || user.status === UserStatus.REJECTED)
     }
   })
+
+  // Pagination calculation
+  const totalPages = Math.ceil(filteredUsers.length / pageSize)
+  const startIndex = (currentPage - 1) * pageSize
+  const endIndex = startIndex + pageSize
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex)
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page)
+    }
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -208,19 +231,18 @@ export default function UserManagementPage() {
                   <TableHead>手机号</TableHead>
                   <TableHead>角色</TableHead>
                   <TableHead>注册时间</TableHead>
-                  <TableHead>校区信息</TableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.length === 0 ? (
+                {paginatedUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                       暂无待审核用户
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredUsers.map((user) => (
+                  paginatedUsers.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.name}</TableCell>
                       <TableCell>{user.phone}</TableCell>
@@ -231,14 +253,6 @@ export default function UserManagementPage() {
                       </TableCell>
                       <TableCell>
                         {format(new Date(user.createdAt), "yyyy-MM-dd HH:mm", { locale: zhCN })}
-                      </TableCell>
-                      <TableCell>
-                        {user.roles.includes(Role.SALES) && (
-                          <div className="text-sm">
-                            <div>{user.campusName || "-"}</div>
-                            <div className="text-xs text-muted-foreground">{user.campusAccount}</div>
-                          </div>
-                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -275,6 +289,74 @@ export default function UserManagementPage() {
               </TableBody>
             </Table>
           </div>
+          
+          {/* Pagination */}
+          {filteredUsers.length > 0 && (
+            <div className="flex items-center justify-between px-4 py-3 bg-white border rounded-md">
+              <div className="text-sm text-muted-foreground">
+                共 {filteredUsers.length} 条记录，第 {currentPage} / {totalPages} 页
+              </div>
+              <div className="flex items-center gap-2">
+                <Select value={pageSize.toString()} onValueChange={(v) => {
+                  setPageSize(Number(v))
+                  setCurrentPage(1)
+                }}>
+                  <SelectTrigger className="w-24">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5 条/页</SelectItem>
+                    <SelectItem value="10">10 条/页</SelectItem>
+                    <SelectItem value="20">20 条/页</SelectItem>
+                    <SelectItem value="50">50 条/页</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum: number
+                      if (totalPages <= 5) {
+                        pageNum = i + 1
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i
+                      } else {
+                        pageNum = currentPage - 2 + i
+                      }
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handlePageChange(pageNum)}
+                          className="w-8"
+                        >
+                          {pageNum}
+                        </Button>
+                      )
+                    })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="reviewed" className="space-y-4">
@@ -286,19 +368,18 @@ export default function UserManagementPage() {
                   <TableHead>手机号</TableHead>
                   <TableHead>角色</TableHead>
                   <TableHead>状态</TableHead>
-                  <TableHead>校区信息</TableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.length === 0 ? (
+                {paginatedUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                       暂无已审核用户
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredUsers.map((user) => (
+                  paginatedUsers.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.name}</TableCell>
                       <TableCell>{user.phone}</TableCell>
@@ -312,14 +393,6 @@ export default function UserManagementPage() {
                         {user.status === UserStatus.REJECTED && user.rejectReason && (
                           <div className="text-xs text-red-500 mt-1 max-w-[150px] truncate" title={user.rejectReason}>
                             原因: {user.rejectReason}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {user.roles.includes(Role.SALES) && (
-                          <div className="text-sm">
-                            <div>{user.campusName || "-"}</div>
-                            <div className="text-xs text-muted-foreground">{user.campusAccount}</div>
                           </div>
                         )}
                       </TableCell>
@@ -339,6 +412,74 @@ export default function UserManagementPage() {
               </TableBody>
             </Table>
           </div>
+
+          {/* Pagination */}
+          {filteredUsers.length > 0 && (
+            <div className="flex items-center justify-between px-4 py-3 bg-white border rounded-md">
+              <div className="text-sm text-muted-foreground">
+                共 {filteredUsers.length} 条记录，第 {currentPage} / {totalPages} 页
+              </div>
+              <div className="flex items-center gap-2">
+                <Select value={pageSize.toString()} onValueChange={(v) => {
+                  setPageSize(Number(v))
+                  setCurrentPage(1)
+                }}>
+                  <SelectTrigger className="w-24">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5 条/页</SelectItem>
+                    <SelectItem value="10">10 条/页</SelectItem>
+                    <SelectItem value="20">20 条/页</SelectItem>
+                    <SelectItem value="50">50 条/页</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum: number
+                      if (totalPages <= 5) {
+                        pageNum = i + 1
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i
+                      } else {
+                        pageNum = currentPage - 2 + i
+                      }
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handlePageChange(pageNum)}
+                          className="w-8"
+                        >
+                          {pageNum}
+                        </Button>
+                      )
+                    })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 

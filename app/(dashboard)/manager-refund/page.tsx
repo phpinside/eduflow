@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { format } from "date-fns"
+import { format, startOfDay, endOfDay } from "date-fns"
 import { zhCN } from "date-fns/locale"
 import {
   Card,
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import {
   Table,
   TableBody,
@@ -31,26 +32,73 @@ import {
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { Calendar } from "@/components/ui/calendar"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { toast } from "sonner"
-import { Check, X, Eye, Loader2, AlertCircle } from "lucide-react"
+import { Check, X, Eye, Loader2, AlertCircle, CalendarIcon, Search, RefreshCw } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 import { mockOrders } from "@/lib/mock-data/orders"
 import { mockStudents } from "@/lib/mock-data/students"
 import { Order, OrderStatus } from "@/types"
+
+const ITEMS_PER_PAGE = 20
 
 export default function RefundAuditPage() {
   const router = useRouter()
   
   // Local state for orders (initialized with mock data)
   const [orders, setOrders] = React.useState<Order[]>(mockOrders)
-  
-  // Filter for orders with CANCEL_REQUESTED status
-  const refundOrders = orders.filter(o => o.status === OrderStatus.CANCEL_REQUESTED)
+  const [currentPage, setCurrentPage] = React.useState(1)
+  const [filters, setFilters] = React.useState({
+    orderId: '',
+    dateRange: {
+      start: null as Date | null,
+      end: null as Date | null
+    }
+  })
 
   const getStudentName = (studentId: string) => {
     const student = mockStudents.find(s => s.id === studentId)
     return student ? student.name : "未知学生"
   }
+
+  // Filter for orders with CANCEL_REQUESTED status and apply filters
+  const refundOrders = React.useMemo(() => {
+    return orders.filter(o => {
+      // Must have CANCEL_REQUESTED status
+      if (o.status !== OrderStatus.CANCEL_REQUESTED) {
+        return false
+      }
+      
+      // Order ID filter
+      if (filters.orderId && !o.id.toLowerCase().includes(filters.orderId.toLowerCase())) {
+        return false
+      }
+      
+      // Date range filter
+      if (filters.dateRange.start && filters.dateRange.end) {
+        const orderDate = new Date(o.updatedAt)
+        if (orderDate < filters.dateRange.start || orderDate > filters.dateRange.end) {
+          return false
+        }
+      }
+      
+      return true
+    })
+  }, [orders, filters])
+
+  // Paginated data
+  const paginatedOrders = React.useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+    return refundOrders.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+  }, [refundOrders, currentPage])
+
+  const totalPages = Math.ceil(refundOrders.length / ITEMS_PER_PAGE)
 
   // View Details Dialog
   const [viewOrder, setViewOrder] = React.useState<Order | null>(null)
@@ -61,6 +109,31 @@ export default function RefundAuditPage() {
   const [isRejectOpen, setIsRejectOpen] = React.useState(false)
   const [rejectReason, setRejectReason] = React.useState("")
   const [isSubmitting, setIsSubmitting] = React.useState(false)
+
+  // Reset filters
+  const handleReset = () => {
+    setFilters({
+      orderId: '',
+      dateRange: {
+        start: null,
+        end: null
+      }
+    })
+    setCurrentPage(1)
+    toast.success("筛选条件已重置")
+  }
+
+  // Refresh data
+  const handleRefresh = () => {
+    setOrders([...mockOrders])
+    toast.success("数据已刷新")
+  }
+
+  // Search
+  const handleSearch = () => {
+    setCurrentPage(1)
+    toast.success(`找到 ${refundOrders.length} 条待审核记录`)
+  }
 
   const handleApprove = async (order: Order) => {
     if (!confirm("确认同意退款申请吗？此操作不可撤销。")) return
@@ -102,7 +175,7 @@ export default function RefundAuditPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">退款审核</h2>
@@ -110,8 +183,120 @@ export default function RefundAuditPage() {
             管理所有待处理的退款申请
           </p>
         </div>
+        <Button variant="outline" onClick={handleRefresh}>
+          <RefreshCw className="mr-2 h-4 w-4" />
+          刷新
+        </Button>
       </div>
 
+      {/* 筛选区 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">筛选条件</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 items-end">
+            {/* 订单号 */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">订单号</label>
+              <Input
+                placeholder="输入订单号"
+                value={filters.orderId}
+                onChange={(e) => setFilters(prev => ({ ...prev, orderId: e.target.value }))}
+              />
+            </div>
+
+            {/* 开始日期 */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">开始日期</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !filters.dateRange.start && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {filters.dateRange.start ? (
+                      format(filters.dateRange.start, "yyyy-MM-dd", { locale: zhCN })
+                    ) : (
+                      <span>选择日期</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={filters.dateRange.start || undefined}
+                    onSelect={(date) => {
+                      if (date) {
+                        setFilters(prev => ({
+                          ...prev,
+                          dateRange: { ...prev.dateRange, start: startOfDay(date) }
+                        }))
+                      }
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* 结束日期 */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">结束日期</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !filters.dateRange.end && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {filters.dateRange.end ? (
+                      format(filters.dateRange.end, "yyyy-MM-dd", { locale: zhCN })
+                    ) : (
+                      <span>选择日期</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={filters.dateRange.end || undefined}
+                    onSelect={(date) => {
+                      if (date) {
+                        setFilters(prev => ({
+                          ...prev,
+                          dateRange: { ...prev.dateRange, end: endOfDay(date) }
+                        }))
+                      }
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+
+          {/* 操作按钮 */}
+          <div className="flex gap-2 mt-4">
+            <Button onClick={handleSearch}>
+              <Search className="mr-2 h-4 w-4" />
+              查询
+            </Button>
+            <Button variant="outline" onClick={handleReset}>
+              重置
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 待审核列表 */}
       <Card>
         <CardHeader>
           <CardTitle>待审核列表</CardTitle>
@@ -133,14 +318,14 @@ export default function RefundAuditPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {refundOrders.length === 0 ? (
+              {paginatedOrders.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="h-24 text-center">
                     暂无待审核退款
                   </TableCell>
                 </TableRow>
               ) : (
-                refundOrders.map((order) => (
+                paginatedOrders.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell className="font-medium">{order.id}</TableCell>
                     <TableCell>{getStudentName(order.studentId)}</TableCell>
@@ -195,6 +380,33 @@ export default function RefundAuditPage() {
               )}
             </TableBody>
           </Table>
+
+          {/* 分页控制 */}
+          {refundOrders.length > 0 && (
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-sm text-muted-foreground">
+                共 {refundOrders.length} 条记录，第 {currentPage} / {totalPages} 页
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(p => p - 1)}
+                >
+                  上一页
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(p => p + 1)}
+                >
+                  下一页
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

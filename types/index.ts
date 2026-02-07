@@ -84,7 +84,7 @@ export interface Order {
 
 export interface Transaction {
   id: string
-  type: 'INITIAL' | 'RENEWAL'
+  type: 'INITIAL' | 'RENEWAL' | 'REFUND' | 'REWARD'  // 新增 REFUND(退款) 和 REWARD(转正奖励)
   amount: number
   hours: number
   createdAt: Date
@@ -191,4 +191,16 @@ export interface LessonFeedbackRecord {
   parentFeedback?: ParentFeedback
   createdAt: Date
   updatedAt: Date
+}
+
+export interface FinancialRecord {
+  id: string
+  type: 'RECHARGE' | 'REFUND'  // 充值/退款
+  orderId: string              // 关联订单号
+  amount: number               // 金额（退款为负数）
+  salesPersonId: string        // 招生老师ID
+  salesPersonName?: string     // 招生老师姓名（冗余字段）
+  salesPersonPhone?: string    // 招生老师手机号（冗余字段）
+  remarks?: string             // 备注
+  createdAt: Date              // 交易时间
 }

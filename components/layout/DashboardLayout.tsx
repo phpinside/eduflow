@@ -120,6 +120,12 @@ const navItems: NavItem[] = [
     roles: [Role.OPERATOR]
   },
   {
+    title: "财务记录",
+    href: "/financial-records",
+    icon: BarChart3,
+    roles: [Role.OPERATOR]
+  },
+  {
     title: "价格配置表",
     href: "/price-settings",
     icon: ShieldAlert,

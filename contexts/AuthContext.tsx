@@ -1,7 +1,7 @@
 "use client"
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
-import { User, Role } from '@/types'
+import { User, Role, UserStatus } from '@/types'
 import { getStoredUsers, initializeMockData, saveMockData, STORAGE_KEYS } from '@/lib/storage'
 import { useRouter } from 'next/navigation'
 // Using simple cookie management for prototype
@@ -66,6 +66,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const foundUser = users.find(u => u.phone === phone)
 
     if (foundUser) {
+      // Check user status
+      if (foundUser.status === UserStatus.PENDING) {
+        throw new Error('您的账号正在审核中，请耐心等待管理员审核通过后再登录')
+      }
+      
+      if (foundUser.status === UserStatus.REJECTED) {
+        const reason = foundUser.rejectReason ? `，原因：${foundUser.rejectReason}` : ''
+        throw new Error(`您的账号已被驳回${reason}`)
+      }
+      
+      // Only allow login if status is APPROVED or undefined (old users without status)
+      if (foundUser.status && foundUser.status !== UserStatus.APPROVED) {
+        throw new Error('账号状态异常，无法登录')
+      }
+
       setUser(foundUser)
       setCurrentRole(foundUser.roles[0])
       

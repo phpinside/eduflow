@@ -59,10 +59,15 @@ export default function LoginPage() {
         toast.success("登录成功")
         router.push("/")
       } else {
-        toast.error("用户不存在，请检查手机号 (参考Mock数据)")
+        toast.error("用户不存在，请检查手机号")
       }
     } catch (error) {
-      toast.error("登录发生错误")
+      // Display specific error message (e.g., pending approval, rejected)
+      if (error instanceof Error) {
+        toast.error(error.message)
+      } else {
+        toast.error("登录发生错误")
+      }
     } finally {
       setIsLoading(false)
     }

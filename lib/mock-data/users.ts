@@ -1,4 +1,4 @@
-import { User, Role } from '@/types'
+import { User, Role, UserStatus } from '@/types'
 
 const createTutor = (id: number, name: string, phoneSuffix: string, seed: string): User => ({
   id: `user-tutor-${id}`,
@@ -19,6 +19,46 @@ export const mockUsers: User[] = [
     roles: [Role.SALES],
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sales1',
     wechatQrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=wxid_sales1',
+    createdAt: new Date('2023-01-01'),
+    updatedAt: new Date('2023-01-01')
+  },
+  {
+    id: 'user-sales-2',
+    phone: '13800001002',
+    name: '李销售',
+    roles: [Role.SALES],
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sales2',
+    wechatQrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=wxid_sales2',
+    createdAt: new Date('2023-01-01'),
+    updatedAt: new Date('2023-01-01')
+  },
+  {
+    id: 'user-sales-3',
+    phone: '13800001003',
+    name: '王业绩',
+    roles: [Role.SALES],
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sales3',
+    wechatQrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=wxid_sales3',
+    createdAt: new Date('2023-01-01'),
+    updatedAt: new Date('2023-01-01')
+  },
+  {
+    id: 'user-sales-4',
+    phone: '13800001004',
+    name: '赵金牌',
+    roles: [Role.SALES],
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sales4',
+    wechatQrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=wxid_sales4',
+    createdAt: new Date('2023-01-01'),
+    updatedAt: new Date('2023-01-01')
+  },
+  {
+    id: 'user-sales-5',
+    phone: '13800001005',
+    name: '陈顾问',
+    roles: [Role.SALES],
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sales5',
+    wechatQrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=wxid_sales5',
     createdAt: new Date('2023-01-01'),
     updatedAt: new Date('2023-01-01')
   },
@@ -74,5 +114,42 @@ export const mockUsers: User[] = [
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin1',
     createdAt: new Date('2023-01-01'),
     updatedAt: new Date('2023-01-01')
+  },
+  // 测试用户 - 展示不同审核状态
+  {
+    id: 'user-tutor-pending-1',
+    phone: '13900000001',
+    name: '测试待审核',
+    roles: [Role.TUTOR],
+    status: UserStatus.PENDING,
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=pending1',
+    wechatQrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=wxid_pending1',
+    createdAt: new Date('2024-02-07'),
+    updatedAt: new Date('2024-02-07')
+  },
+  {
+    id: 'user-tutor-rejected-1',
+    phone: '13900000002',
+    name: '测试已驳回',
+    roles: [Role.TUTOR],
+    status: UserStatus.REJECTED,
+    rejectReason: '提交的资料不完整，请补充教学经验证明',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=rejected1',
+    wechatQrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=wxid_rejected1',
+    createdAt: new Date('2024-02-06'),
+    updatedAt: new Date('2024-02-06')
+  },
+  {
+    id: 'user-sales-approved-1',
+    phone: '13900000003',
+    name: '测试招生通过',
+    roles: [Role.SALES],
+    status: UserStatus.APPROVED,
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=salesapproved1',
+    wechatQrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=wxid_salesapproved1',
+    campusName: '测试校区',
+    campusAccount: 'test001',
+    createdAt: new Date('2024-02-07'),
+    updatedAt: new Date('2024-02-07')
   }
 ]
