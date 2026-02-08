@@ -61,6 +61,12 @@ const navItems: NavItem[] = [
     roles: [Role.SALES,]
   },
   {
+    title: "学员档案",
+    href: "/students",
+    icon: ShoppingCart,
+    roles: [Role.SALES,]
+  },
+  {
     title: "接单中心",
     href: "/orders/market", // Special route for tutors
     icon: ShoppingCart,
