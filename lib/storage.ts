@@ -3,13 +3,15 @@ import { mockOrders } from './mock-data/orders'
 import { mockStudents } from './mock-data/students'
 import { mockLessons } from './mock-data/lessons'
 import { mockIncomeRecords } from './mock-data/income-records'
+import { mockTutorIncomeSummary } from './mock-data/tutor-income-summary'
 
 export const STORAGE_KEYS = {
   USERS: 'eduflow:users',
   ORDERS: 'eduflow:orders',
   STUDENTS: 'eduflow:students',
   LESSONS: 'eduflow:lessons',
-  INCOME_RECORDS: 'eduflow:income-records'
+  INCOME_RECORDS: 'eduflow:income-records',
+  TUTOR_INCOME_SUMMARY: 'eduflow:tutor-income-summary'
 }
 
 const isBrowser = typeof window !== 'undefined'
@@ -51,6 +53,7 @@ export const getStoredOrders = () => getMockData(STORAGE_KEYS.ORDERS, mockOrders
 export const getStoredStudents = () => getMockData(STORAGE_KEYS.STUDENTS, mockStudents)
 export const getStoredLessons = () => getMockData(STORAGE_KEYS.LESSONS, mockLessons)
 export const getStoredIncomeRecords = () => getMockData(STORAGE_KEYS.INCOME_RECORDS, mockIncomeRecords)
+export const getStoredTutorIncomeSummary = () => getMockData(STORAGE_KEYS.TUTOR_INCOME_SUMMARY, mockTutorIncomeSummary)
 
 // Initialize all data
 export const initializeMockData = () => {
@@ -86,4 +89,5 @@ export const initializeMockData = () => {
   if (!localStorage.getItem(STORAGE_KEYS.STUDENTS)) saveMockData(STORAGE_KEYS.STUDENTS, mockStudents)
   if (!localStorage.getItem(STORAGE_KEYS.LESSONS)) saveMockData(STORAGE_KEYS.LESSONS, mockLessons)
   if (!localStorage.getItem(STORAGE_KEYS.INCOME_RECORDS)) saveMockData(STORAGE_KEYS.INCOME_RECORDS, mockIncomeRecords)
+  if (!localStorage.getItem(STORAGE_KEYS.TUTOR_INCOME_SUMMARY)) saveMockData(STORAGE_KEYS.TUTOR_INCOME_SUMMARY, mockTutorIncomeSummary)
 }

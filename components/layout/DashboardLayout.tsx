@@ -128,6 +128,12 @@ const navItems: NavItem[] = [
     roles: [Role.OPERATOR]
   },
   {
+    title: "伴学教练收入",
+    href: "/tutor-income",
+    icon: BarChart3,
+    roles: [Role.OPERATOR]
+  },
+  {
     title: "价格配置表",
     href: "/price-settings",
     icon: ShieldAlert,

@@ -245,3 +245,65 @@ export interface IncomeRecord {
   createdAt: Date
   updatedAt: Date
 }
+
+// ========== 伴学教练收入汇总 ==========
+
+// 伴学教练收入汇总（按教练聚合）
+export interface TutorIncomeSummary {
+  id: string
+  tutorId: string                    // 伴学教练ID
+  tutorName: string                  // 伴学教练姓名
+  period: {
+    start: Date                      // 统计周期开始时间
+    end: Date                        // 统计周期结束时间
+  }
+  trialFee: {
+    amount: number                   // 试课费金额
+    count: number                    // 试课笔数
+  }
+  dealReward: {
+    amount: number                   // 成交奖励金额
+    count: number                    // 成交笔数
+  }
+  lessonFee: {
+    amount: number                   // 课时费金额
+    hours: number                    // 课时数
+  }
+  managementFee: {
+    amount: number                   // 管理费金额
+    hours: number                    // 课时数
+  }
+  totalIncome: number                // 总收入
+  createdAt: Date
+  updatedAt: Date
+}
+
+// 伴学教练收入汇总（按教练聚合）
+export interface TutorIncomeSummary {
+  id: string
+  tutorId: string                    // 伴学教练ID
+  tutorName: string                  // 伴学教练姓名
+  period: {
+    start: Date                      // 统计周期开始时间
+    end: Date                        // 统计周期结束时间
+  }
+  trialFee: {
+    amount: number                   // 试课费金额
+    count: number                    // 试课费笔数
+  }
+  dealReward: {
+    amount: number                   // 成交奖励金额
+    count: number                    // 成交奖励笔数
+  }
+  lessonFee: {
+    amount: number                   // 课时费金额
+    hours: number                    // 课时数
+  }
+  managementFee: {
+    amount: number                   // 管理费金额
+    hours: number                    // 管理课时数
+  }
+  totalIncome: number                // 总收入
+  createdAt: Date
+  updatedAt: Date
+}
