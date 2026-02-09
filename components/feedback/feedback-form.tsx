@@ -62,6 +62,9 @@ export function FeedbackForm({ studentId, studentName, orderId, initialData, mod
     const [generatedText, setGeneratedText] = React.useState("")
     const [isGenerating, setIsGenerating] = React.useState(false)
     const [isCopied, setIsCopied] = React.useState(false)
+    
+    // FeedbackId - 编辑模式使用已有ID，创建模式生成新ID
+    const [feedbackId] = React.useState(() => initialData?.id || `fb-${Date.now()}`)
 
     // Handlers
     const handleGenerate = () => {
@@ -92,10 +95,10 @@ ${performance || '孩子今天上课表现很棒，能够积极配合老师的�
 ${homework || '- 请按时完成课后作业\n- 及时复习今日所学内容'}
 
 如有学习相关问题，欢迎随时沟通，我们将持续跟进孩子的学习状态，稳步提升${order?.subject || '学习'}能力 💪
-${orderId ? `
+
 📣 家长课堂反馈
 为持续优化教学体验，诚邀您对本节课进行简单反馈（约10秒完成）：
-👉 点击填写反馈：${window.location.origin}/p/feedback/${orderId}` : ''}`
+👉 点击填写反馈：${window.location.origin}/p/feedback/${feedbackId}`
             
             setGeneratedText(text)
             setIsGenerating(false)
@@ -112,7 +115,7 @@ ${orderId ? `
         // Mock submission logic
         if (mode === 'create') {
             const newFeedback: LessonFeedbackRecord = {
-                id: `fb-new-${Date.now()}`,
+                id: feedbackId,  // 使用生成时创建的ID
                 orderId: orderId,  // 可选，可能为 undefined
                 studentId: studentId,
                 studentName: student?.name || studentName,  // 保存学生姓名
@@ -277,13 +280,16 @@ ${orderId ? `
                 <Card className="h-full flex flex-col">
                     <CardHeader>
                             <CardTitle>反馈预览</CardTitle>
-                            <CardDescription>生成后可直接复制发送到微信群。</CardDescription>
+                            <CardDescription>生成后可编辑内容，编辑完成后可复制发送到微信群。</CardDescription>
                     </CardHeader>
                     <CardContent className="flex-1 min-h-[400px]">
                         {generatedText ? (
-                            <div className="bg-muted/30 p-4 rounded-lg border h-full whitespace-pre-wrap text-sm leading-relaxed font-mono">
-                                {generatedText}
-                            </div>
+                            <Textarea
+                                value={generatedText}
+                                onChange={(e) => setGeneratedText(e.target.value)}
+                                className="h-full min-h-[400px] resize-none text-sm leading-relaxed font-mono"
+                                placeholder="编辑反馈内容..."
+                            />
                         ) : (
                             <div className="h-full flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed rounded-lg bg-muted/10 p-8">
                                 <Sparkles className="h-12 w-12 mb-4 opacity-20" />
