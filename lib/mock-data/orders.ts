@@ -911,5 +911,186 @@ export const mockOrders: Order[] = [
     transactions: [
       { id: 'tx-reward-6', type: 'REWARD', amount: 200, hours: 0, createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000) }
     ]
+  },
+  // 额外订单数据用于分页测试
+  {
+    id: 'ord-extra-1',
+    type: OrderType.REGULAR,
+    status: OrderStatus.IN_PROGRESS,
+    studentId: 'stu-1',
+    assignedTeacherId: 'user-tutor-1',
+    salesPersonId: 'user-sales-1',
+    subject: '英语',
+    grade: '五年级',
+    totalHours: 30,
+    remainingHours: 25,
+    price: 5400,
+    createdAt: new Date('2024-01-15T10:00:00'),
+    updatedAt: new Date('2024-01-15T10:00:00'),
+    weeklySchedule: [
+      { day: "wednesday", startTime: "19:00", endTime: "20:30" }
+    ]
+  },
+  {
+    id: 'ord-extra-2',
+    type: OrderType.REGULAR,
+    status: OrderStatus.IN_PROGRESS,
+    studentId: 'stu-2',
+    assignedTeacherId: 'user-tutor-1',
+    salesPersonId: 'user-sales-1',
+    subject: '物理',
+    grade: '初三',
+    totalHours: 40,
+    remainingHours: 35,
+    price: 7200,
+    createdAt: new Date('2024-01-18T14:00:00'),
+    updatedAt: new Date('2024-01-18T14:00:00'),
+    weeklySchedule: [
+      { day: "thursday", startTime: "18:00", endTime: "20:00" }
+    ]
+  },
+  {
+    id: 'ord-extra-3',
+    type: OrderType.REGULAR,
+    status: OrderStatus.IN_PROGRESS,
+    studentId: 'stu-3',
+    assignedTeacherId: 'user-tutor-1',
+    salesPersonId: 'user-sales-1',
+    subject: '化学',
+    grade: '高一',
+    totalHours: 35,
+    remainingHours: 30,
+    price: 6300,
+    createdAt: new Date('2024-01-20T09:00:00'),
+    updatedAt: new Date('2024-01-20T09:00:00'),
+    weeklySchedule: [
+      { day: "friday", startTime: "20:00", endTime: "21:30" }
+    ]
+  },
+  {
+    id: 'ord-extra-4',
+    type: OrderType.REGULAR,
+    status: OrderStatus.IN_PROGRESS,
+    studentId: 'stu-4',
+    assignedTeacherId: 'user-tutor-1',
+    salesPersonId: 'user-sales-2',
+    subject: '生物',
+    grade: '高二',
+    totalHours: 25,
+    remainingHours: 20,
+    price: 4500,
+    createdAt: new Date('2024-01-22T11:00:00'),
+    updatedAt: new Date('2024-01-22T11:00:00'),
+    weeklySchedule: [
+      { day: "saturday", startTime: "14:00", endTime: "16:00" }
+    ]
+  },
+  {
+    id: 'ord-extra-5',
+    type: OrderType.REGULAR,
+    status: OrderStatus.IN_PROGRESS,
+    studentId: 'stu-5',
+    assignedTeacherId: 'user-tutor-1',
+    salesPersonId: 'user-sales-2',
+    subject: '历史',
+    grade: '初二',
+    totalHours: 20,
+    remainingHours: 18,
+    price: 3600,
+    createdAt: new Date('2024-01-25T15:00:00'),
+    updatedAt: new Date('2024-01-25T15:00:00'),
+    weeklySchedule: [
+      { day: "sunday", startTime: "10:00", endTime: "12:00" }
+    ]
+  },
+  {
+    id: 'ord-extra-6',
+    type: OrderType.REGULAR,
+    status: OrderStatus.IN_PROGRESS,
+    studentId: 'stu-1',
+    assignedTeacherId: 'user-tutor-1',
+    salesPersonId: 'user-sales-3',
+    subject: '地理',
+    grade: '初一',
+    totalHours: 30,
+    remainingHours: 28,
+    price: 5400,
+    createdAt: new Date('2024-01-28T13:00:00'),
+    updatedAt: new Date('2024-01-28T13:00:00'),
+    weeklySchedule: [
+      { day: "monday", startTime: "19:00", endTime: "20:30" }
+    ]
+  },
+  {
+    id: 'ord-extra-7',
+    type: OrderType.REGULAR,
+    status: OrderStatus.IN_PROGRESS,
+    studentId: 'stu-2',
+    assignedTeacherId: 'user-tutor-1',
+    salesPersonId: 'user-sales-3',
+    subject: '政治',
+    grade: '初三',
+    totalHours: 25,
+    remainingHours: 22,
+    price: 4500,
+    createdAt: new Date('2024-02-01T10:00:00'),
+    updatedAt: new Date('2024-02-01T10:00:00'),
+    weeklySchedule: [
+      { day: "tuesday", startTime: "18:00", endTime: "19:30" }
+    ]
+  },
+  {
+    id: 'ord-extra-8',
+    type: OrderType.REGULAR,
+    status: OrderStatus.IN_PROGRESS,
+    studentId: 'stu-3',
+    assignedTeacherId: 'user-tutor-1',
+    salesPersonId: 'user-sales-1',
+    subject: '数学',
+    grade: '六年级',
+    totalHours: 40,
+    remainingHours: 38,
+    price: 7200,
+    createdAt: new Date('2024-02-03T14:00:00'),
+    updatedAt: new Date('2024-02-03T14:00:00'),
+    weeklySchedule: [
+      { day: "wednesday", startTime: "16:00", endTime: "18:00" }
+    ]
+  },
+  {
+    id: 'ord-extra-9',
+    type: OrderType.REGULAR,
+    status: OrderStatus.IN_PROGRESS,
+    studentId: 'stu-4',
+    assignedTeacherId: 'user-tutor-1',
+    salesPersonId: 'user-sales-2',
+    subject: '英语',
+    grade: '初二',
+    totalHours: 35,
+    remainingHours: 33,
+    price: 6300,
+    createdAt: new Date('2024-02-05T09:00:00'),
+    updatedAt: new Date('2024-02-05T09:00:00'),
+    weeklySchedule: [
+      { day: "thursday", startTime: "19:30", endTime: "21:00" }
+    ]
+  },
+  {
+    id: 'ord-extra-10',
+    type: OrderType.REGULAR,
+    status: OrderStatus.IN_PROGRESS,
+    studentId: 'stu-5',
+    assignedTeacherId: 'user-tutor-1',
+    salesPersonId: 'user-sales-3',
+    subject: '物理',
+    grade: '高一',
+    totalHours: 30,
+    remainingHours: 27,
+    price: 5400,
+    createdAt: new Date('2024-02-07T11:00:00'),
+    updatedAt: new Date('2024-02-07T11:00:00'),
+    weeklySchedule: [
+      { day: "friday", startTime: "18:00", endTime: "19:30" }
+    ]
   }
 ]

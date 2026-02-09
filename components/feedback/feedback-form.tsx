@@ -138,8 +138,8 @@ ${orderId ? `
              alert("反馈已更新")
         }
         
-        // 返回到我的学员页面
-        router.push('/my-students')
+        // 返回到我的学员页面的课后反馈列表Tab
+        router.push('/my-students?tab=feedbacks')
     }
 
     if (!student) {
