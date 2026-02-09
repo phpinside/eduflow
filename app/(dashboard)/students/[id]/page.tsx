@@ -128,20 +128,46 @@ export default function StudentDetailsPage() {
             </CardContent>
         </Card>
 
-        {/* 学习情况 - Mocking since it's not fully in the simple list but likely in detailed data */}
+        {/* 学科信息 */}
         <Card className="md:col-span-2">
             <CardHeader>
                 <CardTitle>学科信息</CardTitle>
-                <CardDescription>当前在读或意向科目</CardDescription>
+                <CardDescription>当前在读或意向科目，每个学科对应一个学生账号</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="flex gap-4">
-                    <div className="border rounded-md p-4 min-w-[200px]">
-                        <div className="font-semibold text-lg">{student.subject}</div>
-                        <div className="text-sm text-muted-foreground mt-1">当前主修</div>
+                {student.academicRecords && student.academicRecords.length > 0 ? (
+                    <div className="space-y-3">
+                        {student.academicRecords.map((record: any, index: number) => (
+                            <div key={index} className="border rounded-lg p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                                <div className="grid grid-cols-4 gap-4 text-sm">
+                                    <div>
+                                        <span className="text-muted-foreground">科目：</span>
+                                        <span className="font-semibold">{record.subject}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground">学生账号：</span>
+                                        <span className="font-mono text-primary">{record.studentAccount || "-"}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground">近期成绩：</span>
+                                        <span>{record.currentScore || "-"}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground">教材版本：</span>
+                                        <span>{record.textbookVersion || "-"}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
-                    {/* Placeholder for more subjects if the data structure supported it */}
-                </div>
+                ) : (
+                    <div className="flex gap-4">
+                        <div className="border rounded-md p-4 min-w-[200px]">
+                            <div className="font-semibold text-lg">{student.subject}</div>
+                            <div className="text-sm text-muted-foreground mt-1">学生账号: {student.studentAccount || "-"}</div>
+                        </div>
+                    </div>
+                )}
             </CardContent>
         </Card>
 
@@ -151,7 +177,7 @@ export default function StudentDetailsPage() {
                 <CardTitle>系统归属</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-                 <div className="grid grid-cols-3 gap-4 text-sm">
+                 <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                         <span className="text-muted-foreground">归属校区：</span>
                         <span>{student.campusName || "-"}</span>
@@ -159,10 +185,6 @@ export default function StudentDetailsPage() {
                     <div>
                         <span className="text-muted-foreground">校区账号：</span>
                         <span>{student.campusAccount || "-"}</span>
-                    </div>
-                     <div>
-                        <span className="text-muted-foreground">学生账号：</span>
-                        <span>{student.studentAccount || "-"}</span>
                     </div>
                 </div>
             </CardContent>

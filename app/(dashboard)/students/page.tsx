@@ -98,7 +98,12 @@ export default function StudentsPage() {
                   </TableCell>
                   <TableCell>
                     <div className="font-medium">{student.grade}</div>
-                    <div className="text-xs text-muted-foreground">{student.subject}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {student.academicRecords && student.academicRecords.length > 0 
+                        ? `${student.academicRecords[0].subject}${student.academicRecords.length > 1 ? ` +${student.academicRecords.length - 1}` : ''}`
+                        : student.subject
+                      }
+                    </div>
                   </TableCell>
                   <TableCell>
                     <Badge variant={STATUS_MAP[student.status].variant}>

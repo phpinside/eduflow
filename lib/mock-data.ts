@@ -16,6 +16,11 @@ export const STUDENTS_MOCK = [
     campusName: "北京校区",
     campusAccount: "beijing_01",
     studentAccount: "stu_001",
+    academicRecords: [
+      { subject: "数学", studentAccount: "stu_001_math", currentScore: "85", textbookVersion: "人教版" },
+      { subject: "物理", studentAccount: "stu_001_physics", currentScore: "92", textbookVersion: "人教版" },
+      { subject: "英语", studentAccount: "stu_001_english", currentScore: "78", textbookVersion: "外研版" },
+    ],
   },
   {
     id: "STU-2024002",
@@ -33,6 +38,10 @@ export const STUDENTS_MOCK = [
     campusName: "上海校区",
     campusAccount: "shanghai_01",
     studentAccount: "stu_002",
+    academicRecords: [
+      { subject: "英语", studentAccount: "stu_002_english", currentScore: "90", textbookVersion: "外研版" },
+      { subject: "数学", studentAccount: "stu_002_math", currentScore: "88", textbookVersion: "人教版" },
+    ],
   },
   {
     id: "STU-2024003",

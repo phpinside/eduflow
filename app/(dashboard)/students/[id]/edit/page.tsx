@@ -51,6 +51,7 @@ const studentFormSchema = z.object({
   // Academic Info
   academicRecords: z.array(z.object({
     subject: z.string().min(1, "请选择科目"),
+    studentAccount: z.string().optional(),
     currentScore: z.string().optional(),
     textbookVersion: z.string().optional(),
   })).optional(),
@@ -85,7 +86,11 @@ export default function EditStudentPage() {
         parentPhone: student.parentPhone,
         parentRelation: student.parentRelation,
         wechat: "", // Mock data doesn't have wechat
-        academicRecords: student.subject ? [{ subject: student.subject, currentScore: "", textbookVersion: "" }] : [],
+        academicRecords: student.academicRecords && student.academicRecords.length > 0 
+          ? student.academicRecords 
+          : student.subject 
+            ? [{ subject: student.subject, studentAccount: student.studentAccount || "", currentScore: "", textbookVersion: "" }] 
+            : [],
         learningStatus: "",
         campusName: student.campusName,
         salesRep: student.campusAccount,
@@ -112,7 +117,7 @@ export default function EditStudentPage() {
 
   React.useEffect(() => {
     if (fields.length === 0) {
-      append({ subject: "", currentScore: "", textbookVersion: "" })
+      append({ subject: "", studentAccount: "", currentScore: "", textbookVersion: "" })
     }
   }, [fields.length, append])
 
@@ -340,7 +345,7 @@ export default function EditStudentPage() {
                 </div>
                 
                 {fields.map((field, index) => (
-                    <div key={field.id} className="grid gap-4 md:grid-cols-7 items-start p-4 border rounded-lg bg-slate-50/50 dark:bg-slate-900/50 relative">
+                    <div key={field.id} className="grid gap-4 md:grid-cols-10 items-start p-4 border rounded-lg bg-slate-50/50 dark:bg-slate-900/50 relative">
                         <div className="md:col-span-2">
                             <FormField
                                 control={form.control}
@@ -368,6 +373,21 @@ export default function EditStudentPage() {
                         <div className="md:col-span-2">
                             <FormField
                                 control={form.control}
+                                name={`academicRecords.${index}.studentAccount`}
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-xs">学生账号</FormLabel>
+                                    <FormControl>
+                                    <Input placeholder="如：stu_001" className="h-9" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                        </div>
+                        <div className="md:col-span-2">
+                            <FormField
+                                control={form.control}
                                 name={`academicRecords.${index}.currentScore`}
                                 render={({ field }) => (
                                 <FormItem>
@@ -380,7 +400,7 @@ export default function EditStudentPage() {
                                 )}
                             />
                         </div>
-                        <div className="md:col-span-2">
+                        <div className="md:col-span-3">
                             <FormField
                                 control={form.control}
                                 name={`academicRecords.${index}.textbookVersion`}
