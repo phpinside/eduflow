@@ -151,7 +151,7 @@ function CreateRegularCourseForm() {
       examMaxScore: "",
       textbookVersion: "",
       parentPhone: "",
-      totalHours: 40,
+      totalHours: 10,
       weeklySchedule: [],
       firstClassStartTime: "",
       firstClassEndTime: "",
@@ -410,8 +410,8 @@ function CreateRegularCourseForm() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <FormField control={form.control} name="totalHours" render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>总课时* (1-1000)</FormLabel>
-                                        <FormControl><Input type="number" min={1} max={1000} {...field} /></FormControl>
+                                        <FormLabel>总课时* (10-100)</FormLabel>
+                                        <FormControl><Input type="number" min={10} max={100} {...field} /></FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )} />
