@@ -26,6 +26,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Search, User, FileText, MessageSquare, FilterX } from "lucide-react"
+import { StudentSelectorDialog } from "@/components/students/StudentSelectorDialog"
 
 export default function MyStudentsPage() {
     const { user } = useAuth()
@@ -34,6 +35,10 @@ export default function MyStudentsPage() {
     // Filters
     const [nameFilter, setNameFilter] = React.useState("")
     const [gradeFilter, setGradeFilter] = React.useState<string>("all")
+    
+    // Dialog states
+    const [showStudyPlanDialog, setShowStudyPlanDialog] = React.useState(false)
+    const [showFeedbackDialog, setShowFeedbackDialog] = React.useState(false)
 
     const dayLabels: Record<string, string> = {
         monday: "周一", tuesday: "周二", wednesday: "周三", thursday: "周四",
@@ -98,6 +103,16 @@ export default function MyStudentsPage() {
         setGradeFilter("all")
     }
 
+    const handleCreateStudyPlan = (studentId: string, studentName: string) => {
+        router.push(`/my-students/study-plan/create?studentId=${studentId}&studentName=${encodeURIComponent(studentName)}`)
+        setShowStudyPlanDialog(false)
+    }
+
+    const handleCreateFeedback = (studentId: string, studentName: string) => {
+        router.push(`/my-students/feedback/create?studentId=${studentId}&studentName=${encodeURIComponent(studentName)}`)
+        setShowFeedbackDialog(false)
+    }
+
     if (!user) {
         return <div>请先登录</div>
     }
@@ -114,8 +129,8 @@ export default function MyStudentsPage() {
             </div>
 
             {/* Filters */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center bg-muted/20 p-4 rounded-lg border">
-                <div className="flex items-center gap-2 flex-1 md:max-w-sm">
+            <div className="flex flex-wrap gap-4 items-center bg-muted/20 p-4 rounded-lg border">
+                <div className="flex items-center gap-2 flex-1 min-w-[200px]">
                     <Search className="h-4 w-4 text-muted-foreground" />
                     <Input 
                         placeholder="搜索学员姓名..." 
@@ -145,6 +160,18 @@ export default function MyStudentsPage() {
                         重置筛选
                      </Button>
                 )}
+
+                {/* 右侧功能按钮 */}
+                <div className="flex gap-2 ml-auto">
+                    <Button variant="outline" onClick={() => setShowStudyPlanDialog(true)}>
+                        <FileText className="mr-2 h-4 w-4" />
+                        学习规划书
+                    </Button>
+                    <Button onClick={() => setShowFeedbackDialog(true)}>
+                        <MessageSquare className="mr-2 h-4 w-4" />
+                        课后反馈
+                    </Button>
+                </div>
             </div>
 
             {/* Table */}
@@ -157,7 +184,6 @@ export default function MyStudentsPage() {
                             <TableHead className="w-[100px]">科目</TableHead>
                             <TableHead>上课时间</TableHead>
                             <TableHead className="w-[150px]">课时情况</TableHead>
-                            <TableHead className="text-right">操作</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -219,27 +245,11 @@ export default function MyStudentsPage() {
                                             </div>
                                         </div>
                                     </TableCell>
-                                    <TableCell className="text-right">
-                                        <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                                            <Button variant="outline" size="sm" className="h-8" asChild>
-                                                <Link href={`/my-students/study-plan/${order.id}`}>
-                                                    <FileText className="h-3.5 w-3.5 mr-1" />
-                                                    学习规划书
-                                                </Link>
-                                            </Button>
-                                            <Button size="sm" className="h-8" asChild>
-                                                <Link href={`/my-students/feedback/${order.id}`}>
-                                                    <MessageSquare className="h-3.5 w-3.5 mr-1" />
-                                                    课后反馈
-                                                </Link>
-                                            </Button>
-                                        </div>
-                                    </TableCell>
                                 </TableRow>
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={6} className="h-24 text-center">
+                                <TableCell colSpan={5} className="h-24 text-center">
                                     <div className="flex flex-col items-center justify-center text-muted-foreground">
                                         <p>没有找到符合条件的学员</p>
                                     </div>
@@ -249,6 +259,20 @@ export default function MyStudentsPage() {
                     </TableBody>
                 </Table>
             </div>
+
+            {/* Dialogs */}
+            <StudentSelectorDialog
+                open={showStudyPlanDialog}
+                onOpenChange={setShowStudyPlanDialog}
+                onConfirm={handleCreateStudyPlan}
+                title="创建学习规划书"
+            />
+            <StudentSelectorDialog
+                open={showFeedbackDialog}
+                onOpenChange={setShowFeedbackDialog}
+                onConfirm={handleCreateFeedback}
+                title="创建课后反馈"
+            />
         </div>
     )
 }

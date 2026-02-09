@@ -16,11 +16,24 @@ export default function EditFeedbackPage() {
     const feedbackId = params.feedbackId as string
 
     // Data Fetching
-    const order = React.useMemo(() => mockOrders.find(o => o.id === orderId), [orderId])
-    const student = React.useMemo(() => order ? mockStudents.find(s => s.id === order.studentId) : null, [order])
     const feedback = React.useMemo(() => mockFeedbacks.find(f => f.id === feedbackId), [feedbackId])
+    
+    // 获取学生和订单信息（支持弱绑定）
+    const student = React.useMemo(() => {
+        if (!feedback) return null
+        // 优先使用 feedback.studentName
+        if (feedback.studentName) {
+            return { id: feedback.studentId, name: feedback.studentName }
+        }
+        return mockStudents.find(s => s.id === feedback.studentId)
+    }, [feedback])
+    
+    const order = React.useMemo(() => {
+        if (!feedback || !feedback.orderId) return null
+        return mockOrders.find(o => o.id === feedback.orderId)
+    }, [feedback])
 
-    if (!order || !student || !feedback) {
+    if (!feedback || !student) {
         return (
             <div className="flex flex-col items-center justify-center h-[50vh] gap-4">
                 <h2 className="text-xl font-bold">记录不存在</h2>
@@ -39,12 +52,18 @@ export default function EditFeedbackPage() {
                 <div>
                 <h1 className="text-2xl font-bold tracking-tight">编辑课后反馈</h1>
                 <p className="text-sm text-muted-foreground mt-1">
-                    学员：{student.name} | 科目：{order.subject}
+                    学员：{student.name} {order && `| 科目：${order.subject}`}
                 </p>
                 </div>
             </div>
 
-            <FeedbackForm orderId={orderId} initialData={feedback} mode="edit" />
+            <FeedbackForm 
+                studentId={feedback.studentId}
+                studentName={student.name}
+                orderId={feedback.orderId}
+                initialData={feedback} 
+                mode="edit" 
+            />
         </div>
     )
 }

@@ -24,18 +24,27 @@ import { mockFeedbacks } from "@/lib/mock-data/feedbacks"
 import { LessonFeedbackRecord } from "@/types"
 
 interface FeedbackFormProps {
-    orderId: string
+    studentId: string
+    studentName: string
+    orderId?: string  // 改为可选
     initialData?: LessonFeedbackRecord
     mode?: 'create' | 'edit'
 }
 
-export function FeedbackForm({ orderId, initialData, mode = 'create' }: FeedbackFormProps) {
+export function FeedbackForm({ studentId, studentName, orderId, initialData, mode = 'create' }: FeedbackFormProps) {
     const router = useRouter()
     const { user } = useAuth()
 
-    // Data Fetching
-    const order = React.useMemo(() => mockOrders.find(o => o.id === orderId), [orderId])
-    const student = React.useMemo(() => order ? mockStudents.find(s => s.id === order.studentId) : null, [order])
+    // Data Fetching - 优先使用传入的 studentName，如果没有则从 mockStudents 查找
+    const student = React.useMemo(() => {
+        if (studentName) {
+            return { id: studentId, name: studentName }
+        }
+        return mockStudents.find(s => s.id === studentId) || { id: studentId, name: '未知学生' }
+    }, [studentId, studentName])
+
+    // 如果提供了orderId，尝试获取订单信息（用于显示科目等）
+    const order = React.useMemo(() => orderId ? mockOrders.find(o => o.id === orderId) : null, [orderId])
 
     // Form State
     const [date, setDate] = React.useState(initialData?.date || format(new Date(), "yyyy-MM-dd"))
@@ -83,10 +92,10 @@ ${performance || '孩子今天上课表现很棒，能够积极配合老师的�
 ${homework || '- 请按时完成课后作业\n- 及时复习今日所学内容'}
 
 如有学习相关问题，欢迎随时沟通，我们将持续跟进孩子的学习状态，稳步提升${order?.subject || '学习'}能力 💪
-
+${orderId ? `
 📣 家长课堂反馈
 为持续优化教学体验，诚邀您对本节课进行简单反馈（约10秒完成）：
-👉 点击填写反馈：${window.location.origin}/p/feedback/${orderId}`
+👉 点击填写反馈：${window.location.origin}/p/feedback/${orderId}` : ''}`
             
             setGeneratedText(text)
             setIsGenerating(false)
@@ -104,8 +113,9 @@ ${homework || '- 请按时完成课后作业\n- 及时复习今日所学内容'}
         if (mode === 'create') {
             const newFeedback: LessonFeedbackRecord = {
                 id: `fb-new-${Date.now()}`,
-                orderId,
-                studentId: student?.id || '',
+                orderId: orderId,  // 可选，可能为 undefined
+                studentId: studentId,
+                studentName: student?.name || studentName,  // 保存学生姓名
                 teacherId: user?.id || '',
                 date,
                 startTime,
@@ -128,11 +138,12 @@ ${homework || '- 请按时完成课后作业\n- 及时复习今日所学内容'}
              alert("反馈已更新")
         }
         
-        router.push(`/my-students/feedback/${orderId}`)
+        // 返回到我的学员页面
+        router.push('/my-students')
     }
 
-    if (!order || !student) {
-        return <div>订单不存在</div>
+    if (!student) {
+        return <div>学生信息不存在</div>
     }
 
     return (

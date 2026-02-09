@@ -69,13 +69,14 @@ export default function StudyPlanListPage() {
       const orders = getStoredOrders()
 
       const enrichedPlans = rawPlans.map(plan => {
-        const order = orders.find(o => o.id === plan.orderId)
+        const order = plan.orderId ? orders.find(o => o.id === plan.orderId) : null
         const student = students.find(s => s.id === plan.studentId)
         const teacher = users.find(u => u.id === plan.teacherId)
 
         return {
           ...plan,
-          studentName: student?.name || "未知学生",
+          // 优先使用 plan.studentName（弱绑定时保存的姓名），如果没有则从 students 查找
+          studentName: plan.studentName || student?.name || "未知学生",
           teacherName: teacher?.name || "未知教练",
           subject: order?.subject || "-",
           grade: order?.grade || "-"

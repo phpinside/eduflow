@@ -24,6 +24,8 @@ export interface User {
   campusName?: string        // 9800校区名称
   campusAccount?: string     // 9800校区账号
   recommendedForTrial?: boolean // 系统推荐试课
+  managerId?: string         // 归属的学管ID（伴学教练专用）
+  managerName?: string       // 归属的学管姓名（冗余字段，便于展示）
   createdAt: Date
   updatedAt: Date
 }
@@ -155,8 +157,9 @@ export interface ReviewInfo {
 
 export interface StudyPlan {
   id: string
-  orderId: string
+  orderId?: string  // 改为可选，支持弱绑定
   studentId: string
+  studentName?: string  // 新增学生姓名字段
   teacherId: string
   fileUrl: string
   fileName: string
@@ -176,8 +179,9 @@ export interface ParentFeedback {
 
 export interface LessonFeedbackRecord {
   id: string
-  orderId: string
+  orderId?: string  // 改为可选，支持弱绑定
   studentId: string
+  studentName?: string  // 新增学生姓名字段
   teacherId: string
   date: string
   startTime: string

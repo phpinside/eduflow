@@ -58,6 +58,11 @@ export default function UserManagementPage() {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [editForm, setEditForm] = useState<Partial<User>>({})
 
+  // Manager Selection State
+  const [managers, setManagers] = useState<User[]>([])
+  const [managerSearchTerm, setManagerSearchTerm] = useState("")
+  const [filteredManagers, setFilteredManagers] = useState<User[]>([])
+
   useEffect(() => {
     loadUsers()
   }, [])
@@ -71,6 +76,15 @@ export default function UserManagementPage() {
       status: user.status || UserStatus.PENDING
     }))
     setUsers(usersWithStatus)
+    
+    // Load manager list (only approved managers)
+    const managerList = usersWithStatus.filter(u => 
+      u.roles.includes(Role.MANAGER) && 
+      u.status === UserStatus.APPROVED
+    )
+    setManagers(managerList)
+    setFilteredManagers(managerList)
+    
     setIsLoading(false)
   }
 
@@ -111,7 +125,23 @@ export default function UserManagementPage() {
   const openEditDialog = (user: User) => {
     setSelectedUser(user)
     setEditForm({ ...user })
+    setManagerSearchTerm("")
+    setFilteredManagers(managers)
     setIsEditOpen(true)
+  }
+
+  const handleManagerSearch = (searchValue: string) => {
+    setManagerSearchTerm(searchValue)
+    if (!searchValue.trim()) {
+      setFilteredManagers(managers)
+      return
+    }
+    
+    const filtered = managers.filter(m => 
+      m.id.toLowerCase().includes(searchValue.toLowerCase()) ||
+      m.name.toLowerCase().includes(searchValue.toLowerCase())
+    )
+    setFilteredManagers(filtered)
   }
 
   const handleUpdateUser = () => {
@@ -123,6 +153,7 @@ export default function UserManagementPage() {
     saveMockData(STORAGE_KEYS.USERS, updatedUsers)
     setUsers(updatedUsers)
     setIsEditOpen(false)
+    setManagerSearchTerm("")
     toast.success("用户信息更新成功")
   }
 
@@ -367,6 +398,7 @@ export default function UserManagementPage() {
                   <TableHead>姓名</TableHead>
                   <TableHead>手机号</TableHead>
                   <TableHead>角色</TableHead>
+                  <TableHead>学管</TableHead>
                   <TableHead>状态</TableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>
@@ -374,7 +406,7 @@ export default function UserManagementPage() {
               <TableBody>
                 {paginatedUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       暂无已审核用户
                     </TableCell>
                   </TableRow>
@@ -387,6 +419,19 @@ export default function UserManagementPage() {
                         <div className="flex gap-1 flex-wrap">
                           {user.roles.map(r => <span key={r}>{getRoleBadge(r)}</span>)}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {user.roles.includes(Role.TUTOR) ? (
+                          user.managerName ? (
+                            <span className="text-sm">{user.managerName}</span>
+                          ) : (
+                            <Badge variant="outline" className="text-yellow-600">
+                              未分配
+                            </Badge>
+                          )
+                        ) : (
+                          <span className="text-muted-foreground text-sm">-</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         {getStatusBadge(user.status)}
@@ -571,6 +616,63 @@ export default function UserManagementPage() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* 仅伴学教练显示学管选择 */}
+            {editForm.roles?.includes(Role.TUTOR) && (
+              <div className="space-y-2">
+                <Label>归属学管</Label>
+                <div className="space-y-2">
+                  <Input 
+                    placeholder="输入学管ID或姓名搜索" 
+                    value={managerSearchTerm}
+                    onChange={(e) => handleManagerSearch(e.target.value)}
+                  />
+                  
+                  {/* 当前选中的学管 */}
+                  {editForm.managerId && (
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                      <div className="text-sm font-medium">当前学管</div>
+                      <div className="text-sm text-muted-foreground mt-1">
+                        {editForm.managerName} (ID: {editForm.managerId})
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* 学管选择列表 */}
+                  {managerSearchTerm && filteredManagers.length > 0 && (
+                    <div className="border rounded-md max-h-48 overflow-y-auto">
+                      {filteredManagers.map(manager => (
+                        <div
+                          key={manager.id}
+                          className="p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
+                          onClick={() => {
+                            setEditForm({
+                              ...editForm, 
+                              managerId: manager.id,
+                              managerName: manager.name
+                            })
+                            setManagerSearchTerm("")
+                            setFilteredManagers(managers)
+                          }}
+                        >
+                          <div className="font-medium text-sm">{manager.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            ID: {manager.id} | 手机: {manager.phone}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* 搜索无结果提示 */}
+                  {managerSearchTerm && filteredManagers.length === 0 && (
+                    <div className="p-3 text-sm text-muted-foreground text-center border rounded-md">
+                      未找到匹配的学管
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {(editForm.roles?.includes(Role.SALES)) && (
               <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">

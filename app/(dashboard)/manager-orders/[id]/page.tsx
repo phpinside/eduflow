@@ -23,6 +23,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
 
 import { mockOrders } from "@/lib/mock-data/orders"
 import { mockStudents } from "@/lib/mock-data/students"
@@ -38,6 +40,94 @@ const STATUS_MAP: Record<OrderStatus, string> = {
   [OrderStatus.CANCEL_REQUESTED]: "取消申请中",
 }
 
+// 星期映射
+const DAY_MAP: Record<string, string> = {
+  monday: '周一',
+  tuesday: '周二',
+  wednesday: '周三',
+  thursday: '周四',
+  friday: '周五',
+  saturday: '周六',
+  sunday: '周日'
+}
+
+// 电话脱敏
+const maskPhone = (phone: string) => {
+  if (!phone || phone.length < 11) return phone
+  return phone.slice(0, 3) + '****' + phone.slice(-4)
+}
+
+// 从地址提取城市
+const extractCity = (address?: string) => {
+  if (!address) return ''
+  // 提取城市名称，如"北京市"、"深圳市"等
+  const match = address.match(/^(.{2,3}[市省])/)
+  return match ? match[1].replace(/[市省]$/, '') : ''
+}
+
+// 生成群公告文本
+const generateAnnouncementText = (
+  order: any,
+  student: any
+): string => {
+  if (!order || !student) return ''
+
+  const city = extractCity(student.address) || order.campusName?.replace(/校区$/, '') || '未知'
+  const learningStatus = order.remarks || '未按校内进度｜无补课经历'
+  const otherSubjects = '整体一般'
+  const maskedPhone = maskPhone(student.parentPhone)
+
+  if (order.type === OrderType.TRIAL) {
+    // 体验课格式
+    const trialTime = order.scheduledAt 
+      ? format(new Date(order.scheduledAt), 'M月d日（EEEE）HH:mm', { locale: zhCN }).replace(/星期/, '周')
+      : '待定'
+
+    return `【体验课排课｜${order.subject}】🎯
+
+🆔 校区账号：${order.campusAccount || '待补充'}
+🆔 学生账号：${order.studentAccount || '待补充'}
+
+学生：${student.name}｜${student.gender}｜${order.grade}
+地区/学校：${city} · ${student.school || '待补充'}
+${order.subject}成绩：${order.lastExamScore || '未知'}分${order.examMaxScore ? `｜卷面满分:${order.examMaxScore}分` : ''}
+教材版本：${order.textbookVersion || '待补充'}
+学习情况：${learningStatus}
+其他科目：${otherSubjects}
+
+📞 家长电话：${maskedPhone}
+🕗 试课时间：${trialTime}`
+  } else {
+    // 正课格式
+    const scheduleLines = order.weeklySchedule && order.weeklySchedule.length > 0
+      ? order.weeklySchedule.map((s: any) => `${DAY_MAP[s.day] || s.day}：${s.startTime}–${s.endTime}`).join('\n')
+      : '待排课'
+
+    // 计算首次上课时间（这里简化处理，用户可以手动编辑）
+    const firstClassTime = '待确认'
+
+    return `【正课排课｜${order.subject}】📘
+
+🆔 校区账号：${order.campusAccount || '待补充'}
+🆔 学生账号：${order.studentAccount || '待补充'}
+
+学生：${student.name}｜${student.gender}｜${order.grade}
+地区/学校：${city} · ${student.school || '待补充'}
+${order.subject}成绩：${order.lastExamScore || '未知'} / ${order.examMaxScore || '未知'}
+教材版本：${order.textbookVersion || '待补充'}
+学习情况：${learningStatus}
+其他科目：${otherSubjects}
+
+📞 家长电话：${maskedPhone}
+
+🕘 上课时间：
+${scheduleLines}
+
+📌 首次上课：${firstClassTime}
+📚 总课时：${order.totalHours} 课时`
+  }
+}
+
 export default function ManagerOrderDetailsPage() {
   const params = useParams()
   const router = useRouter()
@@ -47,6 +137,10 @@ export default function ManagerOrderDetailsPage() {
   const [order, setOrder] = React.useState(() => 
     mockOrders.find((o) => o.id === id)
   )
+
+  // 群公告对话框状态
+  const [isAnnouncementDialogOpen, setIsAnnouncementDialogOpen] = React.useState(false)
+  const [announcementText, setAnnouncementText] = React.useState("")
 
   const student = React.useMemo(() => 
     order ? mockStudents.find((s) => s.id === order.studentId) : null,
@@ -136,6 +230,25 @@ export default function ManagerOrderDetailsPage() {
     toast.success("订单已重置为待接单，原老师处已标记转走")
   }
 
+  // 打开群公告对话框
+  const handleOpenAnnouncementDialog = () => {
+    if (order && student) {
+      const text = generateAnnouncementText(order, student)
+      setAnnouncementText(text)
+      setIsAnnouncementDialogOpen(true)
+    }
+  }
+
+  // 复制群公告到剪贴板
+  const handleCopyAnnouncement = async () => {
+    try {
+      await navigator.clipboard.writeText(announcementText)
+      toast.success("已复制到剪贴板")
+    } catch (err) {
+      toast.error("复制失败，请手动复制")
+    }
+  }
+
   return (
     <div className="space-y-6 container mx-auto pb-10 max-w-5xl">
       {/* Header */}
@@ -158,12 +271,23 @@ export default function ManagerOrderDetailsPage() {
         </div>
         
         {/* Actions */}
-        {(order.status === OrderStatus.IN_PROGRESS || order.status === OrderStatus.ASSIGNED) && (
-            <Button variant="outline" className="text-orange-600 border-orange-200 hover:bg-orange-50 hover:text-orange-700" onClick={handleSetPending}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                重新进入接单中心
-            </Button>
-        )}
+        <div className="flex gap-3">
+          <Button 
+            size="lg"
+            onClick={handleOpenAnnouncementDialog}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <FileText className="mr-2 h-5 w-5" />
+            生成群公告
+          </Button>
+          
+          {(order.status === OrderStatus.IN_PROGRESS || order.status === OrderStatus.ASSIGNED) && (
+              <Button variant="outline" className="text-orange-600 border-orange-200 hover:bg-orange-50 hover:text-orange-700" onClick={handleSetPending}>
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  重新进入接单中心
+              </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
@@ -397,6 +521,34 @@ export default function ManagerOrderDetailsPage() {
             </Card>
         </div>
       </div>
+
+      {/* 群公告对话框 */}
+      <Dialog open={isAnnouncementDialogOpen} onOpenChange={setIsAnnouncementDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>生成群公告</DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-auto">
+            <Textarea
+              value={announcementText}
+              onChange={(e) => setAnnouncementText(e.target.value)}
+              className="min-h-[400px] font-mono text-sm resize-none"
+              placeholder="群公告内容将在这里生成..."
+            />
+          </div>
+
+          <DialogFooter className="mt-4">
+            <Button 
+              onClick={handleCopyAnnouncement}
+              className="w-full bg-green-600 hover:bg-green-700"
+              size="lg"
+            >
+              复制到剪贴板
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

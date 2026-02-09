@@ -69,13 +69,14 @@ export default function StudyPlanReviewPage() {
       const students = getStoredStudents()
       const orders = getStoredOrders()
 
-      const order = orders.find(o => o.id === foundPlan.orderId)
+      const order = foundPlan.orderId ? orders.find(o => o.id === foundPlan.orderId) : null
       const student = students.find(s => s.id === foundPlan.studentId)
       const teacher = users.find(u => u.id === foundPlan.teacherId)
 
       setPlan({
         ...foundPlan,
-        studentName: student?.name || "未知学生",
+        // 优先使用 foundPlan.studentName（弱绑定时保存的姓名），如果没有则从 students 查找
+        studentName: foundPlan.studentName || student?.name || "未知学生",
         teacherName: teacher?.name || "未知教练",
         teacherAvatar: teacher?.avatar,
         subject: order?.subject || "-",

@@ -40,12 +40,16 @@ export default function FeedbackListPage() {
     const order = React.useMemo(() => mockOrders.find(o => o.id === orderId), [orderId])
     const student = React.useMemo(() => order ? mockStudents.find(s => s.id === order.studentId) : null, [order])
     
-    // Fetch Feedbacks
+    // Fetch Feedbacks - 支持弱绑定，orderId 可能为空
     const feedbacks = React.useMemo(() => {
         return mockFeedbacks.filter(f => f.orderId === orderId).sort((a, b) => 
             new Date(b.date).getTime() - new Date(a.date).getTime()
-        )
-    }, [orderId])
+        ).map(feedback => ({
+            ...feedback,
+            // 优先使用 feedback.studentName（弱绑定保存的姓名）
+            displayStudentName: feedback.studentName || student?.name || "未知学生"
+        }))
+    }, [orderId, student])
 
     // Parent Feedback Dialog
     const [selectedParentFeedback, setSelectedParentFeedback] = React.useState<LessonFeedbackRecord['parentFeedback'] | null>(null)
