@@ -42,7 +42,12 @@ export default function CreateFeedbackPage() {
                 </div>
             </div>
 
-            <FeedbackForm orderId={orderId} mode="create" />
+            <FeedbackForm 
+                studentId={student.id}
+                studentName={student.name}
+                orderId={orderId}
+                mode="create" 
+            />
         </div>
     )
 }

@@ -46,20 +46,32 @@ export function StudentSelectorDialog({
   const [selectedStudent, setSelectedStudent] = React.useState<string>("")
   const [showStudentList, setShowStudentList] = React.useState(false)
 
-  // 获取教师的学员列表
+  // 获取教师的学员列表（带科目信息）
   const myStudents = React.useMemo(() => {
     if (!user) return []
     
-    // 获取该教师的所有订单对应的学生
-    const studentIds = new Set<string>()
+    // 获取该教师的所有订单
+    const studentMap = new Map<string, { student: typeof mockStudents[0], subjects: string[] }>()
+    
     mockOrders.forEach(order => {
       if (order.assignedTeacherId === user.id || order.transferredOutFrom === user.id) {
-        studentIds.add(order.studentId)
+        const student = mockStudents.find(s => s.id === order.studentId)
+        if (student) {
+          if (!studentMap.has(student.id)) {
+            studentMap.set(student.id, { student, subjects: [] })
+          }
+          if (order.subject && !studentMap.get(student.id)!.subjects.includes(order.subject)) {
+            studentMap.get(student.id)!.subjects.push(order.subject)
+          }
+        }
       }
     })
 
-    // 从mockStudents中获取学生信息
-    return mockStudents.filter(student => studentIds.has(student.id))
+    // 转换为数组，包含科目信息
+    return Array.from(studentMap.values()).map(({ student, subjects }) => ({
+      ...student,
+      subjectsText: subjects.join('、')
+    }))
   }, [user])
 
   const handleSelectFromList = (studentId: string) => {
@@ -157,7 +169,7 @@ export function StudentSelectorDialog({
                       {myStudents.map((student) => (
                         <CommandItem
                           key={student.id}
-                          value={`${student.name} ${student.grade} ${student.subject}`}
+                          value={`${student.name} ${student.grade} ${student.subjectsText}`}
                           onSelect={() => handleSelectFromList(student.id)}
                         >
                           <div className="flex items-center gap-3 w-full">
@@ -167,7 +179,7 @@ export function StudentSelectorDialog({
                             <div className="flex-1 min-w-0">
                               <div className="font-medium">{student.name}</div>
                               <div className="text-xs text-muted-foreground truncate">
-                                {student.grade} · {student.subject}
+                                {student.grade} {student.subjectsText && `· ${student.subjectsText}`}
                               </div>
                             </div>
                             {selectedStudent === student.id && (
