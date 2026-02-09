@@ -15,9 +15,8 @@ export interface PriceRule {
   isEnabled: boolean;
 }
 
-export const SUBJECTS = [
-  "数学", "语文", "英语", "物理", "化学", "生物", "历史", "地理", "政治"
-];
+// 学科数据从教学科目配置中动态获取，这里不再硬编码
+// 请使用 getStoredSubjects() 获取可用的学科列表
 
 export const GRADES = [
   "一年级", "二年级", "三年级", "四年级", "五年级", "六年级",
@@ -38,11 +37,11 @@ export const mockPriceRules: PriceRule[] = [
   },
   {
     id: "rule-2",
-    subject: "英语",
-    grade: "初二",
-    regularPrice: 200, 
+    subject: "小学奥数",
+    grade: "三年级",
+    regularPrice: 180, 
     trialPrice: 0,
-    trialDuration: 45,
+    trialDuration: 60,
     trialReward: 50,
     isEnabled: true,
   },
@@ -54,6 +53,6 @@ export const mockPriceRules: PriceRule[] = [
     trialPrice: 0,
     trialDuration: 60,
     trialReward: 60,
-    isEnabled: false,
+    isEnabled: true,
   }
 ];

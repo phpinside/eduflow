@@ -311,3 +311,16 @@ export interface TutorIncomeSummary {
   createdAt: Date
   updatedAt: Date
 }
+
+// ========== 教学科目 ==========
+
+// 教学科目接口
+export interface Subject {
+  id: string
+  code: string                       // 科目编号
+  name: string                       // 科目名称
+  description: string                // 科目简介
+  enabled: boolean                   // 是否启用
+  createdAt: Date
+  updatedAt: Date
+}

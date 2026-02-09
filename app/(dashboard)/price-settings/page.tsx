@@ -54,12 +54,13 @@ import { toast } from "sonner"
 import { 
   PriceRule, 
   mockPriceRules, 
-  SUBJECTS, 
   GRADES 
 } from "@/lib/mock-data/price-settings"
+import { getStoredSubjects } from "@/lib/storage"
+import { Subject } from "@/types"
 
-const formSchema = z.object({
-  subject: z.string().min(1, "请选择学科"),
+  const formSchema = z.object({
+  subject: z.string().min(1, "请选择教学科目"),
   grade: z.string().min(1, "请选择年级"),
   regularPrice: z.coerce.number().min(0, "价格不能为负数"),
   trialPrice: z.coerce.number().min(0, "价格不能为负数"),
@@ -73,6 +74,13 @@ export default function PriceSettingsPage() {
   const [dialogOpen, setDialogOpen] = React.useState(false)
   const [editingRule, setEditingRule] = React.useState<PriceRule | null>(null)
   const [subjectFilter, setSubjectFilter] = React.useState<string>("ALL")
+  const [subjects, setSubjects] = React.useState<Subject[]>([])
+
+  // 加载科目数据
+  React.useEffect(() => {
+    const storedSubjects = getStoredSubjects()
+    setSubjects(storedSubjects)
+  }, [])
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema) as any,
@@ -112,6 +120,11 @@ export default function PriceSettingsPage() {
     }
   }, [editingRule, form])
 
+  // 获取已启用的科目列表
+  const enabledSubjects = React.useMemo(() => {
+    return subjects.filter(s => s.enabled)
+  }, [subjects])
+
   const filteredRules = React.useMemo(() => {
     if (subjectFilter === "ALL") return rules
     return rules.filter((rule) => rule.subject === subjectFilter)
@@ -134,7 +147,7 @@ export default function PriceSettingsPage() {
         (r) => r.subject === values.subject && r.grade === values.grade
       )
       if (exists) {
-        toast.error("该学科和年级的规则已存在")
+        toast.error("该教学科目和年级的规则已存在")
         return
       }
 
@@ -181,7 +194,7 @@ export default function PriceSettingsPage() {
     <div className="space-y-6 container mx-auto pb-10">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">价格配置表</h1>
-        <p className="text-muted-foreground">管理不同年级、学科的课时价格及试课规则。</p>
+        <p className="text-muted-foreground">管理不同年级、教学科目的课时价格及试课规则。</p>
       </div>
 
       <Card>
@@ -200,13 +213,13 @@ export default function PriceSettingsPage() {
              </div>
              <Select value={subjectFilter} onValueChange={setSubjectFilter}>
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="选择学科" />
+                <SelectValue placeholder="选择教学科目" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">全部学科</SelectItem>
-                {SUBJECTS.map((subject) => (
-                  <SelectItem key={subject} value={subject}>
-                    {subject}
+                <SelectItem value="ALL">全部教学科目</SelectItem>
+                {enabledSubjects.map((subject) => (
+                  <SelectItem key={subject.id} value={subject.name}>
+                    {subject.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -217,7 +230,7 @@ export default function PriceSettingsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>学科</TableHead>
+                  <TableHead>教学科目</TableHead>
                   <TableHead>年级</TableHead>
                   <TableHead>正课价格(元/课时)</TableHead>
                   <TableHead>试课价格(元)</TableHead>
@@ -282,7 +295,7 @@ export default function PriceSettingsPage() {
           <DialogHeader>
             <DialogTitle>{editingRule ? "编辑规则" : "添加规则"}</DialogTitle>
             <DialogDescription>
-              配置特定年级和学科的价格及课程规则。
+              配置特定年级和教学科目的价格及课程规则。
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -293,17 +306,21 @@ export default function PriceSettingsPage() {
                   name="subject"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>学科</FormLabel>
+                      <FormLabel>教学科目</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="选择学科" />
+                            <SelectValue placeholder="选择教学科目" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {SUBJECTS.map((s) => (
-                            <SelectItem key={s} value={s}>{s}</SelectItem>
-                          ))}
+                          {enabledSubjects.length > 0 ? (
+                            enabledSubjects.map((s) => (
+                              <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="" disabled>暂无可用科目</SelectItem>
+                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />

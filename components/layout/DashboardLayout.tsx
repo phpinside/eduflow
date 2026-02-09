@@ -15,6 +15,7 @@ import {
   Settings,
   ShieldAlert,
   BarChart3,
+  BookOpen,
   LogOut,
   Menu,
   X,
@@ -138,6 +139,12 @@ const navItems: NavItem[] = [
     href: "/tutor-income",
     icon: BarChart3,
     roles: [Role.OPERATOR]
+  },
+  {
+    title: "教学科目配置",
+    href: "/subject-settings",
+    icon: BookOpen,
+    roles: [Role.ADMIN]
   },
   {
     title: "价格配置表",
