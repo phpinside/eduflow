@@ -184,6 +184,7 @@ export default function MyStudentsPage() {
                             <TableHead className="w-[100px]">科目</TableHead>
                             <TableHead>上课时间</TableHead>
                             <TableHead className="w-[150px]">课时情况</TableHead>
+                            <TableHead className="text-right">操作</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -245,11 +246,27 @@ export default function MyStudentsPage() {
                                             </div>
                                         </div>
                                     </TableCell>
+                                    <TableCell className="text-right">
+                                        <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                                            <Button variant="outline" size="sm" className="h-8" asChild>
+                                                <Link href={`/my-students/study-plan/create?studentId=${order.studentId}&studentName=${encodeURIComponent(order.studentName)}`}>
+                                                    <FileText className="h-3.5 w-3.5 mr-1" />
+                                                    学习规划书
+                                                </Link>
+                                            </Button>
+                                            <Button size="sm" className="h-8" asChild>
+                                                <Link href={`/my-students/feedback/create?studentId=${order.studentId}&studentName=${encodeURIComponent(order.studentName)}`}>
+                                                    <MessageSquare className="h-3.5 w-3.5 mr-1" />
+                                                    课后反馈
+                                                </Link>
+                                            </Button>
+                                        </div>
+                                    </TableCell>
                                 </TableRow>
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={5} className="h-24 text-center">
+                                <TableCell colSpan={6} className="h-24 text-center">
                                     <div className="flex flex-col items-center justify-center text-muted-foreground">
                                         <p>没有找到符合条件的学员</p>
                                     </div>

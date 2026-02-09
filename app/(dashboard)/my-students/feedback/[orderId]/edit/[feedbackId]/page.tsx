@@ -52,7 +52,7 @@ export default function EditFeedbackPage() {
                 <div>
                 <h1 className="text-2xl font-bold tracking-tight">编辑课后反馈</h1>
                 <p className="text-sm text-muted-foreground mt-1">
-                    学员：{student.name} {order && `| 科目：${order.subject}`}
+                    学员：{student.name} (ID: {student.id}) {order && `| 科目：${order.subject}`}
                 </p>
                 </div>
             </div>

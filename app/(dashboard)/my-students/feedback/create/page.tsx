@@ -31,7 +31,7 @@ export default function CreateFeedbackPage() {
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">填写课后反馈</h1>
                     <p className="text-sm text-muted-foreground mt-1">
-                        学员：{studentName || studentId}
+                        学员：{studentName || '未知学生'} {studentId && `(ID: ${studentId})`}
                     </p>
                 </div>
             </div>
