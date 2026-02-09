@@ -7,6 +7,13 @@ import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
+import { Upload, X, Plus, Image as ImageIcon } from "lucide-react"
+
+interface CustomerService {
+  id: string
+  name: string
+  qrCodeUrl: string
+}
 
 export default function GlobalSettingsPage() {
   const [loading, setLoading] = useState(false)
@@ -23,6 +30,74 @@ export default function GlobalSettingsPage() {
 
   // Team Settings
   const [managerTeamLimit, setManagerTeamLimit] = useState("100")
+
+  // WeChat Customer Service Settings
+  const [customerServices, setCustomerServices] = useState<CustomerService[]>([
+    {
+      id: "1",
+      name: "客服小张",
+      qrCodeUrl: ""
+    }
+  ])
+
+  // Customer Service handlers
+  const handleAddCustomerService = () => {
+    const newService: CustomerService = {
+      id: Date.now().toString(),
+      name: "",
+      qrCodeUrl: ""
+    }
+    setCustomerServices([...customerServices, newService])
+  }
+
+  const handleRemoveCustomerService = (id: string) => {
+    setCustomerServices(customerServices.filter(cs => cs.id !== id))
+  }
+
+  const handleUpdateCustomerServiceName = (id: string, name: string) => {
+    setCustomerServices(customerServices.map(cs => 
+      cs.id === id ? { ...cs, name } : cs
+    ))
+  }
+
+  const handleUploadQRCode = async (id: string, file: File) => {
+    try {
+      // 验证文件类型
+      if (!file.type.startsWith('image/')) {
+        toast.error("请上传图片文件")
+        return
+      }
+
+      // 验证文件大小 (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("图片大小不能超过 5MB")
+        return
+      }
+
+      // 创建本地预览 URL
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const url = e.target?.result as string
+        setCustomerServices(customerServices.map(cs => 
+          cs.id === id ? { ...cs, qrCodeUrl: url } : cs
+        ))
+      }
+      reader.readAsDataURL(file)
+
+      // TODO: 实际项目中应该上传到服务器
+      // const formData = new FormData()
+      // formData.append('file', file)
+      // const response = await fetch('/api/upload', { method: 'POST', body: formData })
+      // const data = await response.json()
+      // setCustomerServices(customerServices.map(cs => 
+      //   cs.id === id ? { ...cs, qrCodeUrl: data.url } : cs
+      // ))
+
+      toast.success("二维码上传成功")
+    } catch (error) {
+      toast.error("上传失败，请重试")
+    }
+  }
 
   const handleSave = async () => {
     setLoading(true)
@@ -140,6 +215,119 @@ export default function GlobalSettingsPage() {
                   onChange={(e) => setManagerTeamLimit(e.target.value)}
                 />
               </div>
+          </CardContent>
+        </Card>
+
+        {/* WeChat Customer Service Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle>企业微信客服</CardTitle>
+            <CardDescription>配置企业微信客服信息，支持添加多名客服。</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {customerServices.map((service, index) => (
+              <div key={service.id} className="border rounded-lg p-6 space-y-4 relative">
+                {/* 删除按钮 */}
+                {customerServices.length > 1 && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-4 right-4 h-8 w-8"
+                    onClick={() => handleRemoveCustomerService(service.id)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+                
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm text-muted-foreground">客服 #{index + 1}</span>
+                  </div>
+                  
+                  {/* 客服名称 */}
+                  <div className="space-y-2">
+                    <Label htmlFor={`service-name-${service.id}`}>客服名称</Label>
+                    <Input
+                      id={`service-name-${service.id}`}
+                      placeholder="请输入客服名称，例如：客服小张"
+                      value={service.name}
+                      onChange={(e) => handleUpdateCustomerServiceName(service.id, e.target.value)}
+                    />
+                  </div>
+
+                  {/* 企业微信二维码 */}
+                  <div className="space-y-2">
+                    <Label>企业微信二维码</Label>
+                    <div className="flex items-start gap-4">
+                      {/* 二维码预览 */}
+                      <div className="flex-shrink-0">
+                        {service.qrCodeUrl ? (
+                          <div className="relative w-40 h-40 border-2 border-dashed rounded-lg overflow-hidden group">
+                            <img 
+                              src={service.qrCodeUrl} 
+                              alt={`${service.name}的二维码`}
+                              className="w-full h-full object-cover"
+                            />
+                            {/* 重新上传遮罩 */}
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <label htmlFor={`qr-upload-${service.id}`} className="cursor-pointer">
+                                <Upload className="h-8 w-8 text-white" />
+                                <input
+                                  id={`qr-upload-${service.id}`}
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0]
+                                    if (file) handleUploadQRCode(service.id, file)
+                                  }}
+                                />
+                              </label>
+                            </div>
+                          </div>
+                        ) : (
+                          <label 
+                            htmlFor={`qr-upload-${service.id}`}
+                            className="flex flex-col items-center justify-center w-40 h-40 border-2 border-dashed rounded-lg cursor-pointer hover:bg-accent transition-colors"
+                          >
+                            <ImageIcon className="h-8 w-8 text-muted-foreground mb-2" />
+                            <span className="text-xs text-muted-foreground text-center px-2">点击上传二维码</span>
+                            <input
+                              id={`qr-upload-${service.id}`}
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0]
+                                if (file) handleUploadQRCode(service.id, file)
+                              }}
+                            />
+                          </label>
+                        )}
+                      </div>
+
+                      {/* 上传说明 */}
+                      <div className="flex-1 space-y-2 text-sm text-muted-foreground">
+                        <p>• 支持 JPG、PNG、GIF 等图片格式</p>
+                        <p>• 图片大小不超过 5MB</p>
+                        <p>• 建议上传清晰的二维码图片</p>
+                        <p>• 用户可通过扫描二维码添加企业微信客服</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* 添加客服按钮 */}
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={handleAddCustomerService}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              添加客服
+            </Button>
           </CardContent>
         </Card>
 
