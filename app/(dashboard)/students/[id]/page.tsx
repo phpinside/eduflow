@@ -97,10 +97,6 @@ export default function StudentDetailsPage() {
                         <span className="text-muted-foreground">所在地区：</span>
                         <span>{student.region}</span>
                     </div>
-                    <div>
-                        <span className="text-muted-foreground">入学时间：</span>
-                        <span>{student.enrollmentDate}</span>
-                    </div>
                 </div>
             </CardContent>
         </Card>
@@ -124,6 +120,10 @@ export default function StudentDetailsPage() {
                         <span className="text-muted-foreground">亲属关系：</span>
                         <span>{RELATION_MAP[student.parentRelation] || student.parentRelation || "-"}</span>
                     </div>
+                    <div>
+                        <span className="text-muted-foreground">家长微信号：</span>
+                        <span>{student.wechat || "-"}</span>
+                    </div>
                 </div>
             </CardContent>
         </Card>
@@ -139,7 +139,7 @@ export default function StudentDetailsPage() {
                     <div className="space-y-3">
                         {student.academicRecords.map((record: any, index: number) => (
                             <div key={index} className="border rounded-lg p-4 bg-slate-50/50 dark:bg-slate-900/50">
-                                <div className="grid grid-cols-4 gap-4 text-sm">
+                                <div className="grid grid-cols-5 gap-4 text-sm">
                                     <div>
                                         <span className="text-muted-foreground">科目：</span>
                                         <span className="font-semibold">{record.subject}</span>
@@ -151,6 +151,10 @@ export default function StudentDetailsPage() {
                                     <div>
                                         <span className="text-muted-foreground">近期成绩：</span>
                                         <span>{record.currentScore || "-"}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground">卷面满分：</span>
+                                        <span>{record.fullScore || "-"}</span>
                                     </div>
                                     <div>
                                         <span className="text-muted-foreground">教材版本：</span>

@@ -12,7 +12,6 @@ import {
 import Link from "next/link"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Search, Plus, Filter, MoreHorizontal } from "lucide-react"
 import {
   DropdownMenu,
@@ -27,12 +26,6 @@ import { STUDENTS_MOCK } from "@/lib/mock-data"
 
 // Mock Data for Students used to be here, now imported
 const STUDENTS = STUDENTS_MOCK
-
-const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-  regular: { label: "正课学员", variant: "default" },
-  trial: { label: "试课学员", variant: "secondary" },
-  graduated: { label: "已结课", variant: "outline" },
-}
 
 export default function StudentsPage() {
   const [searchTerm, setSearchTerm] = React.useState("")
@@ -81,10 +74,8 @@ export default function StudentsPage() {
             <TableRow>
               <TableHead>姓名</TableHead>
               <TableHead>年级/科目</TableHead>
-              <TableHead>状态</TableHead>
               <TableHead>学校/地区</TableHead>
               <TableHead>家长联系方式</TableHead>
-              <TableHead>入学时间</TableHead>
               <TableHead className="text-right">操作</TableHead>
             </TableRow>
           </TableHeader>
@@ -106,11 +97,6 @@ export default function StudentsPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={STATUS_MAP[student.status].variant}>
-                      {STATUS_MAP[student.status].label}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
                     <div className="max-w-[200px] truncate" title={student.school}>
                         {student.school}
                     </div>
@@ -119,7 +105,6 @@ export default function StudentsPage() {
                     </div>
                   </TableCell>
                   <TableCell>{student.parentPhone}</TableCell>
-                  <TableCell>{student.enrollmentDate}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -147,7 +132,7 @@ export default function StudentsPage() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
+                <TableCell colSpan={5} className="h-24 text-center">
                   暂无学生数据
                 </TableCell>
               </TableRow>

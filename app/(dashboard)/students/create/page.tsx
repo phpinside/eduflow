@@ -58,6 +58,7 @@ const studentFormSchema = z.object({
     subject: z.string().min(1, "请选择科目"),
     studentAccount: z.string().optional(),
     currentScore: z.string().optional(),
+    fullScore: z.string().optional(),
     textbookVersion: z.string().optional(),
   })).optional(),
   learningStatus: z.string().optional(), // Textarea
@@ -102,7 +103,7 @@ export default function CreateStudentPage() {
   // Ensure at least one empty record exists on mount if empty
   React.useEffect(() => {
     if (fields.length === 0) {
-      append({ subject: "", studentAccount: "", currentScore: "", textbookVersion: "" })
+      append({ subject: "", studentAccount: "", currentScore: "", fullScore: "", textbookVersion: "" })
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -316,7 +317,7 @@ export default function CreateStudentPage() {
                 </div>
                 
                 {fields.map((field, index) => (
-                    <div key={field.id} className="grid gap-4 md:grid-cols-10 items-start p-4 border rounded-lg bg-slate-50/50 dark:bg-slate-900/50 relative">
+                    <div key={field.id} className="grid gap-4 md:grid-cols-12 items-start p-4 border rounded-lg bg-slate-50/50 dark:bg-slate-900/50 relative">
                         <div className="md:col-span-2">
                             <FormField
                                 control={form.control}
@@ -364,7 +365,22 @@ export default function CreateStudentPage() {
                                 <FormItem>
                                     <FormLabel className="text-xs">近期成绩</FormLabel>
                                     <FormControl>
-                                    <Input placeholder="分数/排名" className="h-9" {...field} />
+                                    <Input placeholder="分数" className="h-9" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                        </div>
+                        <div className="md:col-span-2">
+                            <FormField
+                                control={form.control}
+                                name={`academicRecords.${index}.fullScore`}
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-xs">卷面满分</FormLabel>
+                                    <FormControl>
+                                    <Input placeholder="如：100" className="h-9" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>

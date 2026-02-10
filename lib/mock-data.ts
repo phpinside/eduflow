@@ -7,6 +7,7 @@ export const STUDENTS_MOCK = [
     grade: "初二",
     subject: "数学",
     parentPhone: "13800138000",
+    wechat: "zhangxiaoming2024",
     region: "北京市海淀区",
     school: "人大附中",
     status: "regular", // regular, trial, graduated
@@ -17,9 +18,9 @@ export const STUDENTS_MOCK = [
     campusAccount: "beijing_01",
     studentAccount: "stu_001",
     academicRecords: [
-      { subject: "数学", studentAccount: "stu_001_math", currentScore: "85", textbookVersion: "人教版" },
-      { subject: "物理", studentAccount: "stu_001_physics", currentScore: "92", textbookVersion: "人教版" },
-      { subject: "英语", studentAccount: "stu_001_english", currentScore: "78", textbookVersion: "外研版" },
+      { subject: "数学", studentAccount: "stu_001_math", currentScore: "85", fullScore: "100", textbookVersion: "人教版" },
+      { subject: "物理", studentAccount: "stu_001_physics", currentScore: "92", fullScore: "100", textbookVersion: "人教版" },
+      { subject: "英语", studentAccount: "stu_001_english", currentScore: "78", fullScore: "100", textbookVersion: "外研版" },
     ],
   },
   {
@@ -29,6 +30,7 @@ export const STUDENTS_MOCK = [
     grade: "高一",
     subject: "英语",
     parentPhone: "13900139000",
+    wechat: "lixiaohong_mom",
     region: "上海市浦东新区",
     school: "建平中学",
     status: "trial",
@@ -39,8 +41,8 @@ export const STUDENTS_MOCK = [
     campusAccount: "shanghai_01",
     studentAccount: "stu_002",
     academicRecords: [
-      { subject: "英语", studentAccount: "stu_002_english", currentScore: "90", textbookVersion: "外研版" },
-      { subject: "数学", studentAccount: "stu_002_math", currentScore: "88", textbookVersion: "人教版" },
+      { subject: "英语", studentAccount: "stu_002_english", currentScore: "90", fullScore: "100", textbookVersion: "外研版" },
+      { subject: "数学", studentAccount: "stu_002_math", currentScore: "88", fullScore: "100", textbookVersion: "人教版" },
     ],
   },
   {
@@ -50,6 +52,7 @@ export const STUDENTS_MOCK = [
     grade: "初三",
     subject: "物理",
     parentPhone: "13700137000",
+    wechat: "wangdali_dad",
     region: "广州市天河区",
     school: "华师附中",
     status: "regular",
