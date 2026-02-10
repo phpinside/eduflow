@@ -238,10 +238,6 @@ export default function OrderDetailsPage() {
                     <School className="h-3 w-3" /> {student.school || "-"}
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <span className="text-muted-foreground">家庭住址</span>
-                  <div className="font-medium">{student.address || "-"}</div>
-                </div>
                 {/* Academic Info */}
                 {(order.lastExamScore || order.examMaxScore || order.textbookVersion) && (
                     <>

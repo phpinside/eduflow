@@ -89,21 +89,6 @@ export default function StudentDetailForTutorPage() {
                                     {student.parentName} {student.parentPhone}
                                 </div>
                             </div>
-                            <Separator />
-                            <div className="space-y-1">
-                                <span className="text-muted-foreground block text-xs">家庭住址</span>
-                                <div className="font-medium flex items-start gap-2">
-                                    <MapPin className="h-3.5 w-3.5 mt-0.5" />
-                                    <span className="flex-1">{student.address || "-"}</span>
-                                </div>
-                            </div>
-                             <Separator />
-                             <div className="space-y-1">
-                                <span className="text-muted-foreground block text-xs">入学时间</span>
-                                <div className="font-medium">
-                                    {format(new Date(student.createdAt), "yyyy年MM月dd日")}
-                                </div>
-                            </div>
                         </CardContent>
                     </Card>
                 </div>
