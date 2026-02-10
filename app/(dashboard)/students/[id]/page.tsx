@@ -175,6 +175,36 @@ export default function StudentDetailsPage() {
             </CardContent>
         </Card>
 
+        {/* 学习详情 */}
+        <Card className="md:col-span-2">
+            <CardHeader>
+                <CardTitle>学习详情</CardTitle>
+                <CardDescription>学生的详细学习情况</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="space-y-3 text-sm">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <span className="text-muted-foreground">其他科目平均成绩：</span>
+                            <span className="font-semibold ml-2">{student.otherSubjectsAverage ? `${student.otherSubjectsAverage}分` : "-"}</span>
+                        </div>
+                    </div>
+                    <div>
+                        <div className="text-muted-foreground font-medium mb-1">校内学习进度：</div>
+                        <div className="whitespace-pre-wrap bg-slate-50/50 dark:bg-slate-900/50 p-3 rounded-md">
+                            {student.schoolLearningProgress || "-"}
+                        </div>
+                    </div>
+                    <div>
+                        <div className="text-muted-foreground font-medium mb-1">补过什么类型的课：</div>
+                        <div className="whitespace-pre-wrap bg-slate-50/50 dark:bg-slate-900/50 p-3 rounded-md">
+                            {student.previousTutoringTypes || "-"}
+                        </div>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+
         {/* 系统信息 */}
          <Card className="md:col-span-2">
             <CardHeader>

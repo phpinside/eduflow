@@ -62,6 +62,9 @@ const studentFormSchema = z.object({
     textbookVersion: z.string().optional(),
   })).optional(),
   learningStatus: z.string().optional(), // Textarea
+  otherSubjectsAverage: z.string().optional(), // 其他科目平均成绩
+  schoolLearningProgress: z.string().optional(), // 校内学习进度
+  previousTutoringTypes: z.string().optional(), // 补过什么类型的课
 
   // System Info
   campusName: z.string().optional(),
@@ -89,6 +92,9 @@ export default function CreateStudentPage() {
       wechat: "",
       academicRecords: [],
       learningStatus: "",
+      otherSubjectsAverage: "",
+      schoolLearningProgress: "",
+      previousTutoringTypes: "",
       campusName: "",
       salesRep: "",
       source: "",
@@ -439,6 +445,62 @@ export default function CreateStudentPage() {
                   </FormItem>
                 )}
               />
+
+              <div className="grid gap-6 md:grid-cols-1">
+                <FormField
+                  control={form.control}
+                  name="otherSubjectsAverage"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>其他科目平均成绩</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number"
+                          placeholder="请输入平均分数，如：85" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="schoolLearningProgress"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>校内学习进度</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="描述学生在学校的学习进度情况..." 
+                          className="min-h-[80px]"
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="previousTutoringTypes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>补过什么类型的课</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="描述学生之前参加过的补习课程类型..." 
+                          className="min-h-[80px]"
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </CardContent>
           </Card>
 

@@ -17,6 +17,10 @@ export const STUDENTS_MOCK = [
     campusName: "北京校区",
     campusAccount: "beijing_01",
     studentAccount: "stu_001",
+    learningStatus: "学习态度认真，课堂积极性高，但做题速度较慢，需要加强练习。",
+    otherSubjectsAverage: "86",
+    schoolLearningProgress: "目前学习初二下学期内容，数学进度正常，物理稍微有点超前。",
+    previousTutoringTypes: "参加过线上1对1数学辅导，为期3个月；参加过暑期物理小班课程。",
     academicRecords: [
       { subject: "数学", studentAccount: "stu_001_math", currentScore: "85", fullScore: "100", textbookVersion: "人教版" },
       { subject: "物理", studentAccount: "stu_001_physics", currentScore: "92", fullScore: "100", textbookVersion: "人教版" },
@@ -40,6 +44,10 @@ export const STUDENTS_MOCK = [
     campusName: "上海校区",
     campusAccount: "shanghai_01",
     studentAccount: "stu_002",
+    learningStatus: "英语基础扎实，口语表达能力强，数学逻辑思维较好。",
+    otherSubjectsAverage: "86",
+    schoolLearningProgress: "高一上学期课程，英语已经学完必修一，数学进度跟上班级进度。",
+    previousTutoringTypes: "曾参加英语口语外教课程，持续一年；参加过数学竞赛辅导班。",
     academicRecords: [
       { subject: "英语", studentAccount: "stu_002_english", currentScore: "90", fullScore: "100", textbookVersion: "外研版" },
       { subject: "数学", studentAccount: "stu_002_math", currentScore: "88", fullScore: "100", textbookVersion: "人教版" },
