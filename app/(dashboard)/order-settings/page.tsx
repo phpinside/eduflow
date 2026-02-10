@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -16,9 +17,9 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { getStoredSubjects } from "@/lib/storage"
 
-const SUBJECTS = ["数学", "物理", "英语", "化学", "生物", "语文", "历史", "地理", "政治"] as const
-const GRADES = ["小学1-6年级", "初中1-3年级", "高中1-3年级"] as const
+const GRADES = ["一年级", "二年级", "三年级", "四年级", "五年级", "六年级", "七年级", "八年级", "九年级", "高一", "高二", "高三"] as const
 const COURSE_TYPES = ["试课", "正课"] as const
 
 const formSchema = z.object({
@@ -35,15 +36,32 @@ const formSchema = z.object({
 })
 
 export default function OrderSettingsPage() {
+  const [subjects, setSubjects] = useState<string[]>([])
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       isTakingOrders: true,
-      subjects: ["数学"],
-      grades: ["初中1-3年级"],
+      subjects: [],
+      grades: ["七年级"],
       courseTypes: ["试课", "正课"],
     },
   })
+
+  // 加载科目数据
+  useEffect(() => {
+    const storedSubjects = getStoredSubjects()
+    const enabledSubjects = storedSubjects
+      .filter(s => s.enabled)
+      .map(s => s.name)
+    setSubjects(enabledSubjects)
+    
+    // 设置默认科目（如果有数学就选中数学）
+    if (enabledSubjects.includes("数学")) {
+      form.setValue("subjects", ["数学"])
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function onSubmit(data: z.infer<typeof formSchema>) {
     toast.success("接单设置已保存", {
@@ -118,41 +136,47 @@ export default function OrderSettingsPage() {
                 name="subjects"
                 render={() => (
                   <FormItem>
-                    <div className="grid grid-cols-3 gap-4">
-                      {SUBJECTS.map((item) => (
-                        <FormField
-                          key={item}
-                          control={form.control}
-                          name="subjects"
-                          render={({ field }) => {
-                            return (
-                              <FormItem
-                                key={item}
-                                className="flex flex-row items-start space-x-3 space-y-0"
-                              >
-                                <FormControl>
-                                  <Checkbox
-                                    checked={field.value?.includes(item)}
-                                    onCheckedChange={(checked) => {
-                                      return checked
-                                        ? field.onChange([...field.value, item])
-                                        : field.onChange(
-                                            field.value?.filter(
-                                              (value) => value !== item
+                    {subjects.length === 0 ? (
+                      <p className="text-sm text-muted-foreground py-4">
+                        暂无可用科目，请先在科目配置页面添加科目。
+                      </p>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-4">
+                        {subjects.map((item) => (
+                          <FormField
+                            key={item}
+                            control={form.control}
+                            name="subjects"
+                            render={({ field }) => {
+                              return (
+                                <FormItem
+                                  key={item}
+                                  className="flex flex-row items-start space-x-3 space-y-0"
+                                >
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value?.includes(item)}
+                                      onCheckedChange={(checked) => {
+                                        return checked
+                                          ? field.onChange([...field.value, item])
+                                          : field.onChange(
+                                              field.value?.filter(
+                                                (value) => value !== item
+                                              )
                                             )
-                                          )
-                                    }}
-                                  />
-                                </FormControl>
-                                <FormLabel className="font-normal cursor-pointer">
-                                  {item}
-                                </FormLabel>
-                              </FormItem>
-                            )
-                          }}
-                        />
-                      ))}
-                    </div>
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <FormLabel className="font-normal cursor-pointer">
+                                    {item}
+                                  </FormLabel>
+                                </FormItem>
+                              )
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
                      {form.formState.errors.subjects && (
                         <p className="text-sm font-medium text-destructive mt-2">
                           {form.formState.errors.subjects.message}
@@ -175,7 +199,7 @@ export default function OrderSettingsPage() {
                 name="grades"
                 render={() => (
                   <FormItem>
-                    <div className="grid grid-cols-1 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
                       {GRADES.map((item) => (
                         <FormField
                           key={item}

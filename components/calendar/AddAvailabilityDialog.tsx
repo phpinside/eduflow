@@ -8,14 +8,12 @@ import { CalendarEvent } from '@/hooks/useCalendarData'
 import { SlotStatus } from '@/types'
 import { AlertTriangle } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { getStoredSubjects } from '@/lib/storage'
 
 interface AddAvailabilityDialogProps {
   isOpen: boolean
   onClose: () => void
   initialDate?: Date
-  onSave: (start: Date, end: Date, subjectId?: string) => void
+  onSave: (start: Date, end: Date) => void
   checkConflict: (start: Date, end: Date) => CalendarEvent[]
 }
 
@@ -29,15 +27,7 @@ export function AddAvailabilityDialog({
   const [dateStr, setDateStr] = useState('')
   const [startTimeStr, setStartTimeStr] = useState('09:00')
   const [endTimeStr, setEndTimeStr] = useState('10:00')
-  const [subjectId, setSubjectId] = useState<string>('')
   const [conflicts, setConflicts] = useState<CalendarEvent[]>([])
-  const [subjects, setSubjects] = useState<Array<{ id: string; name: string; enabled: boolean }>>([])
-
-  // 加载科目数据
-  useEffect(() => {
-    const storedSubjects = getStoredSubjects()
-    setSubjects(storedSubjects.filter(s => s.enabled))
-  }, [])
 
   useEffect(() => {
     if (initialDate) {
@@ -70,10 +60,8 @@ export function AddAvailabilityDialog({
   const handleSave = () => {
     const times = validateAndGetTimes()
     if (times) {
-      onSave(times.start, times.end, subjectId || undefined)
+      onSave(times.start, times.end)
       onClose()
-      // 重置表单
-      setSubjectId('')
     }
   }
 
@@ -117,21 +105,6 @@ export function AddAvailabilityDialog({
               onChange={(e) => setEndTimeStr(e.target.value)} 
               className="col-span-3" 
             />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="subject" className="text-right">教学科目</Label>
-            <Select value={subjectId} onValueChange={setSubjectId}>
-              <SelectTrigger className="col-span-3">
-                <SelectValue placeholder="请选择教学科目（可选）" />
-              </SelectTrigger>
-              <SelectContent>
-                {subjects.map((subject) => (
-                  <SelectItem key={subject.id} value={subject.id}>
-                    {subject.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
         </div>
 

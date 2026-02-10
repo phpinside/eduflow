@@ -48,13 +48,6 @@ export default function StudentDetailsPage() {
             </Button>
             <div>
                 <h2 className="text-3xl font-bold tracking-tight">{student.name}</h2>
-                <div className="flex items-center gap-2 mt-1 text-muted-foreground">
-                    <span>{student.id}</span>
-                    <span>•</span>
-                    <Badge variant={STATUS_MAP[student.status]?.variant || "secondary"}>
-                        {STATUS_MAP[student.status]?.label || student.status}
-                    </Badge>
-                </div>
             </div>
         </div>
         <div className="flex gap-2">
