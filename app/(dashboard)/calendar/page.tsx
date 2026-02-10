@@ -11,6 +11,7 @@ import { SlotStatus } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 import { addMinutes } from 'date-fns'
+import { getStoredSubjects } from '@/lib/storage'
 
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -30,7 +31,15 @@ export default function CalendarPage() {
     setIsDialogOpen(true)
   }
 
-  const handleAddManualEvent = (start: Date, end: Date) => {
+  const handleAddManualEvent = (start: Date, end: Date, subjectId?: string) => {
+    // 获取科目名称
+    let subjectName = undefined
+    if (subjectId) {
+      const subjects = getStoredSubjects()
+      const subject = subjects.find(s => s.id === subjectId)
+      subjectName = subject?.name
+    }
+
     const newEvent: CalendarEvent = {
       id: `manual-${Date.now()}`,
       teacherId: 'current-user', // Mock
@@ -38,8 +47,9 @@ export default function CalendarPage() {
       endTime: end,
       status: SlotStatus.AVAILABLE,
       createdAt: new Date(),
-      title: '可试课时间',
-      studentName: '（等待预约）'
+      title: subjectName ? `可试课时间 - ${subjectName}` : '可试课时间',
+      studentName: '（等待预约）',
+      subject: subjectName
     }
     setManualEvents([...manualEvents, newEvent])
   }
