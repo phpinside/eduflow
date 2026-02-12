@@ -56,7 +56,7 @@ function SalesDashboard() {
                     <Link href="/trial-lesson/create">创建试课单</Link>
                 </Button>
                 <Button className="w-full bg-green-600 hover:bg-green-700" asChild>
-                    <Link href="/regular-course/create">创建正课单</Link>
+                    <Link href="/regular-course/select-trial">创建正课单</Link>
                 </Button>
                 <Button variant="outline" className="w-full" asChild>
                     <Link href="/students/create">录入学生信息</Link>

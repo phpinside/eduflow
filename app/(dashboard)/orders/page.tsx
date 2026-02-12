@@ -308,7 +308,7 @@ export default function OrdersPage() {
                 </Link>
             </Button>
             <Button asChild>
-                <Link href="/regular-course/create">
+                <Link href="/regular-course/select-trial">
                     <Plus className="mr-2 h-4 w-4" />
                     新建正课单
                 </Link>
