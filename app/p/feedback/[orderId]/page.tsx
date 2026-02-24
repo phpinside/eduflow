@@ -10,26 +10,15 @@ import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { mockOrders } from "@/lib/mock-data/orders"
 import { mockStudents } from "@/lib/mock-data/students"
-import { mockFeedbacks } from "@/lib/mock-data/feedbacks"
 
 export default function ParentFeedbackPage() {
     const params = useParams()
     const feedbackId = params.orderId as string // 实际是 feedbackId
 
     // Mock Data Fetching (Simulating Public Access)
-    // 通过 feedbackId 查找反馈记录
-    const feedback = React.useMemo(() => mockFeedbacks.find(f => f.id === feedbackId), [feedbackId])
-    
-    // 从反馈记录获取学生和订单信息
-    const student = React.useMemo(() => {
-        if (!feedback) return null
-        return mockStudents.find(s => s.id === feedback.studentId)
-    }, [feedback])
-    
-    const order = React.useMemo(() => {
-        if (!feedback || !feedback.orderId) return null
-        return mockOrders.find(o => o.id === feedback.orderId)
-    }, [feedback])
+    // Demo 模式：使用第一个学生和订单作为示例数据
+    const student = React.useMemo(() => mockStudents[0], [])
+    const order = React.useMemo(() => mockOrders[0], [])
 
     // Form State
     const [rating, setRating] = React.useState<number>(0)
@@ -88,31 +77,17 @@ export default function ParentFeedbackPage() {
         if (rating === 0) return
         if (rating <= 3 && improvementTags.length === 0) return
 
-        // Submit logic mock
+        // Demo 模式：仅在控制台输出
         console.log({
             feedbackId,
-            orderId: order?.id,
-            studentId: student?.id,
+            orderId: order.id,
+            studentId: student.id,
             rating,
             improvementTags,
             remarks
         })
         
-        // 在实际应用中，这里会将家长反馈关联到对应的课后反馈记录上
-        // mockFeedbacks中对应的记录会更新 parentFeedback 字段
-        
         setIsSubmitted(true)
-    }
-
-    if (!student) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-                <Card className="w-full max-w-md text-center py-10">
-                    <CardTitle>链接已失效</CardTitle>
-                    <CardDescription className="mt-2">无法找到对应的学员信息，请联系老师获取最新链接。</CardDescription>
-                </Card>
-            </div>
-        )
     }
 
     if (isSubmitted) {
@@ -141,7 +116,7 @@ export default function ParentFeedbackPage() {
                 <div className="text-center space-y-1 mb-8">
                     <h1 className="text-2xl font-bold text-gray-900">课后评价</h1>
                     <p className="text-sm text-gray-500">
-                        {student.name} {order ? `| ${order.subject}` : ''} | 授课老师
+                        {student.name} | {order.subject} | 授课老师
                     </p>
                 </div>
 
