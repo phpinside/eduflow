@@ -268,7 +268,7 @@ ${homework || '- 请按时完成课后作业\n- 及时复习今日所学内容'}
                         ) : (
                             <>
                                 <Sparkles className="mr-2 h-4 w-4" />
-                                生成反馈文案
+                                生成并保存文案 (可编辑)
                             </>
                         )}
                     </Button>
@@ -319,7 +319,7 @@ ${homework || '- 请按时完成课后作业\n- 及时复习今日所学内容'}
                             onClick={handleSubmit}
                             disabled={!generatedText}
                         >
-                            <Send className="mr-2 h-4 w-4" /> {mode === 'create' ? '确认并创建' : '确认并更新'}
+                            <Send className="mr-2 h-4 w-4" /> {mode === 'create' ? '返回' : '返回'}
                         </Button>
                     </CardFooter>
                 </Card>
