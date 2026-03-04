@@ -135,7 +135,6 @@ export default function TeachersPage() {
               <TableHead>正课学员数</TableHead>
               <TableHead>累计课时</TableHead>
               <TableHead>加入时间</TableHead>
-              <TableHead>备注</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -175,7 +174,6 @@ export default function TeachersPage() {
                     <TableCell>{teacher.regularStudentCount} 人</TableCell>
                     <TableCell>{teacher.totalHours} 小时</TableCell>
                     <TableCell>{new Date(teacher.createdAt).toLocaleDateString()}</TableCell>
-                    <TableCell className="text-muted-foreground">-</TableCell>
                 </TableRow>
                 ))
             )}

@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
-import { ArrowLeft, Trash2, Phone, Calendar as CalendarIcon, Clock, Users as UsersIcon, Trophy, Search, Star, FilterX } from "lucide-react"
+import { ArrowLeft, Trash2, Phone, Calendar as CalendarIcon, Clock, Users as UsersIcon, Trophy, Search, Star, FilterX, MessageSquarePlus, StickyNote, Pencil } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -36,6 +36,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog"
 import { Pagination } from "@/components/ui/pagination"
+import { Textarea } from "@/components/ui/textarea"
 import { 
   getStoredUsers, 
   getStoredOrders, 
@@ -67,7 +68,15 @@ export default function TeacherDetailsPage() {
   const [loading, setLoading] = useState(true)
   const [isRemoving, setIsRemoving] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
-  
+
+  // 备注相关状态
+  const [noteDialogOpen, setNoteDialogOpen] = useState(false)
+  const [noteInput, setNoteInput] = useState("")
+  const [notes, setNotes] = useState<{ id: string; content: string; createdAt: string }[]>([
+    { id: "n1", content: "该教练沟通能力强，家长反馈好，建议优先安排试课。", createdAt: "2026-01-15 10:22" },
+    { id: "n2", content: "3月份排课较满，新学员安排需提前确认时间。", createdAt: "2026-02-28 16:05" },
+  ])
+
   // Tab state
   const [activeTab, setActiveTab] = React.useState("info")
   
@@ -224,6 +233,16 @@ export default function TeacherDetailsPage() {
     }
   }
 
+  const handleAddNote = () => {
+    const content = noteInput.trim()
+    if (!content) return
+    const now = format(new Date(), "yyyy-MM-dd HH:mm", { locale: zhCN })
+    setNotes(prev => [{ id: `n${Date.now()}`, content, createdAt: now }, ...prev])
+    setNoteInput("")
+    setNoteDialogOpen(false)
+    toast.success("备注已添加")
+  }
+
   if (loading) return <div className="p-8 text-center">Loading...</div>
   if (!teacher) return <div className="p-8 text-center">未找到该教练信息</div>
 
@@ -263,6 +282,44 @@ export default function TeacherDetailsPage() {
           </div>
           
           <div className="flex gap-3">
+            {/* 添加备注 */}
+            <Dialog open={noteDialogOpen} onOpenChange={(open) => { setNoteDialogOpen(open); if (!open) setNoteInput("") }}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <MessageSquarePlus className="h-4 w-4 mr-2" />
+                  添加备注
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[480px]">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <StickyNote className="h-4 w-4 text-primary" />
+                    添加备注
+                  </DialogTitle>
+                  <DialogDescription>
+                    为 <strong>{teacher?.name}</strong> 添加内部备注。
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-2">
+                  <Textarea
+                    placeholder="请输入备注内容…"
+                    className="min-h-[120px] resize-none"
+                    value={noteInput}
+                    onChange={(e) => setNoteInput(e.target.value)}
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground text-right">{noteInput.length} 字</p>
+                </div>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="outline">取消</Button>
+                  </DialogClose>
+                  <Button onClick={handleAddNote} disabled={!noteInput.trim()}>
+                    确认添加
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="destructive">
@@ -357,6 +414,48 @@ export default function TeacherDetailsPage() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* 备注列表 */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <StickyNote className="h-4 w-4 text-muted-foreground" />
+                  内部备注
+                  <Badge variant="secondary" className="ml-1">{notes.length}</Badge>
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs text-primary"
+                  onClick={() => setNoteDialogOpen(true)}
+                >
+                  <Pencil className="h-3 w-3 mr-1" />
+                  添加备注
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {notes.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-muted-foreground text-sm gap-2">
+                    <StickyNote className="h-8 w-8 opacity-30" />
+                    <span>暂无备注，点击右上角添加</span>
+                  </div>
+                ) : (
+                  <ul className="space-y-3">
+                    {notes.map((note, idx) => (
+                      <li key={note.id} className="flex gap-3 items-start group">
+                        <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-[10px] font-semibold">
+                          {idx + 1}
+                        </span>
+                        <div className="flex-1 rounded-md border bg-muted/30 px-3 py-2">
+                          <p className="text-sm leading-relaxed">{note.content}</p>
+                          <p className="mt-1.5 text-xs text-muted-foreground">{note.createdAt}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* 课后反馈 Tab */}
