@@ -16,6 +16,7 @@ export interface User {
   id: string
   phone: string
   name: string
+  password?: string          // 用户密码
   roles: Role[]              // 支持多角色
   status?: UserStatus        // 审核状态
   rejectReason?: string      // 驳回原因
