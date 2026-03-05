@@ -86,6 +86,7 @@ ${genderEmoji} 学生：${student.name}｜${student.gender}｜${order.grade}
 
 校区名称：${order.campusName || "—"}
 校区账号：${order.campusAccount || "—"}
+学生账号：${order.studentAccount || "—"}
 
 ⏰ 试课时间：
 ${trialTimesLines}
