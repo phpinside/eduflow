@@ -66,10 +66,15 @@ export interface Order {
   lastExamScore?: string
   examMaxScore?: string
   textbookVersion?: string
+  schoolProgress?: string        // 校内学习进度
+  otherSubjectsAvgScore?: string // 其它科平均成绩
+  previousTutoringTypes?: string // 补过什么类型的课
   campusName?: string
   campusAccount?: string
   studentAccount?: string
   weeklySchedule?: { day: string; startTime: string; endTime: string }[]
+  trialTimeSlots?: string[]      // 试课时间候选（最多3个），格式：自由文本
+  firstLessonTime?: string       // 首次课时间（正式课），格式：自由文本
   remarks?: string
   
   // Refund/Cancellation fields

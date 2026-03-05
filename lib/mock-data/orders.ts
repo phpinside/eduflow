@@ -38,7 +38,7 @@ export const mockOrders: Order[] = [
     examMaxScore: "100",
     textbookVersion: "人教版",
     campusName: "北京校区",
-    campusAccount: "beijing_01",
+    campusAccount: "13801001001",
     studentAccount: "stu_001",
     remarks: "学生基础扎实，希望进行拔高训练。",
     weeklySchedule: [
@@ -68,7 +68,7 @@ export const mockOrders: Order[] = [
     examMaxScore: "120",
     textbookVersion: "仁爱版",
     campusName: "上海校区",
-    campusAccount: "shanghai_01",
+    campusAccount: "13821002002",
     studentAccount: "stu_002",
     scheduledAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days later
     remarks: "口语较弱，希望加强对话练习"
@@ -91,7 +91,7 @@ export const mockOrders: Order[] = [
     examMaxScore: "100",
     textbookVersion: "部编版",
     campusName: "广州校区",
-    campusAccount: "guangzhou_01",
+    campusAccount: "13820003003",
     studentAccount: "stu_003",
     weeklySchedule: [
        { day: "friday", startTime: "16:30", endTime: "18:30" }
@@ -117,7 +117,7 @@ export const mockOrders: Order[] = [
     lastExamScore: "60",
     examMaxScore: "100",
     campusName: "深圳校区",
-    campusAccount: "shenzhen_01",
+    campusAccount: "13755004004",
     studentAccount: "stu_004",
     remarks: "学生临时有事取消"
   },
@@ -139,7 +139,7 @@ export const mockOrders: Order[] = [
     lastExamScore: "75",
     examMaxScore: "100",
     campusName: "广州校区",
-    campusAccount: "guangzhou_01",
+    campusAccount: "13820003003",
     studentAccount: "stu_003",
     remarks: "试课效果不错，已转化"
   },
@@ -159,7 +159,7 @@ export const mockOrders: Order[] = [
     createdAt: new Date('2024-02-01T09:00:00'),
     updatedAt: new Date('2024-02-05T17:00:00'),
     campusName: "杭州校区",
-    campusAccount: "hangzhou_01",
+    campusAccount: "13757005005",
     studentAccount: "stu_005",
     remarks: "零基础启蒙"
   },
@@ -220,12 +220,22 @@ export const mockOrders: Order[] = [
     remainingHours: 1,
     price: 0,
     applicantIds: ['user-tutor-4', 'user-tutor-5'],
-    createdAt: new Date(Date.now() - 5 * 60 * 1000), // 5 mins ago
+    createdAt: new Date(Date.now() - 5 * 60 * 1000),
     updatedAt: new Date(),
-    scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
     lastExamScore: "88",
     examMaxScore: "100",
-    remarks: "基础薄弱，需要耐心辅导"
+    textbookVersion: "人教版",
+    schoolProgress: "第三单元，已学完方程与不等式",
+    otherSubjectsAvgScore: "85",
+    previousTutoringTypes: "一对一线上辅导",
+    campusName: "北京朝阳校区",
+    campusAccount: "13811001100",
+    trialTimeSlots: [
+      "2026年4月2日 19:00-20:30",
+      "2026年4月3日 15:00-16:30",
+      "2026年4月5日 10:00-11:30"
+    ],
+    remarks: "基础薄弱，需要耐心辅导，家长希望提高解题速度"
   },
   {
     id: "market-demo-2",
@@ -235,15 +245,25 @@ export const mockOrders: Order[] = [
     salesPersonId: "sales-1",
     subject: "英语",
     grade: "高一",
-    totalHours: 40,
-    remainingHours: 40,
+    totalHours: 20,
+    remainingHours: 20,
     price: 8000,
-    createdAt: new Date(Date.now() - 15 * 60 * 1000), // 15 mins ago
+    createdAt: new Date(Date.now() - 15 * 60 * 1000),
     updatedAt: new Date(),
-    weeklySchedule: [{ day: "saturday", startTime: "14:00", endTime: "16:00" }],
     lastExamScore: "110",
     examMaxScore: "150",
-    remarks: "目标冲刺重点班"
+    textbookVersion: "人教版",
+    schoolProgress: "Unit 4，已学完阅读与写作模块",
+    otherSubjectsAvgScore: "92",
+    previousTutoringTypes: "小班课（4-6人）",
+    campusName: "上海浦东校区",
+    campusAccount: "13821002200",
+    weeklySchedule: [
+      { day: "monday", startTime: "19:00", endTime: "20:30" },
+      { day: "thursday", startTime: "20:00", endTime: "21:00" }
+    ],
+    firstLessonTime: "2026年4月2日 19:00-20:30",
+    remarks: "目标冲刺重点班，听说读写全面提升"
   },
   {
     id: "refund-demo-1",

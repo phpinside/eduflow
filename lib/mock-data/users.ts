@@ -16,6 +16,17 @@ const createTutor = (id: number, name: string, phoneSuffix: string, seed: string
 
 export const mockUsers: User[] = [
   {
+    id: 'sales-1',
+    phone: '13822325621',
+    name: '刘招生',
+    roles: [Role.SALES],
+    status: UserStatus.APPROVED,
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sales_demo1',
+    wechatQrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=wxid_sales_demo1',
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01')
+  },
+  {
     id: 'user-sales-1',
     phone: '13800001001',
     name: '张招生',

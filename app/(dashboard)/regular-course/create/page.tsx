@@ -103,6 +103,9 @@ const formSchema = z.object({
   lastExamScore: z.string().optional(),
   examMaxScore: z.string().optional(),
   textbookVersion: z.string().optional(),
+  schoolLearningProgress: z.string().optional(),
+  otherSubjectsAvgScore: z.string().optional(),
+  previousTutoringTypes: z.string().optional(),
 
   // Parent Info
   parentPhone: z.string().regex(/^1[3-9]\d{9}$/, "请输入有效的手机号"),
@@ -150,6 +153,9 @@ function CreateRegularCourseForm() {
       lastExamScore: "",
       examMaxScore: "",
       textbookVersion: "",
+      schoolLearningProgress: "",
+      otherSubjectsAvgScore: "",
+      previousTutoringTypes: "",
       parentPhone: "",
       totalHours: 10,
       weeklySchedule: [],
@@ -378,10 +384,19 @@ function CreateRegularCourseForm() {
                                     <FormItem><FormLabel>最近成绩</FormLabel><FormControl><Input placeholder="分数" {...field} /></FormControl><FormMessage /></FormItem>
                                 )} />
                                 <FormField control={form.control} name="examMaxScore" render={({ field }) => (
-                                    <FormItem><FormLabel>卷面满分</FormLabel><FormControl><Input placeholder="满分" {...field} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>卷面满分</FormLabel><FormControl><Input placeholder="如100、150" {...field} /></FormControl><FormMessage /></FormItem>
                                 )} />
                                 <FormField control={form.control} name="textbookVersion" render={({ field }) => (
                                     <FormItem><FormLabel>教材版本</FormLabel><FormControl><Input placeholder="版本" {...field} /></FormControl><FormMessage /></FormItem>
+                                )} />
+                                <FormField control={form.control} name="schoolLearningProgress" render={({ field }) => (
+                                    <FormItem><FormLabel>校内学习进度</FormLabel><FormControl><Input placeholder="如：已学到第五章" {...field} /></FormControl><FormMessage /></FormItem>
+                                )} />
+                                <FormField control={form.control} name="otherSubjectsAvgScore" render={({ field }) => (
+                                    <FormItem><FormLabel>其它科平均成绩</FormLabel><FormControl><Input placeholder="如：85分" {...field} /></FormControl><FormMessage /></FormItem>
+                                )} />
+                                <FormField control={form.control} name="previousTutoringTypes" render={({ field }) => (
+                                    <FormItem><FormLabel>补过什么类型的课</FormLabel><FormControl><Input placeholder="如：一对一、小班课" {...field} /></FormControl><FormMessage /></FormItem>
                                 )} />
                             </div>
                         </div>

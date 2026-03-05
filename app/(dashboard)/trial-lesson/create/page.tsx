@@ -20,6 +20,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
@@ -149,6 +150,9 @@ const studentInfoSchema = z.object({
   // Campus
   campusName: z.string().optional(),
   campusAccount: z.string().optional(),
+
+  // Remarks
+  remarks: z.string().optional(),
 })
 
 // Mode 1: By Teacher
@@ -177,7 +181,7 @@ type Mode2FormValues = z.infer<typeof mode2Schema>
 // --- Components ---
 
 export default function CreateTrialLessonPage() {
-  const [activeTab, setActiveTab] = React.useState("by-teacher")
+  const [activeTab, setActiveTab] = React.useState("by-student")
 
   return (
     <div className="space-y-6">
@@ -187,17 +191,17 @@ export default function CreateTrialLessonPage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
-          <TabsTrigger value="by-teacher">方式一：按老师时间约课</TabsTrigger>
-          <TabsTrigger value="by-student">方式二：按学生时间约课</TabsTrigger>
+          <TabsTrigger value="by-student">方式一：按学生时间约课</TabsTrigger>
+          <TabsTrigger value="by-teacher">方式二：按老师时间约课</TabsTrigger>
         </TabsList>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
           <div className="lg:col-span-5">
-            <TabsContent value="by-teacher">
-              <ByTeacherForm />
-            </TabsContent>
             <TabsContent value="by-student">
               <ByStudentForm />
+            </TabsContent>
+            <TabsContent value="by-teacher">
+              <ByTeacherForm />
             </TabsContent>
           </div>
           
@@ -249,12 +253,12 @@ export default function CreateTrialLessonPage() {
                  </CardHeader>
                  <CardContent className="text-sm space-y-4">
                      <div>
-                         <p className="font-semibold mb-1">方式一（按老师时间约课）</p>
-                         <p className="text-muted-foreground">先选择可用的老师和时间段，再填写学生信息，适合时间灵活的家长。</p>
+                         <p className="font-semibold mb-1">方式一（按学生时间约课）</p>
+                         <p className="text-muted-foreground">直接填写学生信息和期望的试课时间，由系统后续安排老师，适合时间固定的家长。</p>
                      </div>
                      <div>
-                         <p className="font-semibold mb-1">方式二（按学生时间约课）</p>
-                         <p className="text-muted-foreground">直接填写学生信息和期望的试课时间，由系统后续安排老师，适合时间固定的家长。</p>
+                         <p className="font-semibold mb-1">方式二（按老师时间约课）</p>
+                         <p className="text-muted-foreground">先选择可用的老师和时间段，再填写学生信息，适合时间灵活的家长。</p>
                      </div>
                  </CardContent>
              </Card>
@@ -292,6 +296,7 @@ function ByTeacherForm() {
         tutoringHistory: "",
         campusName: "",
         campusAccount: "",
+        remarks: "",
     },
     mode: "onChange"
   })
@@ -513,6 +518,7 @@ function ByStudentForm() {
         tutoringHistory: "",
         campusName: "",
         campusAccount: "",
+        remarks: "",
         subject: undefined,
         grade: undefined,
     }
@@ -992,6 +998,26 @@ function StudentInfoFields({ form, showSubjectGrade = false, onStudentSelect }: 
                         )}
                     />
                  </div>
+            </div>
+
+            <div className="border-t pt-4">
+                <h3 className="text-sm font-medium mb-4 text-muted-foreground">备注</h3>
+                <FormField
+                    control={form.control}
+                    name="remarks"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormControl>
+                            <Textarea
+                                placeholder="记录学生的特殊情况、学习需求或其他需要注意的事项"
+                                className="resize-none min-h-[100px] w-full"
+                                {...field}
+                            />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
             </div>
         </div>
     )
