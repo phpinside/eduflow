@@ -407,6 +407,9 @@ export default function ManagerOrderDetailsPage() {
                 <div className="grid grid-cols-2 gap-x-8 gap-y-4">
                   <Field label="校区名称" value={order.campusName} />
                   <Field label="校区账号" value={order.campusAccount} />
+                  {!isTrial && (
+                    <Field label="学生账号" value={order.studentAccount} />
+                  )}
                 </div>
               </div>
 
