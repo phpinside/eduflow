@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
+import Link from "next/link"
 
 const formSchema = z.object({
   phone: z.string().min(11, {
@@ -151,8 +152,14 @@ export default function LoginPage() {
             </div>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-center text-xs text-muted-foreground">
-          © 2024 EduFlow Prototype
+        <CardFooter className="flex flex-col items-center gap-2">
+          <div className="text-sm text-muted-foreground">
+            还没有账号？{" "}
+            <Link href="/register" className="text-primary hover:underline font-medium">
+              立即注册
+            </Link>
+          </div>
+          <div className="text-xs text-muted-foreground">© 2024 EduFlow Prototype</div>
         </CardFooter>
       </Card>
     </div>
