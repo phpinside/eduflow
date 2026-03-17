@@ -20,7 +20,20 @@ import {
   Menu,
   X,
   UserCog,
-  Wallet
+  Wallet,
+  ClipboardList,
+  UserSearch,
+  Store,
+  BookUser,
+  BadgeDollarSign,
+  RefreshCcwDot,
+  UsersRound,
+  FileText,
+  FilePlus,
+  DollarSign,
+  CircleDollarSign,
+  Tag,
+  Sliders,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -58,28 +71,27 @@ const navItems: NavItem[] = [
   {
     title: "订单管理",
     href: "/orders",
-    icon: ShoppingCart,
+    icon: ClipboardList,
     roles: [Role.SALES,]
   },
   {
     title: "学员档案",
     href: "/students",
-    icon: ShoppingCart,
+    icon: UserSearch,
     roles: [Role.SALES,]
   },
   {
     title: "接单中心",
-    href: "/orders/market", // Special route for tutors
-    icon: ShoppingCart,
+    href: "/orders/market",
+    icon: Store,
     roles: [Role.TUTOR , Role.MANAGER, ]
   },
   {
     title: "我的学员",
     href: "/my-students",
-    icon: GraduationCap,
+    icon: BookUser,
     roles: [Role.TUTOR, Role.MANAGER]
   },
-  
   {
     title: "我的日历",
     href: "/calendar",
@@ -95,13 +107,13 @@ const navItems: NavItem[] = [
   {
     title: "伴学教练管理",
     href: "/teachers",
-    icon: Users,
+    icon: UsersRound,
     roles: [Role.MANAGER]
   },
   {
     title: "学习规划书管理",
     href: "/study-plan",
-    icon: Users,
+    icon: FileText,
     roles: [Role.MANAGER]
   },
   {
@@ -113,31 +125,37 @@ const navItems: NavItem[] = [
   {
     title: "订单管理",
     href: "/manager-orders",
-    icon: BarChart3,
+    icon: ClipboardList,
     roles: [Role.OPERATOR]
   },
   {
     title: "退款审核",
     href: "/manager-refund",
-    icon: BarChart3,
+    icon: RefreshCcwDot,
     roles: [Role.OPERATOR]
   },
   {
     title: "用户管理",
     href: "/user-management",
-    icon: BarChart3,
+    icon: Users,
     roles: [Role.OPERATOR]
   },
   {
     title: "财务记录",
     href: "/financial-records",
-    icon: BarChart3,
+    icon: CircleDollarSign,
     roles: [Role.OPERATOR]
   },
   {
     title: "伴学教练收入",
     href: "/tutor-income",
-    icon: BarChart3,
+    icon: BadgeDollarSign,
+    roles: [Role.OPERATOR]
+  },
+  {
+    title: "订单补录",
+    href: "/order-accord",
+    icon: FilePlus,
     roles: [Role.OPERATOR]
   },
   {
@@ -149,13 +167,13 @@ const navItems: NavItem[] = [
   {
     title: "价格配置表",
     href: "/price-settings",
-    icon: ShieldAlert,
+    icon: Tag,
     roles: [Role.ADMIN]
   },
   {
     title: "全局配置",
     href: "/global-settings",
-    icon: ShieldAlert,
+    icon: Sliders,
     roles: [Role.ADMIN]
   },
   {

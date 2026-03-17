@@ -5,6 +5,8 @@ import { mockLessons } from './mock-data/lessons'
 import { mockIncomeRecords } from './mock-data/income-records'
 import { mockTutorIncomeSummary } from './mock-data/tutor-income-summary'
 import { mockSubjects } from './mock-data/subjects'
+import { mockOrderAccordRecords } from './mock-data/order-accord'
+import { mockTeacherAccordRecords } from './mock-data/teacher-accord'
 
 export const STORAGE_KEYS = {
   USERS: 'eduflow:users',
@@ -13,7 +15,9 @@ export const STORAGE_KEYS = {
   LESSONS: 'eduflow:lessons',
   INCOME_RECORDS: 'eduflow:income-records',
   TUTOR_INCOME_SUMMARY: 'eduflow:tutor-income-summary',
-  SUBJECTS: 'eduflow:subjects'
+  SUBJECTS: 'eduflow:subjects',
+  ORDER_ACCORD_RECORDS: 'eduflow:order-accord-records',
+  TEACHER_ACCORD_RECORDS: 'eduflow:teacher-accord-records',
 }
 
 const isBrowser = typeof window !== 'undefined'
@@ -57,6 +61,10 @@ export const getStoredLessons = () => getMockData(STORAGE_KEYS.LESSONS, mockLess
 export const getStoredIncomeRecords = () => getMockData(STORAGE_KEYS.INCOME_RECORDS, mockIncomeRecords)
 export const getStoredTutorIncomeSummary = () => getMockData(STORAGE_KEYS.TUTOR_INCOME_SUMMARY, mockTutorIncomeSummary)
 export const getStoredSubjects = () => getMockData(STORAGE_KEYS.SUBJECTS, mockSubjects)
+export const getStoredOrderAccordRecords = () => getMockData(STORAGE_KEYS.ORDER_ACCORD_RECORDS, mockOrderAccordRecords)
+export const saveOrderAccordRecords = (data: typeof mockOrderAccordRecords) => saveMockData(STORAGE_KEYS.ORDER_ACCORD_RECORDS, data)
+export const getStoredTeacherAccordRecords = () => getMockData(STORAGE_KEYS.TEACHER_ACCORD_RECORDS, mockTeacherAccordRecords)
+export const saveTeacherAccordRecords = (data: typeof mockTeacherAccordRecords) => saveMockData(STORAGE_KEYS.TEACHER_ACCORD_RECORDS, data)
 
 // Initialize all data
 export const initializeMockData = () => {
@@ -94,4 +102,6 @@ export const initializeMockData = () => {
   if (!localStorage.getItem(STORAGE_KEYS.INCOME_RECORDS)) saveMockData(STORAGE_KEYS.INCOME_RECORDS, mockIncomeRecords)
   if (!localStorage.getItem(STORAGE_KEYS.TUTOR_INCOME_SUMMARY)) saveMockData(STORAGE_KEYS.TUTOR_INCOME_SUMMARY, mockTutorIncomeSummary)
   if (!localStorage.getItem(STORAGE_KEYS.SUBJECTS)) saveMockData(STORAGE_KEYS.SUBJECTS, mockSubjects)
+  if (!localStorage.getItem(STORAGE_KEYS.ORDER_ACCORD_RECORDS)) saveMockData(STORAGE_KEYS.ORDER_ACCORD_RECORDS, mockOrderAccordRecords)
+  if (!localStorage.getItem(STORAGE_KEYS.TEACHER_ACCORD_RECORDS)) saveMockData(STORAGE_KEYS.TEACHER_ACCORD_RECORDS, mockTeacherAccordRecords)
 }

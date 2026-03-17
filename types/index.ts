@@ -318,6 +318,36 @@ export interface TutorIncomeSummary {
   updatedAt: Date
 }
 
+// ========== 老师数据补录 ==========
+
+export type TeacherAccordRole = 'study_manager' | 'tutor'
+
+export interface TeacherAccordRecord {
+  id: string
+  name: string                // 姓名
+  phone: string               // 手机号
+  role: TeacherAccordRole     // 角色
+  createdAt: Date
+}
+
+// ========== 订单数据补录 ==========
+
+export interface OrderAccordRecord {
+  id: string
+  tutorName: string          // 伴学教练姓名
+  tutorPhone: string         // 伴学教练手机号
+  managerName: string        // 学管姓名
+  managerPhone: string       // 学管手机号
+  subjectName: string        // 科目名称
+  studentGAccount: string    // 学员G账号
+  grade: string              // 年级
+  remainingHours: number     // 剩余课时
+  studentName: string        // 学生姓名
+  parentPhone: string        // 家长手机号
+  createdAt: Date
+  updatedAt: Date
+}
+
 // ========== 教学科目 ==========
 
 // 教学科目接口
