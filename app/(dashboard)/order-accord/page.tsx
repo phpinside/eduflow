@@ -14,8 +14,6 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Dialog,
   DialogContent,
@@ -32,28 +30,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Plus, Trash2, RotateCcw, Upload, Download } from "lucide-react"
+import { Plus, RotateCcw, Upload, Download } from "lucide-react"
 import { toast } from "sonner"
-import { OrderAccordRecord, TeacherAccordRecord, TeacherAccordRole } from "@/types"
+import { OrderAccordRecord } from "@/types"
 import {
   getStoredOrderAccordRecords,
   saveOrderAccordRecords,
-  getStoredTeacherAccordRecords,
-  saveTeacherAccordRecords,
 } from "@/lib/storage"
-
-// ─── 角色显示映射 ────────────────────────────────────────────
-const ROLE_LABEL: Record<TeacherAccordRole, string> = {
-  study_manager: "学管",
-  tutor: "伴学教练",
-}
 
 // ─── 常量 ────────────────────────────────────────────────────
 const PHONE_REGEX = /^1[3-9]\d{9}$/
@@ -233,17 +216,6 @@ function OrderAccordTab() {
     e.target.value = ""
   }
 
-  const handleDelete = (id: string) => {
-    if (!confirm("确定要删除该补录记录吗？")) return
-    const updated = records.filter((r) => r.id !== id)
-    setRecords(updated)
-    saveOrderAccordRecords(updated)
-    toast.success("已删除补录记录")
-    if (currentPage > Math.max(1, Math.ceil((filtered.length - 1) / PAGE_SIZE))) {
-      setCurrentPage((p) => Math.max(1, p - 1))
-    }
-  }
-
   const onSubmit = (values: OrderFormValues) => {
     const now = new Date()
     const newRecord: OrderAccordRecord = {
@@ -331,13 +303,12 @@ function OrderAccordTab() {
               <TableHead className="whitespace-nowrap text-right">剩余课时</TableHead>
               <TableHead className="whitespace-nowrap">学生姓名</TableHead>
               <TableHead className="whitespace-nowrap">家长手机</TableHead>
-              <TableHead className="whitespace-nowrap text-right">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginated.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={11} className="text-center text-muted-foreground py-10">
+                <TableCell colSpan={10} className="text-center text-muted-foreground py-10">
                   暂无补录数据
                 </TableCell>
               </TableRow>
@@ -354,17 +325,6 @@ function OrderAccordTab() {
                   <TableCell className="text-right whitespace-nowrap">{record.remainingHours}</TableCell>
                   <TableCell className="whitespace-nowrap">{record.studentName}</TableCell>
                   <TableCell className="whitespace-nowrap">{record.parentPhone}</TableCell>
-                  <TableCell className="text-right whitespace-nowrap">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(record.id)}
-                      className="text-destructive hover:text-destructive"
-                      title="删除"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
                 </TableRow>
               ))
             )}
@@ -487,213 +447,6 @@ function OrderAccordTab() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 老师补录 Tab
-// ═══════════════════════════════════════════════════════════
-
-const teacherFormSchema = z.object({
-  name: z.string().min(1, "姓名不能为空"),
-  phone: z.string().regex(PHONE_REGEX, "请输入有效的11位手机号"),
-  role: z.enum(["study_manager", "tutor"] as const, { message: "请选择角色" }),
-})
-
-type TeacherFormValues = z.infer<typeof teacherFormSchema>
-
-function TeacherAccordTab() {
-  const [records, setRecords] = useState<TeacherAccordRecord[]>([])
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [filterName, setFilterName] = useState("")
-  const [filterPhone, setFilterPhone] = useState("")
-  const [filterRole, setFilterRole] = useState<TeacherAccordRole | "all">("all")
-
-  const form = useForm<TeacherFormValues>({
-    resolver: zodResolver(teacherFormSchema),
-    defaultValues: { name: "", phone: "", role: "tutor" },
-  })
-
-  useEffect(() => {
-    setRecords(getStoredTeacherAccordRecords())
-  }, [])
-
-  const filtered = useMemo(() => {
-    return records.filter((r) => {
-      const matchName = filterName ? r.name.includes(filterName.trim()) : true
-      const matchPhone = filterPhone ? r.phone.includes(filterPhone.trim()) : true
-      const matchRole = filterRole !== "all" ? r.role === filterRole : true
-      return matchName && matchPhone && matchRole
-    })
-  }, [records, filterName, filterPhone, filterRole])
-
-  const handleReset = () => {
-    setFilterName("")
-    setFilterPhone("")
-    setFilterRole("all")
-  }
-
-  const handleDelete = (id: string) => {
-    if (!confirm("确定要删除该老师记录吗？")) return
-    const updated = records.filter((r) => r.id !== id)
-    setRecords(updated)
-    saveTeacherAccordRecords(updated)
-    toast.success("已删除老师记录")
-  }
-
-  const onSubmit = (values: TeacherFormValues) => {
-    const newRecord: TeacherAccordRecord = {
-      id: `teacher-${Date.now()}`,
-      name: values.name,
-      phone: values.phone,
-      role: values.role,
-      createdAt: new Date(),
-    }
-    const updated = [...records, newRecord]
-    setRecords(updated)
-    saveTeacherAccordRecords(updated)
-    toast.success("老师记录已新增")
-    setIsDialogOpen(false)
-    form.reset({ name: "", phone: "", role: "tutor" })
-  }
-
-  const handleDialogClose = () => {
-    setIsDialogOpen(false)
-    form.reset({ name: "", phone: "", role: "tutor" })
-  }
-
-  return (
-    <div className="space-y-4">
-      {/* 筛选栏 */}
-      <div className="flex flex-wrap items-center gap-3">
-        <Input
-          placeholder="姓名"
-          value={filterName}
-          onChange={(e) => setFilterName(e.target.value)}
-          className="w-32"
-        />
-        <Input
-          placeholder="手机号"
-          value={filterPhone}
-          onChange={(e) => setFilterPhone(e.target.value)}
-          className="w-40"
-        />
-        <Select value={filterRole} onValueChange={(v) => setFilterRole(v as TeacherAccordRole | "all")}>
-          <SelectTrigger className="w-32">
-            <SelectValue placeholder="全部角色" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">全部角色</SelectItem>
-            <SelectItem value="study_manager">学管</SelectItem>
-            <SelectItem value="tutor">伴学教练</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button variant="outline" size="sm" onClick={handleReset}>
-          <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-          重置
-        </Button>
-        <span className="text-sm text-muted-foreground ml-auto">共 {filtered.length} 条记录</span>
-        <Button onClick={() => setIsDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          新增老师
-        </Button>
-      </div>
-
-      {/* 表格 */}
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>姓名</TableHead>
-              <TableHead>手机号</TableHead>
-              <TableHead>角色</TableHead>
-              <TableHead className="text-right">操作</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground py-10">
-                  暂无老师数据
-                </TableCell>
-              </TableRow>
-            ) : (
-              filtered.map((record) => (
-                <TableRow key={record.id}>
-                  <TableCell className="font-medium">{record.name}</TableCell>
-                  <TableCell>{record.phone}</TableCell>
-                  <TableCell>
-                    <Badge variant={record.role === "study_manager" ? "default" : "secondary"}>
-                      {ROLE_LABEL[record.role]}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(record.id)}
-                      className="text-destructive hover:text-destructive"
-                      title="删除"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* 新增 Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle>新增老师</DialogTitle>
-            <DialogDescription>录入老师姓名、手机号和角色</DialogDescription>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField control={form.control} name="name" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>姓名</FormLabel>
-                  <FormControl><Input placeholder="张丽" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="phone" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>手机号</FormLabel>
-                  <FormControl><Input placeholder="13700137001" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="role" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>角色</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="请选择角色" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="study_manager">学管</SelectItem>
-                      <SelectItem value="tutor">伴学教练</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <DialogFooter className="pt-2">
-                <Button type="button" variant="outline" onClick={handleDialogClose}>取消</Button>
-                <Button type="submit">新增</Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-    </div>
-  )
-}
-
-// ═══════════════════════════════════════════════════════════
 // 页面入口
 // ═══════════════════════════════════════════════════════════
 
@@ -703,22 +456,10 @@ export default function OrderAccordPage() {
       <div>
         <h1 className="text-3xl font-bold">订单补录</h1>
         <p className="text-muted-foreground mt-1">
-          手动录入、编辑或删除补录数据
+          手动录入或导入补录数据
         </p>
       </div>
-
-      <Tabs defaultValue="order">
-        <TabsList>
-          <TabsTrigger value="order">订单补录</TabsTrigger>
-          <TabsTrigger value="teacher">老师补录</TabsTrigger>
-        </TabsList>
-        <TabsContent value="order" className="mt-4">
-          <OrderAccordTab />
-        </TabsContent>
-        <TabsContent value="teacher" className="mt-4">
-          <TeacherAccordTab />
-        </TabsContent>
-      </Tabs>
+      <OrderAccordTab />
     </div>
   )
 }
