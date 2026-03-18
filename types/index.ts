@@ -336,8 +336,6 @@ export interface OrderAccordRecord {
   id: string
   tutorName: string          // 伴学教练姓名
   tutorPhone: string         // 伴学教练手机号
-  managerName: string        // 学管姓名
-  managerPhone: string       // 学管手机号
   subjectName: string        // 科目名称
   studentGAccount: string    // 学员G账号
   grade: string              // 年级

@@ -49,8 +49,6 @@ const PAGE_SIZE = 10
 const orderFormSchema = z.object({
   tutorName: z.string().min(1, "伴学教练姓名不能为空"),
   tutorPhone: z.string().regex(PHONE_REGEX, "请输入有效的11位手机号"),
-  managerName: z.string().min(1, "学管姓名不能为空"),
-  managerPhone: z.string().regex(PHONE_REGEX, "请输入有效的11位手机号"),
   subjectName: z.string().min(1, "科目名称不能为空"),
   studentGAccount: z.string().min(1, "学员G账号不能为空"),
   grade: z.string().min(1, "年级不能为空"),
@@ -69,8 +67,6 @@ type OrderFormValues = z.infer<typeof orderFormSchema>
 const ORDER_EMPTY: OrderFormValues = {
   tutorName: "",
   tutorPhone: "",
-  managerName: "",
-  managerPhone: "",
   subjectName: "",
   studentGAccount: "",
   grade: "",
@@ -81,13 +77,13 @@ const ORDER_EMPTY: OrderFormValues = {
 
 // CSV 列定义（顺序与导出/导入保持一致）
 const CSV_HEADERS = [
-  "伴学教练姓名", "伴学教练手机号", "学管姓名", "学管手机号",
+  "伴学教练姓名", "伴学教练手机号",
   "科目名称", "学员G账号", "年级", "剩余课时", "学生姓名", "家长手机号",
 ]
 
 function recordToCsvRow(r: OrderAccordRecord): string {
   return [
-    r.tutorName, r.tutorPhone, r.managerName, r.managerPhone,
+    r.tutorName, r.tutorPhone,
     r.subjectName, r.studentGAccount, r.grade, r.remainingHours,
     r.studentName, r.parentPhone,
   ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")
@@ -176,15 +172,15 @@ function OrderAccordTab() {
         const cols = line.match(/("(?:[^"]|"")*"|[^,]*)/g)
           ?.map((c) => c.replace(/^"|"$/g, "").replace(/""/g, '"').trim()) ?? []
 
-        if (cols.length < 10) return
+        if (cols.length < 8) return
         const [
-          tutorName, tutorPhone, managerName, managerPhone,
+          tutorName, tutorPhone,
           subjectName, studentGAccount, grade, remainingHoursStr,
           studentName, parentPhone,
         ] = cols
 
         const remainingHours = parseInt(remainingHoursStr, 10)
-        if (!tutorName || !tutorPhone || !managerName || !managerPhone ||
+        if (!tutorName || !tutorPhone ||
             !subjectName || !studentGAccount || !grade || isNaN(remainingHours) ||
             !studentName || !parentPhone) {
           console.warn(`第 ${idx + 2} 行数据不完整，已跳过`)
@@ -193,7 +189,7 @@ function OrderAccordTab() {
 
         newRecords.push({
           id: `accord-import-${Date.now()}-${idx}`,
-          tutorName, tutorPhone, managerName, managerPhone,
+          tutorName, tutorPhone,
           subjectName, studentGAccount, grade, remainingHours,
           studentName, parentPhone,
           createdAt: now,
@@ -295,8 +291,6 @@ function OrderAccordTab() {
             <TableRow>
               <TableHead className="whitespace-nowrap">伴学教练</TableHead>
               <TableHead className="whitespace-nowrap">教练手机</TableHead>
-              <TableHead className="whitespace-nowrap">学管姓名</TableHead>
-              <TableHead className="whitespace-nowrap">学管手机</TableHead>
               <TableHead className="whitespace-nowrap">科目</TableHead>
               <TableHead className="whitespace-nowrap">G账号</TableHead>
               <TableHead className="whitespace-nowrap">年级</TableHead>
@@ -308,7 +302,7 @@ function OrderAccordTab() {
           <TableBody>
             {paginated.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center text-muted-foreground py-10">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
                   暂无补录数据
                 </TableCell>
               </TableRow>
@@ -317,8 +311,6 @@ function OrderAccordTab() {
                 <TableRow key={record.id}>
                   <TableCell className="font-medium whitespace-nowrap">{record.tutorName}</TableCell>
                   <TableCell className="whitespace-nowrap">{record.tutorPhone}</TableCell>
-                  <TableCell className="whitespace-nowrap">{record.managerName}</TableCell>
-                  <TableCell className="whitespace-nowrap">{record.managerPhone}</TableCell>
                   <TableCell className="whitespace-nowrap">{record.subjectName}</TableCell>
                   <TableCell className="whitespace-nowrap font-mono text-sm">{record.studentGAccount}</TableCell>
                   <TableCell className="whitespace-nowrap">{record.grade}</TableCell>
@@ -366,22 +358,6 @@ function OrderAccordTab() {
                   <FormItem>
                     <FormLabel>伴学教练手机号</FormLabel>
                     <FormControl><Input placeholder="13700137001" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="managerName" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>学管姓名</FormLabel>
-                    <FormControl><Input placeholder="王学管" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="managerPhone" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>学管手机号</FormLabel>
-                    <FormControl><Input placeholder="13700137000" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
