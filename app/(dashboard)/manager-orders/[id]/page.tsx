@@ -1078,16 +1078,8 @@ export default function ManagerOrderDetailsPage() {
                     课程安排
                   </div>
                   <div className="space-y-3">
-                    <div className="space-y-1">
-                      <Label className="text-xs">总课时</Label>
-                      <Input
-                        type="number"
-                        min={0}
-                        value={editForm.totalHours}
-                        onChange={(e) => setEditForm((f) => ({ ...f, totalHours: e.target.value }))}
-                        placeholder="如：20"
-                      />
-                    </div>
+                   
+                
 
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
