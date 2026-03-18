@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useParams } from "next/navigation"
-import { Star, CheckCircle2, BookOpen, MessageSquareText, SendHorizonal, UserRound } from "lucide-react"
+import { Star, CheckCircle2, BookOpen, Clock3, MessageSquareText, SendHorizonal, UserRound } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { mockOrders } from "@/lib/mock-data/orders"
 import { mockStudents } from "@/lib/mock-data/students"
+import { mockUsers } from "@/lib/mock-data/users"
 
 export default function ParentFeedbackPage() {
     const params = useParams()
@@ -19,6 +20,10 @@ export default function ParentFeedbackPage() {
     // Demo 模式：使用第一个学生和订单作为示例数据
     const student = React.useMemo(() => mockStudents[0], [])
     const order = React.useMemo(() => mockOrders[0], [])
+    const coach = React.useMemo(
+        () => mockUsers.find((user) => user.id === order.assignedTeacherId),
+        [order]
+    )
 
     // Constants
     const RATING_LABELS = ["", "不满意", "需改进", "一般", "比较满意", "非常满意"]
@@ -119,37 +124,42 @@ export default function ParentFeedbackPage() {
 
     return (
         <div className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.16),transparent_24%),radial-gradient(circle_at_bottom,rgba(59,130,246,0.08),transparent_28%),linear-gradient(180deg,#f8fafc_0%,#f1f5f9_100%)]">
-            <div className="mx-auto max-w-xl px-4 py-6 pb-28">
+            <div className="mx-auto max-w-xl px-4 py-6 pb-8">
                 <div className="space-y-4">
-                    <Card className="overflow-hidden border-0 bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_55%,#334155_100%)] text-white shadow-[0_24px_60px_rgba(15,23,42,0.22)]">
-                        <CardContent className="relative px-5 py-6">
-                            <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
-                            <div className="absolute -bottom-12 left-12 h-28 w-28 rounded-full bg-amber-400/20 blur-3xl" />
-
-                            <div className="relative">
-                                <div className="mb-3 inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-medium tracking-[0.24em] text-slate-200">
-                                    AFTER CLASS REVIEW
+                    <Card className="overflow-hidden border-0 bg-white/92 shadow-[0_18px_40px_rgba(15,23,42,0.08)] ring-1 ring-slate-200/70 backdrop-blur">
+                        <CardContent className="px-5 py-4">
+                            <div className="mb-2 inline-flex rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-slate-500">
+                                AFTER CLASS REVIEW
+                            </div>
+                            <div className="flex items-end justify-between gap-3">
+                                <div>
+                                    <h1 className="text-2xl font-semibold tracking-tight text-slate-900">课后评价</h1>
+                                    <p className="mt-1 text-sm text-slate-500">
+                                        请根据本节课实际体验完成反馈
+                                    </p>
                                 </div>
-                                <h1 className="text-[28px] font-semibold tracking-tight">课后评价</h1>
-                                <p className="mt-2 max-w-sm text-sm leading-6 text-slate-300">
-                                    用 1 分钟完成本节课反馈，帮助我们持续提升教学质量与课堂体验。
-                                </p>
+                            </div>
 
-                                <div className="mt-5 grid grid-cols-2 gap-2">
-                                    <div className="rounded-2xl border border-white/12 bg-white/8 p-3 backdrop-blur-sm">
-                                        <div className="mb-1 flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-slate-400">
-                                            <UserRound className="h-3.5 w-3.5" />
-                                            学生
-                                        </div>
-                                        <p className="text-sm font-medium text-white">{student.name}</p>
-                                    </div>
-                                    <div className="rounded-2xl border border-white/12 bg-white/8 p-3 backdrop-blur-sm">
-                                        <div className="mb-1 flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-slate-400">
-                                            <BookOpen className="h-3.5 w-3.5" />
-                                            科目
-                                        </div>
-                                        <p className="text-sm font-medium text-white">{order.subject}</p>
-                                    </div>
+                            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+                                <div className="inline-flex items-center gap-2 text-slate-600">
+                                    <UserRound className="h-3.5 w-3.5 text-slate-400" />
+                                    <span className="text-slate-400">学生</span>
+                                    <span className="font-medium text-slate-900">{student.name}</span>
+                                </div>
+                                <div className="inline-flex items-center gap-2 text-slate-600">
+                                    <BookOpen className="h-3.5 w-3.5 text-slate-400" />
+                                    <span className="text-slate-400">科目</span>
+                                    <span className="font-medium text-slate-900">{order.subject}</span>
+                                </div>
+                                <div className="inline-flex items-center gap-2 text-slate-600">
+                                    <UserRound className="h-3.5 w-3.5 text-slate-400" />
+                                    <span className="text-slate-400">伴学教练</span>
+                                    <span className="font-medium text-slate-900">{coach?.name ?? "待分配"}</span>
+                                </div>
+                                <div className="inline-flex items-center gap-2 text-slate-600">
+                                    <Clock3 className="h-3.5 w-3.5 text-slate-400" />
+                                    <span className="text-slate-400">时间</span>
+                                    <span className="font-medium text-slate-900">03月18日 20:00-21:00</span>
                                 </div>
                             </div>
                         </CardContent>
@@ -291,17 +301,9 @@ export default function ParentFeedbackPage() {
                             </div>
                         </CardContent>
                     </Card>
-                </div>
-            </div>
 
-            <div className="fixed inset-x-0 bottom-0 z-20 border-t border-white/70 bg-white/88 px-4 py-3 shadow-[0_-12px_32px_rgba(15,23,42,0.08)] backdrop-blur-xl">
-                <div className="mx-auto flex max-w-xl items-center gap-3">
-                    <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-slate-900">确认提交本节课反馈</p>
-                        <p className="truncate text-xs text-slate-500">已默认填充推荐项，提交后将用于优化教学服务</p>
-                    </div>
                     <Button
-                        className="h-11 rounded-xl px-5 shadow-[0_12px_24px_rgba(15,23,42,0.14)]"
+                        className="h-12 w-full rounded-xl shadow-[0_12px_24px_rgba(15,23,42,0.14)]"
                         onClick={handleSubmit}
                         disabled={rating === 0}
                     >
