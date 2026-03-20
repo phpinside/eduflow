@@ -137,6 +137,7 @@ export default function ParentFeedbackPage() {
   const [courseTypeFilter, setCourseTypeFilter] = React.useState("ALL")
   const [subjectFilter, setSubjectFilter] = React.useState("ALL")
   const [reviewStatusFilter, setReviewStatusFilter] = React.useState("ALL")
+  const [ratingFilter, setRatingFilter] = React.useState("ALL")
   const [tutorNameSearch, setTutorNameSearch] = React.useState("")
   const [tutorPhoneSearch, setTutorPhoneSearch] = React.useState("")
   const [dateRange, setDateRange] = React.useState<{
@@ -205,6 +206,10 @@ export default function ParentFeedbackPage() {
       if (reviewStatusFilter === "rated" && !row.parentFeedback) return false
       if (reviewStatusFilter === "unrated" && !!row.parentFeedback) return false
 
+      if (ratingFilter !== "ALL") {
+        if (!row.parentFeedback || String(row.parentFeedback.rating) !== ratingFilter) return false
+      }
+
       if (
         tutorNameSearch &&
         !row.tutorName.toLowerCase().includes(tutorNameSearch.toLowerCase())
@@ -240,6 +245,7 @@ export default function ParentFeedbackPage() {
     courseTypeFilter,
     subjectFilter,
     reviewStatusFilter,
+    ratingFilter,
     tutorNameSearch,
     tutorPhoneSearch,
     dateRange,
@@ -260,6 +266,7 @@ export default function ParentFeedbackPage() {
     setCourseTypeFilter("ALL")
     setSubjectFilter("ALL")
     setReviewStatusFilter("ALL")
+    setRatingFilter("ALL")
     setTutorNameSearch("")
     setTutorPhoneSearch("")
     setDateRange({ from: undefined, to: undefined })
@@ -350,8 +357,8 @@ export default function ParentFeedbackPage() {
                 </div>
               </div>
 
-              {/* Row 2: course type, subject, review status, tutor name, tutor phone, date range */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Row 2: course type, subject, review status, overall rating */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                   <label className="text-sm font-medium mb-2 block">课程类型</label>
                   <Select
@@ -409,6 +416,29 @@ export default function ParentFeedbackPage() {
                       <SelectItem value="ALL">全部</SelectItem>
                       <SelectItem value="rated">已点评</SelectItem>
                       <SelectItem value="unrated">未评价</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">总体评价</label>
+                  <Select
+                    value={ratingFilter}
+                    onValueChange={(value) => {
+                      setRatingFilter(value)
+                      setCurrentPage(1)
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="选择评价等级" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">全部</SelectItem>
+                      <SelectItem value="1">不满意</SelectItem>
+                      <SelectItem value="2">需改进</SelectItem>
+                      <SelectItem value="3">一般</SelectItem>
+                      <SelectItem value="4">比较满意</SelectItem>
+                      <SelectItem value="5">非常满意</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
