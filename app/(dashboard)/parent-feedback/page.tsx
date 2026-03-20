@@ -108,6 +108,7 @@ interface EnrichedFeedback {
   parentFeedback?: {
     rating: number
     tags: string[]
+    evaluation?: Record<string, string>
     remarks?: string
     submittedAt: Date
   }
