@@ -105,6 +105,10 @@ interface EnrichedFeedback {
   endTime: string
   content: string
   deductHours: string
+  methods?: string
+  mistakes?: string
+  performance?: string
+  homework?: string
   parentFeedback?: {
     rating: number
     tags: string[]
@@ -116,6 +120,7 @@ interface EnrichedFeedback {
   // joined fields
   studentName: string
   studentAccount: string
+  subject: string
   courseType: OrderType | undefined
   tutorName: string
   tutorPhone: string
@@ -130,6 +135,8 @@ export default function ParentFeedbackPage() {
   const [studentGAccountSearch, setStudentGAccountSearch] = React.useState("")
   const [parentPhoneSearch, setParentPhoneSearch] = React.useState("")
   const [courseTypeFilter, setCourseTypeFilter] = React.useState("ALL")
+  const [subjectFilter, setSubjectFilter] = React.useState("ALL")
+  const [reviewStatusFilter, setReviewStatusFilter] = React.useState("ALL")
   const [tutorNameSearch, setTutorNameSearch] = React.useState("")
   const [tutorPhoneSearch, setTutorPhoneSearch] = React.useState("")
   const [dateRange, setDateRange] = React.useState<{
@@ -151,6 +158,7 @@ export default function ParentFeedbackPage() {
         ...fb,
         studentName: student?.name ?? "—",
         studentAccount: order?.studentAccount ?? "—",
+        subject: order?.subject ?? "—",
         courseType: order?.type,
         tutorName: tutor?.name ?? "—",
         tutorPhone: tutor?.phone ?? "—",
@@ -159,6 +167,12 @@ export default function ParentFeedbackPage() {
       }
     })
   }, [])
+
+  const availableSubjects = React.useMemo(() => {
+    const set = new Set<string>()
+    enrichedFeedbacks.forEach((row) => { if (row.subject && row.subject !== "—") set.add(row.subject) })
+    return Array.from(set).sort()
+  }, [enrichedFeedbacks])
 
   const filteredFeedbacks = React.useMemo(() => {
     return enrichedFeedbacks.filter((row) => {
@@ -185,6 +199,11 @@ export default function ParentFeedbackPage() {
       if (courseTypeFilter !== "ALL") {
         if (!row.courseType || row.courseType !== courseTypeFilter) return false
       }
+
+      if (subjectFilter !== "ALL" && row.subject !== subjectFilter) return false
+
+      if (reviewStatusFilter === "rated" && !row.parentFeedback) return false
+      if (reviewStatusFilter === "unrated" && !!row.parentFeedback) return false
 
       if (
         tutorNameSearch &&
@@ -219,6 +238,8 @@ export default function ParentFeedbackPage() {
     studentGAccountSearch,
     parentPhoneSearch,
     courseTypeFilter,
+    subjectFilter,
+    reviewStatusFilter,
     tutorNameSearch,
     tutorPhoneSearch,
     dateRange,
@@ -237,6 +258,8 @@ export default function ParentFeedbackPage() {
     setStudentGAccountSearch("")
     setParentPhoneSearch("")
     setCourseTypeFilter("ALL")
+    setSubjectFilter("ALL")
+    setReviewStatusFilter("ALL")
     setTutorNameSearch("")
     setTutorPhoneSearch("")
     setDateRange({ from: undefined, to: undefined })
@@ -327,8 +350,8 @@ export default function ParentFeedbackPage() {
                 </div>
               </div>
 
-              {/* Row 2: course type, tutor name, tutor phone, date range */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Row 2: course type, subject, review status, tutor name, tutor phone, date range */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="text-sm font-medium mb-2 block">课程类型</label>
                   <Select
@@ -349,6 +372,50 @@ export default function ParentFeedbackPage() {
                   </Select>
                 </div>
 
+                <div>
+                  <label className="text-sm font-medium mb-2 block">学科</label>
+                  <Select
+                    value={subjectFilter}
+                    onValueChange={(value) => {
+                      setSubjectFilter(value)
+                      setCurrentPage(1)
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="选择学科" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">全部学科</SelectItem>
+                      {availableSubjects.map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">点评状态</label>
+                  <Select
+                    value={reviewStatusFilter}
+                    onValueChange={(value) => {
+                      setReviewStatusFilter(value)
+                      setCurrentPage(1)
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="选择点评状态" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">全部</SelectItem>
+                      <SelectItem value="rated">已点评</SelectItem>
+                      <SelectItem value="unrated">未评价</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Row 3: tutor name, tutor phone, date range */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="text-sm font-medium mb-2 block">伴学教练姓名</label>
                   <div className="relative">
@@ -454,6 +521,7 @@ export default function ParentFeedbackPage() {
                   <TableRow>
                     <TableHead className="whitespace-nowrap">学员姓名</TableHead>
                     <TableHead className="whitespace-nowrap">学员G账号</TableHead>
+                    <TableHead className="whitespace-nowrap">学科</TableHead>
                     <TableHead className="whitespace-nowrap">课程类型</TableHead>
                     <TableHead className="whitespace-nowrap">伴学教练姓名</TableHead>
                     <TableHead className="whitespace-nowrap">上课时间</TableHead>
@@ -476,6 +544,9 @@ export default function ParentFeedbackPage() {
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                           {row.studentAccount}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-sm">
+                          {row.subject !== "—" ? row.subject : <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell>
                           {row.courseType ? (
@@ -546,7 +617,7 @@ export default function ParentFeedbackPage() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                      <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
                         暂无符合条件的反馈记录
                       </TableCell>
                     </TableRow>
@@ -623,119 +694,186 @@ export default function ParentFeedbackPage() {
 
       {/* Detail Dialog */}
       <Dialog open={!!selectedRow} onOpenChange={(open) => { if (!open) setSelectedRow(null) }}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-5xl w-[90vw] p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b">
             <DialogTitle className="flex items-center gap-2">
               <MessageSquareText className="h-5 w-5 text-primary" />
-              家长点评详情
+              课堂反馈 · 家长点评详情
             </DialogTitle>
           </DialogHeader>
 
           {selectedRow && (
-            <div className="space-y-4 pt-1">
-              {/* Basic lesson info */}
-              <div className="rounded-lg bg-muted/40 px-4 py-3 text-sm space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">学员</span>
-                  <span className="font-medium">{selectedRow.studentName}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">伴学教练</span>
-                  <span className="font-medium">{selectedRow.tutorName}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">上课时间</span>
-                  <span className="font-medium">
-                    {selectedRow.date} {selectedRow.startTime}–{selectedRow.endTime}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">课程类型</span>
-                  <span className="font-medium">
-                    {selectedRow.courseType === "TRIAL" ? "试课" : selectedRow.courseType === "REGULAR" ? "正课" : "—"}
-                  </span>
-                </div>
-              </div>
+            <div className="grid grid-cols-2 divide-x" style={{ maxHeight: "75vh" }}>
+              {/* ── Left: lesson feedback record ── */}
+              <div className="overflow-y-auto p-6 space-y-4">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">课堂反馈详情</p>
 
-              {selectedRow.parentFeedback ? (
-                <>
-                  {/* Overall rating */}
-                  <div className="rounded-lg border border-amber-100 bg-gradient-to-br from-amber-50 to-white p-4">
-                    <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-3">整体评分</p>
-                    <div className="flex items-center gap-3">
-                      <div className="flex gap-1">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <Star
-                            key={i}
-                            className={cn(
-                              "h-6 w-6",
-                              i < selectedRow.parentFeedback!.rating
-                                ? "fill-amber-400 text-amber-400"
-                                : "fill-muted text-muted"
-                            )}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-base font-semibold text-slate-800">
-                        {RATING_LABELS[selectedRow.parentFeedback.rating]}
-                      </span>
-                      <span className="ml-auto text-sm text-muted-foreground">
-                        {selectedRow.parentFeedback.rating} / 5 分
-                      </span>
-                    </div>
+                {/* Meta */}
+                <div className="rounded-lg bg-muted/40 px-4 py-3 text-sm space-y-1.5">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">学员</span>
+                    <span className="font-medium">{selectedRow.studentName}</span>
                   </div>
-
-                  {/* Detailed evaluation — 10 items across 4 sections */}
-                  <div>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">详细评价</p>
-                    <div className="space-y-2">
-                      {EVALUATION_SECTIONS.map((section) => (
-                        <div key={section.title} className={cn("rounded-lg border p-3", section.bgClass)}>
-                          <div className="flex items-center gap-1.5 mb-2">
-                            <span className={cn("h-2 w-2 rounded-full shrink-0", section.dotClass)} />
-                            <span className="text-xs font-semibold text-slate-700">{section.title}</span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-1.5">
-                            {section.items.map((item) => {
-                              const value = selectedRow.parentFeedback?.evaluation?.[item.key]
-                              return (
-                                <div
-                                  key={item.key}
-                                  className="flex items-center justify-between rounded-md bg-white/80 px-2.5 py-1.5 text-xs"
-                                >
-                                  <span className="text-muted-foreground">{item.label}</span>
-                                  <span className="font-medium text-slate-800 ml-2 shrink-0">
-                                    {value ?? "—"}
-                                  </span>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">伴学教练</span>
+                    <span className="font-medium">{selectedRow.tutorName}</span>
                   </div>
-
-                  {/* Remarks */}
-                  {selectedRow.parentFeedback.remarks && (
-                    <div>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">补充说明</p>
-                      <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm text-slate-700 leading-relaxed">
-                        {selectedRow.parentFeedback.remarks}
-                      </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">上课日期</span>
+                    <span className="font-medium">{selectedRow.date}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">时间段</span>
+                    <span className="font-medium">{selectedRow.startTime}–{selectedRow.endTime}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">课程类型</span>
+                    <span className="font-medium">
+                      {selectedRow.courseType === "TRIAL" ? "试课" : selectedRow.courseType === "REGULAR" ? "正课" : "—"}
+                    </span>
+                  </div>
+                  {selectedRow.subject && selectedRow.subject !== "—" && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">学科</span>
+                      <span className="font-medium">{selectedRow.subject}</span>
                     </div>
                   )}
-
-                  {/* Submit time */}
-                  <p className="text-xs text-muted-foreground text-right">
-                    提交时间：{format(new Date(selectedRow.parentFeedback.submittedAt), "yyyy-MM-dd HH:mm", { locale: zhCN })}
-                  </p>
-                </>
-              ) : (
-                <div className="py-8 text-center text-muted-foreground text-sm">
-                  家长尚未提交点评
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">扣除课时</span>
+                    <span className="font-medium">{selectedRow.deductHours} 课时</span>
+                  </div>
                 </div>
-              )}
+
+                {/* Content */}
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground mb-1.5">📌 课程内容</p>
+                  <div className="rounded-lg bg-muted/30 border px-4 py-3 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                    {selectedRow.content || "—"}
+                  </div>
+                </div>
+
+                {selectedRow.methods && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-1.5">🔑 核心方法</p>
+                    <div className="rounded-lg bg-muted/30 border px-4 py-3 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                      {selectedRow.methods}
+                    </div>
+                  </div>
+                )}
+
+                {selectedRow.mistakes && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-1.5">ℹ️ 易错提醒</p>
+                    <div className="rounded-lg bg-muted/30 border px-4 py-3 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                      {selectedRow.mistakes}
+                    </div>
+                  </div>
+                )}
+
+                {selectedRow.performance && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-1.5">🌟 课堂表现</p>
+                    <div className="rounded-lg bg-muted/30 border px-4 py-3 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                      {selectedRow.performance}
+                    </div>
+                  </div>
+                )}
+
+                {selectedRow.homework && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-1.5">📝 课后巩固建议</p>
+                    <div className="rounded-lg bg-muted/30 border px-4 py-3 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                      {selectedRow.homework}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ── Right: parent evaluation ── */}
+              <div className="overflow-y-auto p-6 space-y-4">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">家长点评</p>
+
+                {selectedRow.parentFeedback ? (
+                  <>
+                    {/* Overall rating */}
+                    <div className="rounded-lg border border-amber-100 bg-gradient-to-br from-amber-50 to-white p-4">
+                      <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-3">整体评分</p>
+                      <div className="flex items-center gap-3">
+                        <div className="flex gap-1">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <Star
+                              key={i}
+                              className={cn(
+                                "h-6 w-6",
+                                i < selectedRow.parentFeedback!.rating
+                                  ? "fill-amber-400 text-amber-400"
+                                  : "fill-muted text-muted"
+                              )}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-base font-semibold text-slate-800">
+                          {RATING_LABELS[selectedRow.parentFeedback.rating]}
+                        </span>
+                        <span className="ml-auto text-sm text-muted-foreground">
+                          {selectedRow.parentFeedback.rating} / 5 分
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Detailed evaluation — 10 items across 4 sections */}
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">详细评价</p>
+                      <div className="space-y-2">
+                        {EVALUATION_SECTIONS.map((section) => (
+                          <div key={section.title} className={cn("rounded-lg border p-3", section.bgClass)}>
+                            <div className="flex items-center gap-1.5 mb-2">
+                              <span className={cn("h-2 w-2 rounded-full shrink-0", section.dotClass)} />
+                              <span className="text-xs font-semibold text-slate-700">{section.title}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-1.5">
+                              {section.items.map((item) => {
+                                const value = selectedRow.parentFeedback?.evaluation?.[item.key]
+                                return (
+                                  <div
+                                    key={item.key}
+                                    className="flex items-center justify-between rounded-md bg-white/80 px-2.5 py-1.5 text-xs"
+                                  >
+                                    <span className="text-muted-foreground">{item.label}</span>
+                                    <span className="font-medium text-slate-800 ml-2 shrink-0">
+                                      {value ?? "—"}
+                                    </span>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Remarks */}
+                    {selectedRow.parentFeedback.remarks && (
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">补充说明</p>
+                        <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm text-slate-700 leading-relaxed">
+                          {selectedRow.parentFeedback.remarks}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Submit time */}
+                    <p className="text-xs text-muted-foreground text-right">
+                      提交时间：{format(new Date(selectedRow.parentFeedback.submittedAt), "yyyy-MM-dd HH:mm", { locale: zhCN })}
+                    </p>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-48 text-muted-foreground text-sm gap-2">
+                    <MessageSquareText className="h-10 w-10 opacity-20" />
+                    <p>家长尚未提交点评</p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </DialogContent>

@@ -718,100 +718,151 @@ export default function MyStudentsPage() {
 
             {/* 家长点评详情对话框 */}
             <Dialog open={isParentFeedbackDialogOpen} onOpenChange={setIsParentFeedbackDialogOpen}>
-                <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-                    <DialogHeader>
+                <DialogContent className="sm:max-w-5xl w-[90vw] p-0 overflow-hidden">
+                    <DialogHeader className="px-6 pt-6 pb-4 border-b">
                         <DialogTitle className="flex items-center gap-2">
                             <MessageSquareText className="h-5 w-5 text-primary" />
-                            家长点评详情
+                            课堂反馈 · 家长点评详情
                         </DialogTitle>
                     </DialogHeader>
                     {selectedParentFeedback && (
-                        <div className="space-y-4 pt-1">
-                            {/* 课程信息 */}
-                            <div className="rounded-lg bg-muted/40 px-4 py-3 text-sm space-y-1">
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">学员</span>
-                                    <span className="font-medium">{selectedParentFeedback.displayStudentName}</span>
+                        <div className="grid grid-cols-2 divide-x" style={{ maxHeight: "75vh" }}>
+                            {/* ── Left: lesson feedback record ── */}
+                            <div className="overflow-y-auto p-6 space-y-4">
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">课堂反馈详情</p>
+                                <div className="rounded-lg bg-muted/40 px-4 py-3 text-sm space-y-1.5">
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">学员</span>
+                                        <span className="font-medium">{selectedParentFeedback.displayStudentName}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">上课日期</span>
+                                        <span className="font-medium">{selectedParentFeedback.date}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">时间段</span>
+                                        <span className="font-medium">{selectedParentFeedback.startTime}–{selectedParentFeedback.endTime}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">扣除课时</span>
+                                        <span className="font-medium">{selectedParentFeedback.deductHours} 课时</span>
+                                    </div>
                                 </div>
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">上课时间</span>
-                                    <span className="font-medium">
-                                        {selectedParentFeedback.date} {selectedParentFeedback.startTime}–{selectedParentFeedback.endTime}
-                                    </span>
+                                <div>
+                                    <p className="text-xs font-semibold text-muted-foreground mb-1.5">📌 课程内容</p>
+                                    <div className="rounded-lg bg-muted/30 border px-4 py-3 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                                        {selectedParentFeedback.content || "—"}
+                                    </div>
                                 </div>
+                                {selectedParentFeedback.methods && (
+                                    <div>
+                                        <p className="text-xs font-semibold text-muted-foreground mb-1.5">🔑 核心方法</p>
+                                        <div className="rounded-lg bg-muted/30 border px-4 py-3 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                                            {selectedParentFeedback.methods}
+                                        </div>
+                                    </div>
+                                )}
+                                {selectedParentFeedback.mistakes && (
+                                    <div>
+                                        <p className="text-xs font-semibold text-muted-foreground mb-1.5">ℹ️ 易错提醒</p>
+                                        <div className="rounded-lg bg-muted/30 border px-4 py-3 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                                            {selectedParentFeedback.mistakes}
+                                        </div>
+                                    </div>
+                                )}
+                                {selectedParentFeedback.performance && (
+                                    <div>
+                                        <p className="text-xs font-semibold text-muted-foreground mb-1.5">🌟 课堂表现</p>
+                                        <div className="rounded-lg bg-muted/30 border px-4 py-3 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                                            {selectedParentFeedback.performance}
+                                        </div>
+                                    </div>
+                                )}
+                                {selectedParentFeedback.homework && (
+                                    <div>
+                                        <p className="text-xs font-semibold text-muted-foreground mb-1.5">📝 课后巩固建议</p>
+                                        <div className="rounded-lg bg-muted/30 border px-4 py-3 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                                            {selectedParentFeedback.homework}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
-                            {/* 整体评分 */}
-                            <div className="rounded-lg border border-amber-100 bg-gradient-to-br from-amber-50 to-white p-4">
-                                <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-3">整体评分</p>
-                                <div className="flex items-center gap-3">
-                                    <div className="flex gap-1">
-                                        {Array.from({ length: 5 }).map((_, i) => (
-                                            <Star
-                                                key={i}
-                                                className={cn(
-                                                    "h-6 w-6",
-                                                    i < selectedParentFeedback.parentFeedback.rating
-                                                        ? "fill-amber-400 text-amber-400"
-                                                        : "fill-muted text-muted"
-                                                )}
-                                            />
+                            {/* ── Right: parent evaluation ── */}
+                            <div className="overflow-y-auto p-6 space-y-4">
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">家长点评</p>
+                                {/* 整体评分 */}
+                                <div className="rounded-lg border border-amber-100 bg-gradient-to-br from-amber-50 to-white p-4">
+                                    <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-3">整体评分</p>
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex gap-1">
+                                            {Array.from({ length: 5 }).map((_, i) => (
+                                                <Star
+                                                    key={i}
+                                                    className={cn(
+                                                        "h-6 w-6",
+                                                        i < selectedParentFeedback.parentFeedback.rating
+                                                            ? "fill-amber-400 text-amber-400"
+                                                            : "fill-muted text-muted"
+                                                    )}
+                                                />
+                                            ))}
+                                        </div>
+                                        <span className="text-base font-semibold text-slate-800">
+                                            {RATING_LABELS[selectedParentFeedback.parentFeedback.rating]}
+                                        </span>
+                                        <span className="ml-auto text-sm text-muted-foreground">
+                                            {selectedParentFeedback.parentFeedback.rating} / 5 分
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* 详细评价 10 项 */}
+                                <div>
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">详细评价</p>
+                                    <div className="space-y-2">
+                                        {EVALUATION_SECTIONS.map((section) => (
+                                            <div key={section.title} className={cn("rounded-lg border p-3", section.bgClass)}>
+                                                <div className="flex items-center gap-1.5 mb-2">
+                                                    <span className={cn("h-2 w-2 rounded-full shrink-0", section.dotClass)} />
+                                                    <span className="text-xs font-semibold text-slate-700">{section.title}</span>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-1.5">
+                                                    {section.items.map((item) => {
+                                                        const value = selectedParentFeedback.parentFeedback?.evaluation?.[item.key]
+                                                        return (
+                                                            <div
+                                                                key={item.key}
+                                                                className="flex items-center justify-between rounded-md bg-white/80 px-2.5 py-1.5 text-xs"
+                                                            >
+                                                                <span className="text-muted-foreground">{item.label}</span>
+                                                                <span className="font-medium text-slate-800 ml-2 shrink-0">
+                                                                    {value ?? "—"}
+                                                                </span>
+                                                            </div>
+                                                        )
+                                                    })}
+                                                </div>
+                                            </div>
                                         ))}
                                     </div>
-                                    <span className="text-base font-semibold text-slate-800">
-                                        {RATING_LABELS[selectedParentFeedback.parentFeedback.rating]}
-                                    </span>
-                                    <span className="ml-auto text-sm text-muted-foreground">
-                                        {selectedParentFeedback.parentFeedback.rating} / 5 分
-                                    </span>
                                 </div>
-                            </div>
 
-                            {/* 详细评价 10 项 */}
-                            <div>
-                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">详细评价</p>
-                                <div className="space-y-2">
-                                    {EVALUATION_SECTIONS.map((section) => (
-                                        <div key={section.title} className={cn("rounded-lg border p-3", section.bgClass)}>
-                                            <div className="flex items-center gap-1.5 mb-2">
-                                                <span className={cn("h-2 w-2 rounded-full shrink-0", section.dotClass)} />
-                                                <span className="text-xs font-semibold text-slate-700">{section.title}</span>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-1.5">
-                                                {section.items.map((item) => {
-                                                    const value = selectedParentFeedback.parentFeedback?.evaluation?.[item.key]
-                                                    return (
-                                                        <div
-                                                            key={item.key}
-                                                            className="flex items-center justify-between rounded-md bg-white/80 px-2.5 py-1.5 text-xs"
-                                                        >
-                                                            <span className="text-muted-foreground">{item.label}</span>
-                                                            <span className="font-medium text-slate-800 ml-2 shrink-0">
-                                                                {value ?? "—"}
-                                                            </span>
-                                                        </div>
-                                                    )
-                                                })}
-                                            </div>
+                                {/* 补充说明 */}
+                                {selectedParentFeedback.parentFeedback.remarks && (
+                                    <div>
+                                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">补充说明</p>
+                                        <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm text-slate-700 leading-relaxed">
+                                            {selectedParentFeedback.parentFeedback.remarks}
                                         </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* 补充说明 */}
-                            {selectedParentFeedback.parentFeedback.remarks && (
-                                <div>
-                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">补充说明</p>
-                                    <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm text-slate-700 leading-relaxed">
-                                        {selectedParentFeedback.parentFeedback.remarks}
                                     </div>
-                                </div>
-                            )}
+                                )}
 
-                            {/* 提交时间 */}
-                            <p className="text-xs text-muted-foreground text-right">
-                                提交时间：{format(new Date(selectedParentFeedback.parentFeedback.submittedAt), "yyyy-MM-dd HH:mm", { locale: zhCN })}
-                            </p>
+                                {/* 提交时间 */}
+                                <p className="text-xs text-muted-foreground text-right">
+                                    提交时间：{format(new Date(selectedParentFeedback.parentFeedback.submittedAt), "yyyy-MM-dd HH:mm", { locale: zhCN })}
+                                </p>
+                            </div>
                         </div>
                     )}
                 </DialogContent>
