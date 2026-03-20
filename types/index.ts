@@ -179,6 +179,7 @@ export interface StudyPlan {
 export interface ParentFeedback {
   rating: number
   tags: string[]
+  evaluation?: Record<string, string>  // 10项结构化评价，key 对应各评价维度
   remarks?: string
   submittedAt: Date
 }

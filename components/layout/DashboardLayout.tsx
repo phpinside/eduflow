@@ -34,6 +34,7 @@ import {
   CircleDollarSign,
   Tag,
   Sliders,
+  MessageSquareText,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -150,6 +151,12 @@ const navItems: NavItem[] = [
     title: "伴学教练收入",
     href: "/tutor-income",
     icon: BadgeDollarSign,
+    roles: [Role.OPERATOR]
+  },
+  {
+    title: "家长课后反馈",
+    href: "/parent-feedback",
+    icon: MessageSquareText,
     roles: [Role.OPERATOR]
   },
   {

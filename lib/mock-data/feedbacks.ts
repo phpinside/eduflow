@@ -18,6 +18,18 @@ export const mockFeedbacks: LessonFeedbackRecord[] = [
     parentFeedback: {
       rating: 5,
       tags: ['🧘 无明显问题'],
+      evaluation: {
+        knowledge_absorption: '很好',
+        student_explain: '有',
+        professionalism: '专业严谨',
+        responsibility: '主动关注',
+        patience: '非常耐心',
+        post_feedback: '及时详细',
+        punctuality: '很守时',
+        camera: '开',
+        network: '网络通畅',
+        environment: '安静',
+      },
       remarks: '老师讲得很细致，孩子听懂了',
       submittedAt: new Date('2023-09-09T08:30:00')
     },
@@ -75,6 +87,18 @@ export const mockFeedbacks: LessonFeedbackRecord[] = [
     parentFeedback: {
       rating: 3,
       tags: ['🤔 讲解不够清楚', '😵 节奏偏快 / 偏慢'],
+      evaluation: {
+        knowledge_absorption: '一般',
+        student_explain: '无',
+        professionalism: '基本专业',
+        responsibility: '主动关注',
+        patience: '一般耐心',
+        post_feedback: '简单概括',
+        punctuality: '很守时',
+        camera: '开',
+        network: '网络通畅',
+        environment: '安静',
+      },
       remarks: '孩子说今天讲得有点快，有些地方没太听懂',
       submittedAt: new Date('2023-09-21T09:00:00')
     },
@@ -130,6 +154,18 @@ export const mockFeedbacks: LessonFeedbackRecord[] = [
     parentFeedback: {
       rating: 5,
       tags: ['🧘 无明显问题'],
+      evaluation: {
+        knowledge_absorption: '很好',
+        student_explain: '有',
+        professionalism: '专业严谨',
+        responsibility: '主动关注',
+        patience: '非常耐心',
+        post_feedback: '及时详细',
+        punctuality: '很守时',
+        camera: '开',
+        network: '网络通畅',
+        environment: '安静',
+      },
       remarks: '孩子回家说今天学到了很多写作技巧，很开心',
       submittedAt: new Date('2023-12-02T10:00:00')
     },
@@ -153,6 +189,18 @@ export const mockFeedbacks: LessonFeedbackRecord[] = [
     parentFeedback: {
       rating: 4,
       tags: ['🤔 讲解不够清楚'],
+      evaluation: {
+        knowledge_absorption: '较好',
+        student_explain: '无',
+        professionalism: '专业严谨',
+        responsibility: '主动关注',
+        patience: '非常耐心',
+        post_feedback: '及时详细',
+        punctuality: '很守时',
+        camera: '开',
+        network: '网络通畅',
+        environment: '安静',
+      },
       remarks: '古诗词部分孩子觉得有点难，希望能多举些例子',
       submittedAt: new Date('2023-12-09T09:30:00')
     },
@@ -193,6 +241,18 @@ export const mockFeedbacks: LessonFeedbackRecord[] = [
     parentFeedback: {
       rating: 5,
       tags: ['🧘 无明显问题'],
+      evaluation: {
+        knowledge_absorption: '较好',
+        student_explain: '有',
+        professionalism: '专业严谨',
+        responsibility: '主动关注',
+        patience: '非常耐心',
+        post_feedback: '及时详细',
+        punctuality: '很守时',
+        camera: '开',
+        network: '网络通畅',
+        environment: '安静',
+      },
       submittedAt: new Date('2023-11-11T11:00:00')
     },
     createdAt: new Date('2023-11-10T18:40:00'),
@@ -233,6 +293,18 @@ export const mockFeedbacks: LessonFeedbackRecord[] = [
     parentFeedback: {
       rating: 5,
       tags: ['🧘 无明显问题'],
+      evaluation: {
+        knowledge_absorption: '很好',
+        student_explain: '有',
+        professionalism: '专业严谨',
+        responsibility: '主动关注',
+        patience: '非常耐心',
+        post_feedback: '及时详细',
+        punctuality: '很守时',
+        camera: '开',
+        network: '网络通畅',
+        environment: '安静',
+      },
       remarks: '孩子说阅读理解学到了很多方法',
       submittedAt: new Date('2024-01-17T08:00:00')
     },
@@ -273,6 +345,18 @@ export const mockFeedbacks: LessonFeedbackRecord[] = [
     parentFeedback: {
       rating: 4,
       tags: ['🧘 无明显问题'],
+      evaluation: {
+        knowledge_absorption: '较好',
+        student_explain: '无',
+        professionalism: '专业严谨',
+        responsibility: '主动关注',
+        patience: '非常耐心',
+        post_feedback: '及时详细',
+        punctuality: '很守时',
+        camera: '开',
+        network: '网络通畅',
+        environment: '安静',
+      },
       submittedAt: new Date('2024-01-22T09:00:00')
     },
     createdAt: new Date('2024-01-21T21:40:00'),
@@ -312,6 +396,18 @@ export const mockFeedbacks: LessonFeedbackRecord[] = [
     parentFeedback: {
       rating: 5,
       tags: ['🧘 无明显问题'],
+      evaluation: {
+        knowledge_absorption: '很好',
+        student_explain: '有',
+        professionalism: '专业严谨',
+        responsibility: '主动关注',
+        patience: '非常耐心',
+        post_feedback: '及时详细',
+        punctuality: '很守时',
+        camera: '开',
+        network: '网络通畅',
+        environment: '安静',
+      },
       remarks: '孩子很喜欢历史课',
       submittedAt: new Date('2024-01-27T10:00:00')
     },
@@ -352,6 +448,18 @@ export const mockFeedbacks: LessonFeedbackRecord[] = [
     parentFeedback: {
       rating: 3,
       tags: ['🤔 讲解不够清楚'],
+      evaluation: {
+        knowledge_absorption: '一般',
+        student_explain: '无',
+        professionalism: '基本专业',
+        responsibility: '被动回应',
+        patience: '一般耐心',
+        post_feedback: '简单概括',
+        punctuality: '基本守时',
+        camera: '开',
+        network: '网络通畅',
+        environment: '嘈杂',
+      },
       remarks: '孩子觉得政治课有点枯燥',
       submittedAt: new Date('2024-02-03T08:30:00')
     },
@@ -392,6 +500,18 @@ export const mockFeedbacks: LessonFeedbackRecord[] = [
     parentFeedback: {
       rating: 4,
       tags: ['🧘 无明显问题'],
+      evaluation: {
+        knowledge_absorption: '较好',
+        student_explain: '有',
+        professionalism: '专业严谨',
+        responsibility: '主动关注',
+        patience: '非常耐心',
+        post_feedback: '及时详细',
+        punctuality: '很守时',
+        camera: '开',
+        network: '网络较卡',
+        environment: '安静',
+      },
       remarks: '希望老师多布置一些练习题',
       submittedAt: new Date('2024-02-07T09:00:00')
     },
@@ -432,6 +552,18 @@ export const mockFeedbacks: LessonFeedbackRecord[] = [
     parentFeedback: {
       rating: 5,
       tags: ['🧘 无明显问题'],
+      evaluation: {
+        knowledge_absorption: '很好',
+        student_explain: '有',
+        professionalism: '专业严谨',
+        responsibility: '主动关注',
+        patience: '非常耐心',
+        post_feedback: '及时详细',
+        punctuality: '很守时',
+        camera: '开',
+        network: '网络通畅',
+        environment: '安静',
+      },
       remarks: '孩子数学进步很大',
       submittedAt: new Date('2024-02-11T08:00:00')
     },
