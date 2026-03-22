@@ -42,6 +42,7 @@ import {
 
 import { mockOrders } from "@/lib/mock-data/orders"
 import { mockStudents } from "@/lib/mock-data/students"
+import { mockUsers } from "@/lib/mock-data/users"
 import { OrderStatus, OrderType } from "@/types"
 import { cn } from "@/lib/utils"
 
@@ -80,6 +81,13 @@ export default function ManagerOrdersPage() {
   const [gradeFilter, setGradeFilter] = React.useState<string>("ALL")
   const [selectedStatuses, setSelectedStatuses] = React.useState<OrderStatus[]>([OrderStatus.PENDING])
   
+  const [campusAccountSearch, setCampusAccountSearch] = React.useState("")
+  const [studentNameSearch, setStudentNameSearch] = React.useState("")
+  const [studentAccountSearch, setStudentAccountSearch] = React.useState("")
+  const [parentPhoneSearch, setParentPhoneSearch] = React.useState("")
+  const [tutorNameSearch, setTutorNameSearch] = React.useState("")
+  const [tutorPhoneSearch, setTutorPhoneSearch] = React.useState("")
+
   // 分页状态
   const [currentPage, setCurrentPage] = React.useState(1)
 
@@ -109,12 +117,22 @@ export default function ManagerOrdersPage() {
 
   // 筛选后的订单
   const filteredOrders = React.useMemo(() => {
-    return mockOrders.filter(order => {
+    return mockOrders.map(order => {
+      const student = mockStudents.find(s => s.id === order.studentId)
+      const tutor = mockUsers.find(u => u.id === order.assignedTeacherId)
+      return {
+        ...order,
+        studentName: student?.name || "未知",
+        _parentPhone: student?.parentPhone || "",
+        _tutorName: tutor?.name || "",
+        _tutorPhone: tutor?.phone || "",
+      }
+    }).filter(order => {
       // 订单号筛选
       if (orderIdSearch && !order.id.toLowerCase().includes(orderIdSearch.toLowerCase())) {
         return false
       }
-      
+
       // 日期区间筛选
       const orderDate = new Date(order.createdAt)
       if (dateRange.from) {
@@ -127,36 +145,60 @@ export default function ManagerOrdersPage() {
         endOfDay.setHours(23, 59, 59, 999)
         if (orderDate > endOfDay) return false
       }
-      
+
       // 订单类型筛选
       if (orderTypeFilter !== "ALL" && order.type !== orderTypeFilter) {
         return false
       }
-      
+
       // 学科筛选
       if (subjectFilter !== "ALL" && order.subject !== subjectFilter) {
         return false
       }
-      
+
       // 年级筛选
       if (gradeFilter !== "ALL" && order.grade !== gradeFilter) {
         return false
       }
-      
+
       // 状态筛选（多选）
       if (selectedStatuses.length > 0 && !selectedStatuses.includes(order.status)) {
         return false
       }
-      
+
+      // 9800校区手机号筛选
+      if (campusAccountSearch && !(order.campusAccount || "").toLowerCase().includes(campusAccountSearch.toLowerCase())) {
+        return false
+      }
+
+      // 学员姓名筛选
+      if (studentNameSearch && !order.studentName.toLowerCase().includes(studentNameSearch.toLowerCase())) {
+        return false
+      }
+
+      // 学员G账号筛选
+      if (studentAccountSearch && !(order.studentAccount || "").toLowerCase().includes(studentAccountSearch.toLowerCase())) {
+        return false
+      }
+
+      // 家长手机号筛选
+      if (parentPhoneSearch && !order._parentPhone.toLowerCase().includes(parentPhoneSearch.toLowerCase())) {
+        return false
+      }
+
+      // 教练姓名筛选
+      if (tutorNameSearch && !order._tutorName.toLowerCase().includes(tutorNameSearch.toLowerCase())) {
+        return false
+      }
+
+      // 教练手机号筛选
+      if (tutorPhoneSearch && !order._tutorPhone.toLowerCase().includes(tutorPhoneSearch.toLowerCase())) {
+        return false
+      }
+
       return true
-    }).map(order => {
-        const student = mockStudents.find(s => s.id === order.studentId)
-        return {
-            ...order,
-            studentName: student?.name || "未知"
-        }
     })
-  }, [orderIdSearch, dateRange, orderTypeFilter, subjectFilter, gradeFilter, selectedStatuses])
+  }, [orderIdSearch, dateRange, orderTypeFilter, subjectFilter, gradeFilter, selectedStatuses, campusAccountSearch, studentNameSearch, studentAccountSearch, parentPhoneSearch, tutorNameSearch, tutorPhoneSearch])
 
   // 分页后的订单
   const paginatedOrders = React.useMemo(() => {
@@ -176,6 +218,12 @@ export default function ManagerOrdersPage() {
     setSubjectFilter("ALL")
     setGradeFilter("ALL")
     setSelectedStatuses([OrderStatus.PENDING])
+    setCampusAccountSearch("")
+    setStudentNameSearch("")
+    setStudentAccountSearch("")
+    setParentPhoneSearch("")
+    setTutorNameSearch("")
+    setTutorPhoneSearch("")
     setCurrentPage(1)
   }
 
@@ -346,7 +394,109 @@ export default function ManagerOrdersPage() {
               </div>
             </div>
 
-            {/* 第三行：订单状态（多选标签） */}
+            {/* 第三行：9800校区手机号、学员姓名、学员G账号 */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">9800校区手机号</label>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="输入校区手机号搜索..."
+                    className="pl-9"
+                    value={campusAccountSearch}
+                    onChange={(e) => {
+                      setCampusAccountSearch(e.target.value)
+                      setCurrentPage(1)
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">学员姓名</label>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="输入学员姓名搜索..."
+                    className="pl-9"
+                    value={studentNameSearch}
+                    onChange={(e) => {
+                      setStudentNameSearch(e.target.value)
+                      setCurrentPage(1)
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">学员G账号</label>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="输入学员G账号搜索..."
+                    className="pl-9"
+                    value={studentAccountSearch}
+                    onChange={(e) => {
+                      setStudentAccountSearch(e.target.value)
+                      setCurrentPage(1)
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 第四行：家长手机号、教练姓名、教练手机号 */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">家长手机号</label>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="输入家长手机号搜索..."
+                    className="pl-9"
+                    value={parentPhoneSearch}
+                    onChange={(e) => {
+                      setParentPhoneSearch(e.target.value)
+                      setCurrentPage(1)
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">教练姓名</label>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="输入教练姓名搜索..."
+                    className="pl-9"
+                    value={tutorNameSearch}
+                    onChange={(e) => {
+                      setTutorNameSearch(e.target.value)
+                      setCurrentPage(1)
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">教练手机号</label>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="输入教练手机号搜索..."
+                    className="pl-9"
+                    value={tutorPhoneSearch}
+                    onChange={(e) => {
+                      setTutorPhoneSearch(e.target.value)
+                      setCurrentPage(1)
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 第五行：订单状态（多选标签） */}
             <div>
               <label className="text-sm font-medium mb-2 block">订单状态（可多选）</label>
               <div className="flex flex-wrap gap-2">
