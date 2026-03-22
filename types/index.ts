@@ -194,6 +194,8 @@ export interface LessonFeedbackRecord {
   startTime: string
   endTime: string
   deductHours: string
+  /** 课费标准档位（一年级～九年级、高一～高三），可与学生档案年级不同 */
+  feeStandardGrade?: string
   content: string
   methods?: string
   mistakes?: string

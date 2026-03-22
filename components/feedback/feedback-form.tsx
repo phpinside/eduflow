@@ -23,6 +23,57 @@ import { mockStudents } from "@/lib/mock-data/students"
 import { mockFeedbacks } from "@/lib/mock-data/feedbacks"
 import { LessonFeedbackRecord } from "@/types"
 
+/** 课费标准：一年级～九年级，高一～高三 */
+const FEE_STANDARD_GRADES = [
+    "一年级",
+    "二年级",
+    "三年级",
+    "四年级",
+    "五年级",
+    "六年级",
+    "七年级",
+    "八年级",
+    "九年级",
+    "高一",
+    "高二",
+    "高三",
+] as const
+
+const LEGACY_GRADE_TO_FEE_STANDARD: Record<string, string> = {
+    初一: "七年级",
+    初二: "八年级",
+    初三: "九年级",
+}
+
+function normalizeFeeStandardGrade(grade: string | undefined): string {
+    if (!grade) return "一年级"
+    if ((FEE_STANDARD_GRADES as readonly string[]).includes(grade)) {
+        return grade
+    }
+    const mapped = LEGACY_GRADE_TO_FEE_STANDARD[grade]
+    if (mapped) return mapped
+    return "一年级"
+}
+
+function initialFeeStandardGrade(
+    initialData: LessonFeedbackRecord | undefined,
+    orderId: string | undefined,
+    studentId: string
+): string {
+    if (initialData?.feeStandardGrade) {
+        const v = initialData.feeStandardGrade
+        if ((FEE_STANDARD_GRADES as readonly string[]).includes(v)) {
+            return v
+        }
+        const mapped = LEGACY_GRADE_TO_FEE_STANDARD[v]
+        if (mapped) return mapped
+    }
+    const ord = orderId ? mockOrders.find((o) => o.id === orderId) : undefined
+    const stu = mockStudents.find((s) => s.id === studentId)
+    const g = ord?.grade ?? stu?.grade
+    return normalizeFeeStandardGrade(g)
+}
+
 interface FeedbackFormProps {
     studentId: string
     studentName: string
@@ -51,7 +102,10 @@ export function FeedbackForm({ studentId, studentName, orderId, initialData, mod
     const [startTime, setStartTime] = React.useState(initialData?.startTime || "20:00")
     const [endTime, setEndTime] = React.useState(initialData?.endTime || "21:00")
     const [deductHours, setDeductHours] = React.useState(initialData?.deductHours || "1")
-    
+    const [feeStandardGrade, setFeeStandardGrade] = React.useState(() =>
+        initialFeeStandardGrade(initialData, orderId, studentId)
+    )
+
     const [content, setContent] = React.useState(initialData?.content || "")
     const [methods, setMethods] = React.useState(initialData?.methods || "")
     const [mistakes, setMistakes] = React.useState(initialData?.mistakes || "")
@@ -124,6 +178,7 @@ ${homework || '- 请按时完成课后作业\n- 及时复习今日所学内容'}
                 startTime,
                 endTime,
                 deductHours,
+                feeStandardGrade,
                 content,
                 methods,
                 mistakes,
@@ -186,21 +241,38 @@ ${homework || '- 请按时完成课后作业\n- 及时复习今日所学内容'}
                         </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="deduct">扣除课时</Label>
-                        <Select value={deductHours} onValueChange={setDeductHours}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="选择课时" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="0.5">0.5 课时</SelectItem>
-                                <SelectItem value="1">1.0 课时</SelectItem>
-                                <SelectItem value="1.5">1.5 课时</SelectItem>
-                                <SelectItem value="2">2.0 课时</SelectItem>
-                                <SelectItem value="2.5">2.5 课时</SelectItem>
-                                <SelectItem value="3">3.0 课时</SelectItem>
-                            </SelectContent>
-                        </Select>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                            <Label htmlFor="deduct">扣除课时</Label>
+                            <Select value={deductHours} onValueChange={setDeductHours}>
+                                <SelectTrigger id="deduct">
+                                    <SelectValue placeholder="选择课时" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="0.5">0.5 课时</SelectItem>
+                                    <SelectItem value="1">1.0 课时</SelectItem>
+                                    <SelectItem value="1.5">1.5 课时</SelectItem>
+                                    <SelectItem value="2">2.0 课时</SelectItem>
+                                    <SelectItem value="2.5">2.5 课时</SelectItem>
+                                    <SelectItem value="3">3.0 课时</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="fee-standard">课费标准</Label>
+                            <Select value={feeStandardGrade} onValueChange={setFeeStandardGrade}>
+                                <SelectTrigger id="fee-standard">
+                                    <SelectValue placeholder="选择课费标准" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {FEE_STANDARD_GRADES.map((g) => (
+                                        <SelectItem key={g} value={g}>
+                                            {g}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
 
                     <div className="space-y-2">
