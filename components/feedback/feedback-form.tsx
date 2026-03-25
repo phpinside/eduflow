@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { Copy, Check, Send, Sparkles, Loader2 } from "lucide-react"
 
