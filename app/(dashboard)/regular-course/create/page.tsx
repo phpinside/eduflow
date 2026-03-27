@@ -359,7 +359,7 @@ function CreateRegularCourseForm() {
                                 )} />
                                 <FormField control={form.control} name="grade" render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>年级*</FormLabel>
+                                        <FormLabel>课费标准*</FormLabel>
                                         <Select onValueChange={field.onChange} value={field.value}>
                                             <FormControl><SelectTrigger><SelectValue placeholder="选择年级" /></SelectTrigger></FormControl>
                                             <SelectContent>{GRADES.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>

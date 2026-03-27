@@ -4,7 +4,8 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import type { MutableRefObject } from "react"
+import { useMemo, useRef, useState } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "@/components/ui/button"
 import {
@@ -20,28 +21,35 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
 import Link from "next/link"
+import { ImageCaptcha } from "@/components/auth/image-captcha"
 
-const formSchema = z.object({
-  phone: z.string().min(11, {
-    message: "请输入有效的11位手机号码",
-  }).max(11, {
-    message: "请输入有效的11位手机号码",
-  }),
-  password: z.string().min(6, {
-    message: "密码至少需要6位",
-  }),
-})
+function createLoginSchema(expectedCaptchaRef: MutableRefObject<string>) {
+  return z
+    .object({
+      phone: z.string().min(11, { message: "请输入有效的11位手机号码" }).max(11, { message: "请输入有效的11位手机号码" }),
+      password: z.string().min(6, { message: "密码至少需要6位" }),
+      captcha: z.string().min(1, { message: "请输入验证码" }),
+    })
+    .refine(
+      (data) => data.captcha.trim().toLowerCase() === expectedCaptchaRef.current.toLowerCase(),
+      { message: "验证码错误，请重新输入", path: ["captcha"] }
+    )
+}
 
 export default function LoginPage() {
   const router = useRouter()
   const { login } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
+  const [captchaTick, setCaptchaTick] = useState(0)
+  const captchaAnswerRef = useRef("")
+  const formSchema = useMemo(() => createLoginSchema(captchaAnswerRef), [])
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       phone: "",
       password: "",
+      captcha: "",
     },
   })
 
@@ -51,6 +59,7 @@ export default function LoginPage() {
       // Mock password check - in real app this goes to backend
       if (values.password !== '123456') {
         toast.error("账号或密码错误 (Mock密码: 123456)")
+        setCaptchaTick((t) => t + 1)
         setIsLoading(false)
         return
       }
@@ -61,9 +70,10 @@ export default function LoginPage() {
         router.push("/")
       } else {
         toast.error("用户不存在，请检查手机号")
+        setCaptchaTick((t) => t + 1)
       }
     } catch (error) {
-      // Display specific error message (e.g., pending approval, rejected)
+      setCaptchaTick((t) => t + 1)
       if (error instanceof Error) {
         toast.error(error.message)
       } else {
@@ -73,6 +83,8 @@ export default function LoginPage() {
       setIsLoading(false)
     }
   }
+
+  const bumpCaptcha = () => setCaptchaTick((t) => t + 1)
 
   const fillMockData = (role: string) => {
     let phone = ""
@@ -85,6 +97,8 @@ export default function LoginPage() {
     }
     form.setValue("phone", phone)
     form.setValue("password", "123456")
+    bumpCaptcha()
+    form.setValue("captcha", "")
   }
 
   return (
@@ -121,6 +135,28 @@ export default function LoginPage() {
                     <FormControl>
                       <Input type="password" placeholder="请输入密码" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="captcha"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>验证码</FormLabel>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+                      <FormControl>
+                        <Input placeholder="请输入右侧字符" className="sm:max-w-[160px]" autoComplete="off" {...field} />
+                      </FormControl>
+                      <ImageCaptcha
+                        key={captchaTick}
+                        onCodeReady={(code) => {
+                          captchaAnswerRef.current = code
+                        }}
+                        onRefresh={() => form.setValue("captcha", "")}
+                      />
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}

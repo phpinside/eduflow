@@ -39,6 +39,31 @@ const FEE_STANDARD_GRADES = [
     "高三",
 ] as const
 
+const DEFAULT_STUDENT_ATTENDANCE = "按时上课"
+const DEFAULT_HOMEWORK_COMPLETION = "作业完成优秀"
+
+const STUDENT_ATTENDANCE_OPTIONS = [
+    "按时上课",
+    "迟到",
+    "早退",
+    "临时改约",
+    "请假未上课",
+    "频繁请假",
+    "上课中途离开",
+    "未请假缺课",
+] as const
+
+const HOMEWORK_COMPLETION_OPTIONS = [
+    "作业完成优秀",
+    "没有布置作业",
+    "作业完成较好",
+    "作业完成但质量较低",
+    "作业部分完成",
+    "未按时提交作业",
+    "上次作业未完成",
+    "作业抄袭/敷衍",
+] as const
+
 const LEGACY_GRADE_TO_FEE_STANDARD: Record<string, string> = {
     初一: "七年级",
     初二: "八年级",
@@ -106,6 +131,13 @@ export function FeedbackForm({ studentId, studentName, orderId, initialData, mod
         initialFeeStandardGrade(initialData, orderId, studentId)
     )
 
+    const [studentAttendance, setStudentAttendance] = React.useState(
+        initialData?.studentAttendance || DEFAULT_STUDENT_ATTENDANCE
+    )
+    const [homeworkCompletion, setHomeworkCompletion] = React.useState(
+        initialData?.homeworkCompletion || DEFAULT_HOMEWORK_COMPLETION
+    )
+
     const [content, setContent] = React.useState(initialData?.content || "")
     const [methods, setMethods] = React.useState(initialData?.methods || "")
     const [mistakes, setMistakes] = React.useState(initialData?.mistakes || "")
@@ -132,6 +164,9 @@ export function FeedbackForm({ studentId, studentName, orderId, initialData, mod
 学生账号：${order?.studentAccount || '未设置'}
 上课时间：${format(new Date(date), "MM月dd日")} ${startTime}–${endTime}
 ${order?.subject || '科目'}教练：${user?.name || '老师'}
+
+学生出勤：${studentAttendance}
+作业完成情况：${homeworkCompletion}
 
 📌 课程内容
 ${content || '本次课程主要进行了知识点的复习与巩固。'}
@@ -179,6 +214,8 @@ ${homework || '- 请按时完成课后作业\n- 及时复习今日所学内容'}
                 endTime,
                 deductHours,
                 feeStandardGrade,
+                studentAttendance,
+                homeworkCompletion,
                 content,
                 methods,
                 mistakes,
@@ -249,6 +286,7 @@ ${homework || '- 请按时完成课后作业\n- 及时复习今日所学内容'}
                                     <SelectValue placeholder="选择课时" />
                                 </SelectTrigger>
                                 <SelectContent>
+                                    <SelectItem value="0">0 课时</SelectItem>
                                     <SelectItem value="0.5">0.5 课时</SelectItem>
                                     <SelectItem value="1">1.0 课时</SelectItem>
                                     <SelectItem value="1.5">1.5 课时</SelectItem>
@@ -273,6 +311,40 @@ ${homework || '- 请按时完成课后作业\n- 及时复习今日所学内容'}
                                 </SelectContent>
                             </Select>
                         </div>
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                        <Label htmlFor="student-attendance">学生出勤</Label>
+                        <Select value={studentAttendance} onValueChange={setStudentAttendance}>
+                            <SelectTrigger id="student-attendance">
+                                <SelectValue placeholder="选择出勤情况" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {STUDENT_ATTENDANCE_OPTIONS.map((opt) => (
+                                    <SelectItem key={opt} value={opt}>
+                                        {opt}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="homework-completion">上次作业情况</Label>
+                        <Select value={homeworkCompletion} onValueChange={setHomeworkCompletion}>
+                            <SelectTrigger id="homework-completion">
+                                <SelectValue placeholder="选择作业完成情况" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {HOMEWORK_COMPLETION_OPTIONS.map((opt) => (
+                                    <SelectItem key={opt} value={opt}>
+                                        {opt}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                     </div>
 
                     <div className="space-y-2">

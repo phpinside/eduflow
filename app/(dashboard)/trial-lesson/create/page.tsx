@@ -400,7 +400,7 @@ function ByTeacherForm() {
                     name="grade"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>年级*</FormLabel>
+                        <FormLabel>课费标准*</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                             <SelectTrigger>
@@ -782,7 +782,7 @@ function StudentInfoFields({ form, showSubjectGrade = false, onStudentSelect }: 
                         name="grade"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>年级*</FormLabel>
+                            <FormLabel>课费标准*</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                 <SelectTrigger>

@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useRef } from "react"
+import type { MutableRefObject } from "react"
+import { useMemo, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -22,24 +23,37 @@ import { Loader2, Upload, X, CheckCircle2, ChevronLeft } from "lucide-react"
 import { Role, UserStatus } from "@/types"
 import { cn } from "@/lib/utils"
 import { getStoredUsers, saveMockData, STORAGE_KEYS } from "@/lib/storage"
+import { ImageCaptcha } from "@/components/auth/image-captcha"
 
-const formSchema = z.object({
-  name: z.string().min(2, { message: "姓名至少需要2个字符" }),
-  phone: z.string().length(11, { message: "请输入有效的11位手机号码" }),
-  password: z.string().min(6, { message: "密码至少需要6位" }),
-  confirmPassword: z.string(),
-  wechatQrCode: z.string().min(1, { message: "请上传个人微信二维码" }),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "两次输入的密码不一致",
-  path: ["confirmPassword"],
-})
+function createTutorRegisterSchema(expectedCaptchaRef: MutableRefObject<string>) {
+  return z
+    .object({
+      name: z.string().min(2, { message: "姓名至少需要2个字符" }),
+      phone: z.string().length(11, { message: "请输入有效的11位手机号码" }),
+      password: z.string().min(6, { message: "密码至少需要6位" }),
+      confirmPassword: z.string(),
+      wechatQrCode: z.string().min(1, { message: "请上传个人微信二维码" }),
+      captcha: z.string().min(1, { message: "请输入验证码" }),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: "两次输入的密码不一致",
+      path: ["confirmPassword"],
+    })
+    .refine(
+      (data) => data.captcha.trim().toLowerCase() === expectedCaptchaRef.current.toLowerCase(),
+      { message: "验证码错误，请重新输入", path: ["captcha"] }
+    )
+}
 
 export default function TutorRegisterPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [captchaTick, setCaptchaTick] = useState(0)
   const [qrCodePreview, setQrCodePreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const captchaAnswerRef = useRef("")
+  const formSchema = useMemo(() => createTutorRegisterSchema(captchaAnswerRef), [])
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -49,6 +63,7 @@ export default function TutorRegisterPage() {
       password: "",
       confirmPassword: "",
       wechatQrCode: "",
+      captcha: "",
     },
   })
 
@@ -85,6 +100,7 @@ export default function TutorRegisterPage() {
       const currentUsers = getStoredUsers()
       if (currentUsers.some(u => u.phone === values.phone)) {
         toast.error("该手机号已注册")
+        setCaptchaTick((t) => t + 1)
         setIsLoading(false)
         return
       }
@@ -108,6 +124,7 @@ export default function TutorRegisterPage() {
       setIsSubmitted(true)
     } catch (error) {
       console.error(error)
+      setCaptchaTick((t) => t + 1)
       toast.error("注册发生错误，请重试")
     } finally {
       setIsLoading(false)
@@ -281,6 +298,29 @@ export default function TutorRegisterPage() {
                   </div>
                 </div>
               </div>
+
+              <FormField
+                control={form.control}
+                name="captcha"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>验证码 <span className="text-red-500">*</span></FormLabel>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+                      <FormControl>
+                        <Input placeholder="请输入右侧字符" className="sm:max-w-[160px]" autoComplete="off" {...field} />
+                      </FormControl>
+                      <ImageCaptcha
+                        key={captchaTick}
+                        onCodeReady={(code) => {
+                          captchaAnswerRef.current = code
+                        }}
+                        onRefresh={() => form.setValue("captcha", "")}
+                      />
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <Button type="submit" className="w-full mt-2" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

@@ -196,6 +196,10 @@ export interface LessonFeedbackRecord {
   deductHours: string
   /** 课费标准档位（一年级～九年级、高一～高三），可与学生档案年级不同 */
   feeStandardGrade?: string
+  /** 学生出勤（单选项文案） */
+  studentAttendance?: string
+  /** 作业完成情况（单选项文案） */
+  homeworkCompletion?: string
   content: string
   methods?: string
   mistakes?: string
