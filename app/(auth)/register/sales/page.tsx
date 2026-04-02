@@ -118,6 +118,7 @@ export default function SalesRegisterPage() {
         campusName: values.campusName,
         campusAccount: values.campusAccount,
         wechatQrCode: values.wechatQrCode,
+        formalPaymentEnabled: true,
         createdAt: new Date(),
         updatedAt: new Date(),
         avatar: `https://api.dicebear.com/7.x/notionists/svg?seed=${values.name}`,

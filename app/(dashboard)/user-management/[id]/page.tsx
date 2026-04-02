@@ -227,6 +227,14 @@ export default function UserDetailPage() {
                 </p>
               </div>
             )}
+            {user.roles.includes(Role.SALES) && (
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">正式支付功能</p>
+                <p className="font-medium">
+                  {user.formalPaymentEnabled === false ? "关闭" : "开启"}
+                </p>
+              </div>
+            )}
           </div>
 
           {user.wechatQrCode && (

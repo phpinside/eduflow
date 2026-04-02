@@ -24,6 +24,8 @@ export interface User {
   wechatQrCode?: string      // 个人微信二维码图片
   campusName?: string        // 9800校区名称
   campusAccount?: string     // 9800校区账号
+  /** 正式支付功能（招生老师）；未设置时视为开启 */
+  formalPaymentEnabled?: boolean
   recommendedForTrial?: boolean // 系统推荐试课
   managerId?: string         // 归属的学管ID（伴学教练专用）
   managerName?: string       // 归属的学管姓名（冗余字段，便于展示）

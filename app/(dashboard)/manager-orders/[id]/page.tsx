@@ -259,6 +259,8 @@ export default function ManagerOrderDetailsPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false)
   const [editForm, setEditForm] = React.useState<EditForm>(EMPTY_EDIT_FORM)
 
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = React.useState(false)
+
   const student = React.useMemo(
     () => (order ? mockStudents.find((s) => s.id === order.studentId) : null),
     [order]
@@ -443,6 +445,18 @@ export default function ManagerOrderDetailsPage() {
     setOrder(updatedOrder)
     setIsEditDialogOpen(false)
     toast.success("订单信息已更新")
+  }
+
+  const handleConfirmDeleteOrder = () => {
+    if (!order) return
+    const oid = order.id
+    const idx = mockOrders.findIndex((o) => o.id === oid)
+    if (idx !== -1) {
+      mockOrders.splice(idx, 1)
+    }
+    setIsDeleteConfirmOpen(false)
+    toast.success("订单已删除")
+    router.push("/manager-orders")
   }
 
   return (
@@ -761,6 +775,18 @@ export default function ManagerOrderDetailsPage() {
               )}
             </CardContent>
           </Card>
+
+          <div className="pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full text-destructive border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+              onClick={() => setIsDeleteConfirmOpen(true)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              删除订单
+            </Button>
+          </div>
         </div>
 
         {/* ── 右列：负责人员信息 ── */}
@@ -812,6 +838,26 @@ export default function ManagerOrderDetailsPage() {
           </Card>
         </div>
       </div>
+
+      {/* 删除订单确认 */}
+      <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>确认删除订单？</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            此操作将从列表中移除该订单且无法恢复。订单号：{order.id}
+          </p>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>
+              取消
+            </Button>
+            <Button type="button" variant="destructive" onClick={handleConfirmDeleteOrder}>
+              确认删除
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 订单信息编辑对话框 */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>

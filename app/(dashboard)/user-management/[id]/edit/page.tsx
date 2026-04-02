@@ -282,6 +282,26 @@ export default function UserEditPage() {
                   onChange={(e) => setEditForm({ ...editForm, campusAccount: e.target.value })}
                 />
               </div>
+              <div className="space-y-2 col-span-2">
+                <Label>正式支付功能</Label>
+                <Select
+                  value={editForm.formalPaymentEnabled === false ? "false" : "true"}
+                  onValueChange={(value) =>
+                    setEditForm({
+                      ...editForm,
+                      formalPaymentEnabled: value === "true",
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">开启</SelectItem>
+                    <SelectItem value="false">关闭</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardContent>
         </Card>
