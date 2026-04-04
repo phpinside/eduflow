@@ -23,6 +23,10 @@ export default function GlobalSettingsPage() {
   const [systemDailyOrderLimit, setSystemDailyOrderLimit] = useState("200")
   const [userDailyOrderLimit, setUserDailyOrderLimit] = useState("2")
 
+  // Global payment
+  const [trialFeeOnlinePaymentEnabled, setTrialFeeOnlinePaymentEnabled] = useState(true)
+  const [conversionRewardOnlinePaymentEnabled, setConversionRewardOnlinePaymentEnabled] = useState(true)
+
   // Coach Settings
   const [coachResponseTime, setCoachResponseTime] = useState("30")
   const [coachStudentLimit, setCoachStudentLimit] = useState("10")
@@ -156,6 +160,38 @@ export default function GlobalSettingsPage() {
                 />
                  <p className="text-[0.8rem] text-muted-foreground">单个用户每天允许创建的最大订单数。</p>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Global payment */}
+        <Card>
+          <CardHeader>
+            <CardTitle>全局支付配置</CardTitle>
+            <CardDescription>配置各类费用的在线支付开关。</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between space-x-2 border p-4 rounded-lg">
+              <Label htmlFor="trial-fee-online-pay" className="flex flex-col space-y-1">
+                <span className="font-medium">试课费在线支付</span>
+                <span className="font-normal text-xs text-muted-foreground">开启后用户可在线支付试课费；关闭则走线下或其他方式。</span>
+              </Label>
+              <Switch
+                id="trial-fee-online-pay"
+                checked={trialFeeOnlinePaymentEnabled}
+                onCheckedChange={setTrialFeeOnlinePaymentEnabled}
+              />
+            </div>
+            <div className="flex items-center justify-between space-x-2 border p-4 rounded-lg">
+              <Label htmlFor="conversion-reward-online-pay" className="flex flex-col space-y-1">
+                <span className="font-medium">转正奖励在线支付</span>
+                <span className="font-normal text-xs text-muted-foreground">开启后转正相关奖励支持在线支付发放；关闭则走线下或其他方式。</span>
+              </Label>
+              <Switch
+                id="conversion-reward-online-pay"
+                checked={conversionRewardOnlinePaymentEnabled}
+                onCheckedChange={setConversionRewardOnlinePaymentEnabled}
+              />
             </div>
           </CardContent>
         </Card>
