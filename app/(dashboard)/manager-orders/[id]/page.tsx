@@ -16,6 +16,9 @@ import {
   Plus,
   Trash2,
   Calendar as CalendarIcon,
+  Search,
+  UserPlus,
+  X,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -37,7 +40,7 @@ import { zhCN } from "date-fns/locale"
 import { mockOrders } from "@/lib/mock-data/orders"
 import { mockStudents } from "@/lib/mock-data/students"
 import { mockUsers } from "@/lib/mock-data/users"
-import { OrderStatus, OrderType } from "@/types"
+import { OrderStatus, OrderType, Role } from "@/types"
 
 const STATUS_MAP: Record<OrderStatus, string> = {
   [OrderStatus.PENDING]: "待接单",
@@ -261,6 +264,10 @@ export default function ManagerOrderDetailsPage() {
 
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = React.useState(false)
 
+  const [isAddApplicantOpen, setIsAddApplicantOpen] = React.useState(false)
+  const [teacherSearchQuery, setTeacherSearchQuery] = React.useState("")
+  const [selectedTeacherForAdd, setSelectedTeacherForAdd] = React.useState<string | null>(null)
+
   const student = React.useMemo(
     () => (order ? mockStudents.find((s) => s.id === order.studentId) : null),
     [order]
@@ -280,6 +287,16 @@ export default function ManagerOrderDetailsPage() {
     if (!order?.applicantIds) return []
     return mockUsers.filter((u) => order.applicantIds?.includes(u.id))
   }, [order])
+
+  const filteredTutors = React.useMemo(() => {
+    const q = teacherSearchQuery.trim().toLowerCase()
+    if (!q) return []
+    return mockUsers.filter((u) => {
+      if (!u.roles?.includes(Role.TUTOR)) return false
+      if (order?.applicantIds?.includes(u.id)) return false
+      return u.name.toLowerCase().includes(q) || (u.phone ?? "").includes(q)
+    })
+  }, [teacherSearchQuery, order])
 
   const assignedTeacher = React.useMemo(
     () =>
@@ -445,6 +462,37 @@ export default function ManagerOrderDetailsPage() {
     setOrder(updatedOrder)
     setIsEditDialogOpen(false)
     toast.success("订单信息已更新")
+  }
+
+  const handleAddApplicant = (teacherId: string) => {
+    const mockOrderIndex = mockOrders.findIndex((o) => o.id === id)
+    const newApplicantIds = [...(order?.applicantIds ?? []), teacherId]
+    if (mockOrderIndex !== -1) {
+      mockOrders[mockOrderIndex] = {
+        ...mockOrders[mockOrderIndex],
+        applicantIds: newApplicantIds,
+      }
+    }
+    setOrder((prev) => {
+      if (!prev) return prev
+      return { ...prev, applicantIds: newApplicantIds }
+    })
+    const teacher = mockUsers.find((u) => u.id === teacherId)
+    toast.success(`已将 ${teacher?.name ?? "老师"} 添加到申请名单`)
+  }
+
+  const handleOpenAddApplicant = () => {
+    setTeacherSearchQuery("")
+    setSelectedTeacherForAdd(null)
+    setIsAddApplicantOpen(true)
+  }
+
+  const handleConfirmAddApplicant = () => {
+    if (!selectedTeacherForAdd) return
+    handleAddApplicant(selectedTeacherForAdd)
+    setSelectedTeacherForAdd(null)
+    setTeacherSearchQuery("")
+    setIsAddApplicantOpen(false)
   }
 
   const handleConfirmDeleteOrder = () => {
@@ -687,8 +735,20 @@ export default function ManagerOrderDetailsPage() {
           {/* 申请接课老师名单 */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" /> 申请接课老师名单
+              <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-base">
+                <span className="flex items-center gap-2">
+                  <Users className="h-5 w-5 shrink-0" /> 申请接课老师名单
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 shrink-0"
+                  onClick={handleOpenAddApplicant}
+                >
+                  <UserPlus className="h-3.5 w-3.5" />
+                  手动添加老师
+                </Button>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -1305,6 +1365,114 @@ export default function ManagerOrderDetailsPage() {
             </Button>
             <Button onClick={handleSaveEdit}>
               保存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 手动添加申请老师 */}
+      <Dialog
+        open={isAddApplicantOpen}
+        onOpenChange={(open) => {
+          setIsAddApplicantOpen(open)
+          if (!open) {
+            setTeacherSearchQuery("")
+            setSelectedTeacherForAdd(null)
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-4 w-4" />
+              添加老师到申请名单
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="teacher-search" className="text-xs">
+                按姓名或手机号搜索伴学教练
+              </Label>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="teacher-search"
+                  value={teacherSearchQuery}
+                  onChange={(e) => {
+                    setTeacherSearchQuery(e.target.value)
+                    setSelectedTeacherForAdd(null)
+                  }}
+                  placeholder="输入老师姓名或手机号"
+                  className="pl-9 pr-9"
+                />
+                {teacherSearchQuery ? (
+                  <button
+                    type="button"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground"
+                    aria-label="清空"
+                    onClick={() => {
+                      setTeacherSearchQuery("")
+                      setSelectedTeacherForAdd(null)
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                ) : null}
+              </div>
+            </div>
+            <div className="max-h-[min(320px,50vh)] overflow-y-auto rounded-md border">
+              {!teacherSearchQuery.trim() ? (
+                <p className="p-4 text-center text-sm text-muted-foreground">
+                  请输入姓名或手机号搜索可添加的老师
+                </p>
+              ) : filteredTutors.length === 0 ? (
+                <p className="p-4 text-center text-sm text-muted-foreground">
+                  未找到匹配的老师，或已在申请名单中
+                </p>
+              ) : (
+                <ul className="divide-y">
+                  {filteredTutors.map((t) => (
+                    <li key={t.id}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTeacherForAdd(t.id)}
+                        className={cn(
+                          "flex w-full items-center gap-3 p-3 text-left transition-colors hover:bg-muted/50",
+                          selectedTeacherForAdd === t.id &&
+                            "bg-muted/70 ring-2 ring-inset ring-primary/30"
+                        )}
+                      >
+                        <Avatar className="h-9 w-9 shrink-0">
+                          <AvatarImage src={t.avatar} />
+                          <AvatarFallback>{t.name[0]}</AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium truncate">{t.name}</div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            {t.phone}
+                          </div>
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsAddApplicantOpen(false)}
+            >
+              取消
+            </Button>
+            <Button
+              type="button"
+              disabled={!selectedTeacherForAdd}
+              onClick={handleConfirmAddApplicant}
+            >
+              确认添加
             </Button>
           </DialogFooter>
         </DialogContent>
