@@ -7,6 +7,10 @@ import { mockTutorIncomeSummary } from './mock-data/tutor-income-summary'
 import { mockSubjects } from './mock-data/subjects'
 import { mockOrderAccordRecords } from './mock-data/order-accord'
 import { mockTeacherAccordRecords } from './mock-data/teacher-accord'
+import { mockFinancialRecords } from './mock-data/financial-records'
+import type { Order } from '@/types'
+import { mockRefundApplications } from './mock-data/refund-applications'
+import { mockRefundOperationLogs } from './mock-data/refund-logs'
 
 export const STORAGE_KEYS = {
   USERS: 'eduflow:users',
@@ -18,6 +22,9 @@ export const STORAGE_KEYS = {
   SUBJECTS: 'eduflow:subjects',
   ORDER_ACCORD_RECORDS: 'eduflow:order-accord-records',
   TEACHER_ACCORD_RECORDS: 'eduflow:teacher-accord-records',
+  FINANCIAL_RECORDS: 'eduflow:financial-records',
+  REFUND_APPLICATIONS: 'eduflow:refund-applications',
+  REFUND_OPERATION_LOGS: 'eduflow:refund-operation-logs',
 }
 
 const isBrowser = typeof window !== 'undefined'
@@ -66,6 +73,27 @@ export const saveOrderAccordRecords = (data: typeof mockOrderAccordRecords) => s
 export const getStoredTeacherAccordRecords = () => getMockData(STORAGE_KEYS.TEACHER_ACCORD_RECORDS, mockTeacherAccordRecords)
 export const saveTeacherAccordRecords = (data: typeof mockTeacherAccordRecords) => saveMockData(STORAGE_KEYS.TEACHER_ACCORD_RECORDS, data)
 
+export const saveStoredOrders = (orders: Order[]) =>
+  saveMockData(STORAGE_KEYS.ORDERS, orders)
+
+export const getStoredFinancialRecords = () =>
+  getMockData(STORAGE_KEYS.FINANCIAL_RECORDS, mockFinancialRecords)
+
+export const saveStoredFinancialRecords = (data: typeof mockFinancialRecords) =>
+  saveMockData(STORAGE_KEYS.FINANCIAL_RECORDS, data)
+
+export const getStoredRefundApplications = () =>
+  getMockData(STORAGE_KEYS.REFUND_APPLICATIONS, mockRefundApplications)
+
+export const saveRefundApplications = (data: typeof mockRefundApplications) =>
+  saveMockData(STORAGE_KEYS.REFUND_APPLICATIONS, data)
+
+export const getStoredRefundOperationLogs = () =>
+  getMockData(STORAGE_KEYS.REFUND_OPERATION_LOGS, mockRefundOperationLogs)
+
+export const saveRefundOperationLogs = (data: typeof mockRefundOperationLogs) =>
+  saveMockData(STORAGE_KEYS.REFUND_OPERATION_LOGS, data)
+
 // Initialize all data
 export const initializeMockData = () => {
   if (!isBrowser) return
@@ -104,4 +132,7 @@ export const initializeMockData = () => {
   if (!localStorage.getItem(STORAGE_KEYS.SUBJECTS)) saveMockData(STORAGE_KEYS.SUBJECTS, mockSubjects)
   if (!localStorage.getItem(STORAGE_KEYS.ORDER_ACCORD_RECORDS)) saveMockData(STORAGE_KEYS.ORDER_ACCORD_RECORDS, mockOrderAccordRecords)
   if (!localStorage.getItem(STORAGE_KEYS.TEACHER_ACCORD_RECORDS)) saveMockData(STORAGE_KEYS.TEACHER_ACCORD_RECORDS, mockTeacherAccordRecords)
+  if (!localStorage.getItem(STORAGE_KEYS.FINANCIAL_RECORDS)) saveMockData(STORAGE_KEYS.FINANCIAL_RECORDS, mockFinancialRecords)
+  if (!localStorage.getItem(STORAGE_KEYS.REFUND_APPLICATIONS)) saveMockData(STORAGE_KEYS.REFUND_APPLICATIONS, mockRefundApplications)
+  if (!localStorage.getItem(STORAGE_KEYS.REFUND_OPERATION_LOGS)) saveMockData(STORAGE_KEYS.REFUND_OPERATION_LOGS, mockRefundOperationLogs)
 }

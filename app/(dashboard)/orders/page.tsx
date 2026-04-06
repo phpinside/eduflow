@@ -14,7 +14,6 @@ import {
   RefreshCw,
   ArrowRight,
   X,
-  Loader2,
   RotateCcw,
   Calendar as CalendarIcon,
 } from "lucide-react"
@@ -27,7 +26,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 
@@ -52,10 +50,28 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { mockOrders } from "@/lib/mock-data/orders"
 import { mockStudents } from "@/lib/mock-data/students"
 import { mockUsers } from "@/lib/mock-data/users"
-import { Order, OrderStatus, OrderType } from "@/types"
+import {
+  getStoredOrders,
+  saveStoredOrders,
+  getStoredRefundApplications,
+  saveRefundApplications,
+  getStoredRefundOperationLogs,
+  saveRefundOperationLogs,
+} from "@/lib/storage"
+import { useAuth } from "@/contexts/AuthContext"
+import { RefundApplyDialog } from "@/components/refund/refund-apply-dialog"
+import {
+  canSalesApplyRefund,
+  canSalesWithdraw,
+  createRefundLog,
+  findActiveRefundApplication,
+  getOrderTotalPaid,
+  getRegularRefundBreakdown,
+} from "@/lib/refund-domain"
+import type { Order, RefundApplication } from "@/types"
+import { OrderStatus, OrderType, RefundApplicationStatus } from "@/types"
 
 const STATUS_MAP: Record<OrderStatus, string> = {
   [OrderStatus.PENDING]: "待接单",
@@ -64,6 +80,7 @@ const STATUS_MAP: Record<OrderStatus, string> = {
   [OrderStatus.COMPLETED]: "已完成",
   [OrderStatus.CANCELLED]: "已取消",
   [OrderStatus.CANCEL_REQUESTED]: "取消申请中",
+  [OrderStatus.REFUNDED]: "已退款",
 }
 
 const STATUS_COLOR_MAP: Record<OrderStatus, "default" | "secondary" | "destructive" | "outline"> = {
@@ -73,15 +90,22 @@ const STATUS_COLOR_MAP: Record<OrderStatus, "default" | "secondary" | "destructi
   [OrderStatus.COMPLETED]: "outline",
   [OrderStatus.CANCELLED]: "destructive",
   [OrderStatus.CANCEL_REQUESTED]: "destructive",
+  [OrderStatus.REFUNDED]: "outline",
 }
 
 export default function OrdersPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const studentId = searchParams.get("studentId")
+  const { user } = useAuth()
 
-  // Initialize local state with mock data
-  const [orders, setOrders] = React.useState<Order[]>(mockOrders)
+  const [orders, setOrders] = React.useState<Order[]>([])
+  const [refundApplications, setRefundApplications] = React.useState<RefundApplication[]>([])
+
+  React.useEffect(() => {
+    setOrders(getStoredOrders())
+    setRefundApplications(getStoredRefundApplications())
+  }, [])
 
   const getStudentName = (studentId: string) => {
     const student = mockStudents.find(s => s.id === studentId)
@@ -95,10 +119,7 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null)
   const [renewHours, setRenewHours] = React.useState(40)
 
-  // Cancel Dialog State
-  const [isCancelOpen, setIsCancelOpen] = React.useState(false)
-  const [cancelReason, setCancelReason] = React.useState("")
-  const [isSubmittingCancel, setIsSubmittingCancel] = React.useState(false)
+  const [refundDialogOpen, setRefundDialogOpen] = React.useState(false)
 
   const [orderTypeFilter, setOrderTypeFilter] = React.useState<string>("ALL")
   const [filterStudentName, setFilterStudentName] = React.useState("")
@@ -252,31 +273,47 @@ export default function OrdersPage() {
     router.push(`/regular-course/payment?${queryParams}`)
   }
 
-  const handleCancelOrder = async () => {
-    if (!selectedOrder) return
-    setIsSubmittingCancel(true)
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    // Update local state
-    setOrders(orders.map(o => 
-        o.id === selectedOrder.id 
-            ? { 
-                ...o, 
-                status: OrderStatus.CANCEL_REQUESTED,
-                cancelReason: cancelReason,
-                // Simple refund calculation logic for demo
-                refundAmount: o.price ? Math.floor(o.price * (o.remainingHours / o.totalHours)) : 0
-              } 
-            : o
-    ))
-    
-    toast.success("取消申请已提交，等待审核")
-    setIsSubmittingCancel(false)
-    setIsCancelOpen(false)
-    setCancelReason("")
-    setSelectedOrder(null)
+  const handleWithdrawRefund = (order: Order) => {
+    if (!user) return
+    const app = findActiveRefundApplication(refundApplications, order.id)
+    if (!canSalesWithdraw(app)) return
+    const now = new Date()
+    const nextApps = refundApplications.map((a) =>
+      a.id === app!.id
+        ? { ...a, status: RefundApplicationStatus.WITHDRAWN, updatedAt: now }
+        : a
+    )
+    const nextOrders = orders.map((o) =>
+      o.id === order.id
+        ? { ...o, refundFreezeActive: false, updatedAt: now }
+        : o
+    )
+    const logs = [
+      ...getStoredRefundOperationLogs(),
+      createRefundLog({
+        refundApplicationId: app!.id,
+        orderId: order.id,
+        actorRole: "SALES",
+        actorUserId: user.id,
+        actorName: user.name,
+        action: "撤销退费申请",
+        detail: "一审处理前招生老师主动撤销，课时已解冻",
+      }),
+    ]
+    saveRefundApplications(nextApps)
+    saveStoredOrders(nextOrders)
+    saveRefundOperationLogs(logs)
+    setRefundApplications(nextApps)
+    setOrders(nextOrders)
+    toast.success("已撤销申请，本单课时恢复可用")
+  }
+
+  const refundStatusLabel = (orderId: string) => {
+    const a = findActiveRefundApplication(refundApplications, orderId)
+    if (!a) return null
+    if (a.status === RefundApplicationStatus.PENDING_FIRST_REVIEW) return "退费：一审待审"
+    if (a.status === RefundApplicationStatus.PENDING_SECOND_REVIEW) return "退费：二审待审"
+    return null
   }
 
   return (
@@ -315,6 +352,73 @@ export default function OrdersPage() {
             </Button>
         </div>
       </div>
+
+      {studentId && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base font-medium">
+              学员「{studentName}」名下订单消费一览
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              同一学员多笔充值需分别发起退费；以下为该学员在当前系统中的全部订单维度数据。
+            </p>
+          </CardHeader>
+          <CardContent className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-muted-foreground">
+                  <th className="py-2 pr-4 font-medium">订单号</th>
+                  <th className="py-2 pr-4 font-medium">类型</th>
+                  <th className="py-2 pr-4 font-medium">科目</th>
+                  <th className="py-2 pr-4 font-medium">总课时</th>
+                  <th className="py-2 pr-4 font-medium">已上</th>
+                  <th className="py-2 pr-4 font-medium">剩余</th>
+                  <th className="py-2 pr-4 font-medium">缴纳合计</th>
+                  <th className="py-2 pr-4 font-medium">备注</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders
+                  .filter((o) => o.studentId === studentId)
+                  .map((o) => {
+                    const consumed =
+                      o.type === OrderType.REGULAR
+                        ? Math.max(0, o.totalHours - (o.remainingHours ?? 0))
+                        : "—"
+                    const paid = getOrderTotalPaid(o)
+                    const maxRef =
+                      o.type === OrderType.REGULAR
+                        ? getRegularRefundBreakdown(o).maxRefundable
+                        : o.price
+                    return (
+                      <tr key={o.id} className="border-b border-border/60">
+                        <td className="py-2 pr-4 font-mono text-xs">{o.id}</td>
+                        <td className="py-2 pr-4">
+                          {o.type === OrderType.TRIAL ? "试课" : "正课"}
+                        </td>
+                        <td className="py-2 pr-4">{o.subject}</td>
+                        <td className="py-2 pr-4">
+                          {o.type === OrderType.REGULAR ? o.totalHours : "—"}
+                        </td>
+                        <td className="py-2 pr-4">{consumed}</td>
+                        <td className="py-2 pr-4">
+                          {o.type === OrderType.REGULAR ? o.remainingHours : "—"}
+                        </td>
+                        <td className="py-2 pr-4">¥{paid.toLocaleString()}</td>
+                        <td className="py-2 pr-4 text-xs text-muted-foreground">
+                          {o.refundFreezeActive && <span className="text-amber-700">冻结中 </span>}
+                          {o.type === OrderType.REGULAR && (
+                            <span>最大可退约 ¥{maxRef.toLocaleString()}</span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
@@ -517,8 +621,16 @@ export default function OrdersPage() {
                     {order.type === OrderType.TRIAL ? "试课订单" : "正课订单"}
                   </Badge>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant={STATUS_COLOR_MAP[order.status]}>{STATUS_MAP[order.status]}</Badge>
+                  {order.refundFreezeActive && (
+                    <Badge variant="secondary">课时冻结</Badge>
+                  )}
+                  {refundStatusLabel(order.id) && (
+                    <Badge variant="outline" className="text-amber-800 border-amber-300">
+                      {refundStatusLabel(order.id)}
+                    </Badge>
+                  )}
 
                   <div className="flex gap-2 items-center">
                     {order.type === OrderType.TRIAL &&
@@ -544,7 +656,9 @@ export default function OrdersPage() {
 
                     {order.type === OrderType.REGULAR &&
                       order.status !== OrderStatus.CANCELLED &&
-                      order.status !== OrderStatus.CANCEL_REQUESTED && (
+                      order.status !== OrderStatus.CANCEL_REQUESTED &&
+                      order.status !== OrderStatus.REFUNDED &&
+                      !order.refundFreezeActive && (
                         <Button
                           size="sm"
                           variant="secondary"
@@ -557,6 +671,22 @@ export default function OrdersPage() {
                         >
                           <RefreshCw className="mr-1 h-3 w-3" />
                           续费
+                        </Button>
+                      )}
+
+                    {user &&
+                      order.salesPersonId === user.id &&
+                      canSalesWithdraw(findActiveRefundApplication(refundApplications, order.id)) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleWithdrawRefund(order)
+                          }}
+                        >
+                          撤销退费申请
                         </Button>
                       )}
 
@@ -579,17 +709,18 @@ export default function OrdersPage() {
                           </Link>
                         </DropdownMenuItem>
 
-                        {order.status !== OrderStatus.CANCELLED &&
-                          order.status !== OrderStatus.CANCEL_REQUESTED && (
+                        {user &&
+                          order.salesPersonId === user.id &&
+                          canSalesApplyRefund(order, refundApplications) && (
                             <DropdownMenuItem
-                              className="text-destructive focus:text-destructive cursor-pointer"
+                              className="cursor-pointer"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 setSelectedOrder(order)
-                                setIsCancelOpen(true)
+                                setRefundDialogOpen(true)
                               }}
                             >
-                              取消订单
+                              申请退费
                             </DropdownMenuItem>
                           )}
 
@@ -670,40 +801,17 @@ export default function OrdersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Cancel Dialog */}
-      <Dialog open={isCancelOpen} onOpenChange={setIsCancelOpen}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>申请取消订单</DialogTitle>
-                <DialogDescription>
-                    订单号：{selectedOrder?.id} <br/>
-                    提交后需等待后台运营人员审核，审核通过后将进行退款流程。
-                </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                    <Label htmlFor="reason">取消理由</Label>
-                    <Textarea 
-                        id="reason" 
-                        placeholder="请详细描述取消原因..." 
-                        value={cancelReason}
-                        onChange={(e) => setCancelReason(e.target.value)}
-                    />
-                </div>
-            </div>
-            <DialogFooter>
-                <Button variant="outline" onClick={() => setIsCancelOpen(false)}>暂不取消</Button>
-                <Button 
-                    variant="destructive" 
-                    onClick={handleCancelOrder} 
-                    disabled={!cancelReason.trim() || isSubmittingCancel}
-                >
-                    {isSubmittingCancel && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    确认提交申请
-                </Button>
-            </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <RefundApplyDialog
+        open={refundDialogOpen}
+        onOpenChange={setRefundDialogOpen}
+        order={selectedOrder}
+        user={user}
+        orders={orders}
+        onCommitted={(nextOrders, nextApps) => {
+          setOrders(nextOrders)
+          setRefundApplications(nextApps)
+        }}
+      />
     </div>
   )
 }

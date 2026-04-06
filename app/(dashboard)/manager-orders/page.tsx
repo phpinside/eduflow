@@ -40,9 +40,10 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
-import { mockOrders } from "@/lib/mock-data/orders"
 import { mockStudents } from "@/lib/mock-data/students"
 import { mockUsers } from "@/lib/mock-data/users"
+import { getStoredOrders } from "@/lib/storage"
+import type { Order } from "@/types"
 import { OrderStatus, OrderType } from "@/types"
 import { cn } from "@/lib/utils"
 
@@ -53,6 +54,7 @@ const STATUS_MAP: Record<OrderStatus, string> = {
   [OrderStatus.COMPLETED]: "已完成",
   [OrderStatus.CANCELLED]: "已取消",
   [OrderStatus.CANCEL_REQUESTED]: "取消申请中",
+  [OrderStatus.REFUNDED]: "已退款",
 }
 
 const STATUS_COLOR_MAP: Record<OrderStatus, "default" | "secondary" | "destructive" | "outline"> = {
@@ -62,6 +64,7 @@ const STATUS_COLOR_MAP: Record<OrderStatus, "default" | "secondary" | "destructi
   [OrderStatus.COMPLETED]: "outline",
   [OrderStatus.CANCELLED]: "destructive",
   [OrderStatus.CANCEL_REQUESTED]: "destructive",
+  [OrderStatus.REFUNDED]: "outline",
 }
 
 // 每页显示数量
@@ -69,7 +72,12 @@ const PAGE_SIZE = 10
 
 export default function ManagerOrdersPage() {
   const router = useRouter()
-  
+  const [orders, setOrders] = React.useState<Order[]>([])
+
+  React.useEffect(() => {
+    setOrders(getStoredOrders())
+  }, [])
+
   // 筛选条件状态
   const [orderIdSearch, setOrderIdSearch] = React.useState("")
   const [dateRange, setDateRange] = React.useState<{ from: Date | undefined; to: Date | undefined }>({
@@ -95,7 +103,7 @@ export default function ManagerOrdersPage() {
   const { subjects, grades } = React.useMemo(() => {
     const subjectsSet = new Set<string>()
     const gradesSet = new Set<string>()
-    mockOrders.forEach(order => {
+    orders.forEach((order) => {
       subjectsSet.add(order.subject)
       gradesSet.add(order.grade)
     })
@@ -103,7 +111,7 @@ export default function ManagerOrdersPage() {
       subjects: Array.from(subjectsSet).sort(),
       grades: Array.from(gradesSet).sort()
     }
-  }, [])
+  }, [orders])
 
   // 切换状态选择
   const toggleStatus = (status: OrderStatus) => {
@@ -117,7 +125,7 @@ export default function ManagerOrdersPage() {
 
   // 筛选后的订单
   const filteredOrders = React.useMemo(() => {
-    return mockOrders.map(order => {
+    return orders.map((order) => {
       const student = mockStudents.find(s => s.id === order.studentId)
       const tutor = mockUsers.find(u => u.id === order.assignedTeacherId)
       return {
@@ -198,7 +206,21 @@ export default function ManagerOrdersPage() {
 
       return true
     })
-  }, [orderIdSearch, dateRange, orderTypeFilter, subjectFilter, gradeFilter, selectedStatuses, campusAccountSearch, studentNameSearch, studentAccountSearch, parentPhoneSearch, tutorNameSearch, tutorPhoneSearch])
+  }, [
+    orders,
+    orderIdSearch,
+    dateRange,
+    orderTypeFilter,
+    subjectFilter,
+    gradeFilter,
+    selectedStatuses,
+    campusAccountSearch,
+    studentNameSearch,
+    studentAccountSearch,
+    parentPhoneSearch,
+    tutorNameSearch,
+    tutorPhoneSearch,
+  ])
 
   // 分页后的订单
   const paginatedOrders = React.useMemo(() => {

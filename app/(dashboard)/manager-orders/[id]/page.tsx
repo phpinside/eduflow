@@ -37,10 +37,27 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { zhCN } from "date-fns/locale"
-import { mockOrders } from "@/lib/mock-data/orders"
 import { mockStudents } from "@/lib/mock-data/students"
 import { mockUsers } from "@/lib/mock-data/users"
+import { getStoredOrders, saveStoredOrders } from "@/lib/storage"
+import type { Order } from "@/types"
 import { OrderStatus, OrderType, Role } from "@/types"
+
+function loadOrderFromStorage(orderId: string): Order | undefined {
+  return getStoredOrders().find((o) => o.id === orderId)
+}
+
+function persistOrder(next: Order) {
+  const all = getStoredOrders()
+  const i = all.findIndex((o) => o.id === next.id)
+  if (i === -1) return
+  all[i] = { ...next, updatedAt: new Date() }
+  saveStoredOrders(all)
+}
+
+function deleteOrderFromStorage(orderId: string) {
+  saveStoredOrders(getStoredOrders().filter((o) => o.id !== orderId))
+}
 
 const STATUS_MAP: Record<OrderStatus, string> = {
   [OrderStatus.PENDING]: "待接单",
@@ -49,6 +66,7 @@ const STATUS_MAP: Record<OrderStatus, string> = {
   [OrderStatus.COMPLETED]: "已完成",
   [OrderStatus.CANCELLED]: "已取消",
   [OrderStatus.CANCEL_REQUESTED]: "取消申请中",
+  [OrderStatus.REFUNDED]: "已退款",
 }
 
 const DAY_MAP: Record<string, string> = {
@@ -251,9 +269,14 @@ export default function ManagerOrderDetailsPage() {
   const router = useRouter()
   const { id } = params
 
-  const [order, setOrder] = React.useState(() =>
-    mockOrders.find((o) => o.id === id)
-  )
+  const [order, setOrder] = React.useState<Order | undefined>(undefined)
+  const [storageReady, setStorageReady] = React.useState(false)
+
+  React.useEffect(() => {
+    if (!id) return
+    setOrder(loadOrderFromStorage(id as string))
+    setStorageReady(true)
+  }, [id])
 
   const [isAnnouncementDialogOpen, setIsAnnouncementDialogOpen] =
     React.useState(false)
@@ -306,6 +329,14 @@ export default function ManagerOrderDetailsPage() {
     [order]
   )
 
+  if (!storageReady) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[40vh] text-muted-foreground text-sm">
+        加载中…
+      </div>
+    )
+  }
+
   if (!order) {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh] space-y-4">
@@ -325,42 +356,23 @@ export default function ManagerOrderDetailsPage() {
       : order.lastExamScore
 
   const handleAssign = (teacherId: string) => {
-    const mockOrderIndex = mockOrders.findIndex((o) => o.id === id)
-    if (mockOrderIndex !== -1) {
-      mockOrders[mockOrderIndex] = {
-        ...mockOrders[mockOrderIndex],
-        status: OrderStatus.ASSIGNED,
-        assignedTeacherId: teacherId,
-      }
-    }
-    setOrder((prev) => {
-      if (!prev) return prev
-      return { ...prev, status: OrderStatus.ASSIGNED, assignedTeacherId: teacherId }
-    })
+    if (!order) return
+    const next = { ...order, status: OrderStatus.ASSIGNED, assignedTeacherId: teacherId }
+    persistOrder(next)
+    setOrder(next)
     toast.success("已成功匹配老师！")
   }
 
   const handleSetPending = () => {
     if (!order) return
-    const mockOrderIndex = mockOrders.findIndex((o) => o.id === order.id)
-    if (mockOrderIndex !== -1) {
-      mockOrders[mockOrderIndex] = {
-        ...mockOrders[mockOrderIndex],
-        status: OrderStatus.PENDING,
-        assignedTeacherId: undefined,
-        transferredOutFrom: order.assignedTeacherId,
-      }
+    const next = {
+      ...order,
+      status: OrderStatus.PENDING,
+      assignedTeacherId: undefined,
+      transferredOutFrom: order.assignedTeacherId,
     }
-    setOrder((prev) => {
-      if (!prev) return prev
-      const currentTeacherId = prev.assignedTeacherId
-      return {
-        ...prev,
-        status: OrderStatus.PENDING,
-        assignedTeacherId: undefined,
-        transferredOutFrom: currentTeacherId,
-      }
-    })
+    persistOrder(next)
+    setOrder(next)
     toast.success("订单已重置为待接单，原老师处已标记转走")
   }
 
@@ -438,11 +450,7 @@ export default function ManagerOrderDetailsPage() {
       remarks: editForm.remarks || undefined,
     }
 
-    // Update mock orders
-    const mockOrderIndex = mockOrders.findIndex((o) => o.id === order.id)
-    if (mockOrderIndex !== -1) {
-      mockOrders[mockOrderIndex] = updatedOrder
-    }
+    persistOrder(updatedOrder)
 
     // Update mock student
     if (student) {
@@ -465,18 +473,11 @@ export default function ManagerOrderDetailsPage() {
   }
 
   const handleAddApplicant = (teacherId: string) => {
-    const mockOrderIndex = mockOrders.findIndex((o) => o.id === id)
-    const newApplicantIds = [...(order?.applicantIds ?? []), teacherId]
-    if (mockOrderIndex !== -1) {
-      mockOrders[mockOrderIndex] = {
-        ...mockOrders[mockOrderIndex],
-        applicantIds: newApplicantIds,
-      }
-    }
-    setOrder((prev) => {
-      if (!prev) return prev
-      return { ...prev, applicantIds: newApplicantIds }
-    })
+    if (!order) return
+    const newApplicantIds = [...(order.applicantIds ?? []), teacherId]
+    const next = { ...order, applicantIds: newApplicantIds }
+    persistOrder(next)
+    setOrder(next)
     const teacher = mockUsers.find((u) => u.id === teacherId)
     toast.success(`已将 ${teacher?.name ?? "老师"} 添加到申请名单`)
   }
@@ -498,10 +499,7 @@ export default function ManagerOrderDetailsPage() {
   const handleConfirmDeleteOrder = () => {
     if (!order) return
     const oid = order.id
-    const idx = mockOrders.findIndex((o) => o.id === oid)
-    if (idx !== -1) {
-      mockOrders.splice(idx, 1)
-    }
+    deleteOrderFromStorage(oid)
     setIsDeleteConfirmOpen(false)
     toast.success("订单已删除")
     router.push("/manager-orders")

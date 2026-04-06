@@ -39,7 +39,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { FinancialRecord } from "@/types"
-import { mockFinancialRecords } from "@/lib/mock-data/financial-records"
+import { getStoredFinancialRecords } from "@/lib/storage"
 import { cn } from "@/lib/utils"
 
 const ITEMS_PER_PAGE = 30
@@ -63,7 +63,7 @@ export default function FinancialRecordsPage() {
   }, [])
 
   const loadRecords = () => {
-    setRecords(mockFinancialRecords)
+    setRecords(getStoredFinancialRecords())
   }
 
   // 筛选逻辑

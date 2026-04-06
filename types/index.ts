@@ -44,7 +44,8 @@ export enum OrderStatus {
   IN_PROGRESS = 'IN_PROGRESS', // 进行中
   COMPLETED = 'COMPLETED',   // 已完成
   CANCELLED = 'CANCELLED',   // 已取消
-  CANCEL_REQUESTED = 'CANCEL_REQUESTED' // 取消申请中
+  CANCEL_REQUESTED = 'CANCEL_REQUESTED', // 取消申请中（历史兼容，新退费请用 RefundApplication）
+  REFUNDED = 'REFUNDED'      // 已退款（二审通过并完成原路退回）
 }
 
 export interface Order {
@@ -90,6 +91,74 @@ export interface Order {
 
   // Transfer history for teachers
   transferredOutFrom?: string // ID of the teacher from whom this order was transferred out
+
+  /** 退费流程中课时冻结：为 true 时剩余课时不可排课消耗（原型层提示与校验） */
+  refundFreezeActive?: boolean
+}
+
+/** 退费申请类型：试课 / 正课(含续课) / 仅转正红包 */
+export type RefundKind = 'TRIAL' | 'REGULAR' | 'RENEWAL' | 'RED_PACKET'
+
+/** 退费申请状态（双审流程） */
+export enum RefundApplicationStatus {
+  PENDING_FIRST_REVIEW = 'PENDING_FIRST_REVIEW',
+  PENDING_SECOND_REVIEW = 'PENDING_SECOND_REVIEW',
+  FIRST_REJECTED = 'FIRST_REJECTED',
+  WITHDRAWN = 'WITHDRAWN',
+  REFUND_SUCCESS = 'REFUND_SUCCESS',
+  REFUND_FAILED = 'REFUND_FAILED',
+}
+
+/** 正课/续课可退金额明细快照（申请时保存便于审核端展示） */
+export interface RegularRefundBreakdown {
+  totalFee: number
+  totalHours: number
+  consumedHours: number
+  remainingHours: number
+  nonRefundableAmount: number
+  consumedLessonFee: number
+  maxRefundable: number
+}
+
+export interface RefundApplication {
+  id: string
+  orderId: string
+  applicantUserId: string
+  applicantName?: string
+  refundKind: RefundKind
+  status: RefundApplicationStatus
+  reason?: string
+  requestedAmount: number
+  computedMaxAtApply: number
+  breakdown?: RegularRefundBreakdown
+  createdAt: Date
+  updatedAt: Date
+  firstReviewNote?: string
+  firstReviewerId?: string
+  firstReviewerName?: string
+  firstReviewedAt?: Date
+  secondReviewNote?: string
+  secondReviewerId?: string
+  secondReviewerName?: string
+  secondReviewedAt?: Date
+  finalRefundAmount?: number
+  executionStatus?: 'PENDING' | 'SUCCESS' | 'FAILED'
+  /** 一审驳回时向招生老师展示的说明 */
+  firstRejectApplicantNote?: string
+  /** 二审驳回退回一审时向招生老师展示的说明 */
+  secondRejectApplicantNote?: string
+}
+
+export interface RefundOperationLog {
+  id: string
+  refundApplicationId: string
+  orderId: string
+  actorRole: 'SALES' | 'OPERATOR' | 'SYSTEM'
+  actorUserId?: string
+  actorName?: string
+  action: string
+  detail?: string
+  createdAt: Date
 }
 
 export interface Transaction {

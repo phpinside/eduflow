@@ -34,6 +34,7 @@ const STATUS_MAP: Record<OrderStatus, string> = {
   [OrderStatus.COMPLETED]: "已完成",
   [OrderStatus.CANCELLED]: "已取消",
   [OrderStatus.CANCEL_REQUESTED]: "取消申请中",
+  [OrderStatus.REFUNDED]: "已退款",
 }
 
 const STATUS_COLOR_MAP: Record<OrderStatus, "default" | "secondary" | "destructive" | "outline"> = {
@@ -43,6 +44,7 @@ const STATUS_COLOR_MAP: Record<OrderStatus, "default" | "secondary" | "destructi
   [OrderStatus.COMPLETED]: "outline",
   [OrderStatus.CANCELLED]: "destructive",
   [OrderStatus.CANCEL_REQUESTED]: "destructive",
+  [OrderStatus.REFUNDED]: "outline",
 }
 
 function Field({

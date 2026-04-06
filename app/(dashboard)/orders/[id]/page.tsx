@@ -37,13 +37,23 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { mockOrders } from "@/lib/mock-data/orders"
 import { mockStudents } from "@/lib/mock-data/students"
-import { OrderStatus, OrderType } from "@/types"
+import { getStoredOrders, saveStoredOrders, getStoredRefundApplications, saveRefundApplications, getStoredRefundOperationLogs, saveRefundOperationLogs } from "@/lib/storage"
+import { useAuth } from "@/contexts/AuthContext"
+import { RefundApplyDialog } from "@/components/refund/refund-apply-dialog"
+import {
+  canSalesApplyRefund,
+  canSalesWithdraw,
+  createRefundLog,
+  findActiveRefundApplication,
+} from "@/lib/refund-domain"
+import type { Order, RefundApplication } from "@/types"
+import { OrderStatus, OrderType, RefundApplicationStatus } from "@/types"
 
 const STATUS_MAP: Record<OrderStatus, string> = {
   [OrderStatus.PENDING]: "待接单",
@@ -52,6 +62,7 @@ const STATUS_MAP: Record<OrderStatus, string> = {
   [OrderStatus.COMPLETED]: "已完成",
   [OrderStatus.CANCELLED]: "已取消",
   [OrderStatus.CANCEL_REQUESTED]: "取消申请中",
+  [OrderStatus.REFUNDED]: "已退款",
 }
 
 const STATUS_COLOR_MAP: Record<
@@ -64,6 +75,7 @@ const STATUS_COLOR_MAP: Record<
   [OrderStatus.COMPLETED]: "outline",
   [OrderStatus.CANCELLED]: "destructive",
   [OrderStatus.CANCEL_REQUESTED]: "destructive",
+  [OrderStatus.REFUNDED]: "outline",
 }
 
 const DAY_MAP: Record<string, string> = {
@@ -118,11 +130,19 @@ export default function OrderDetailsPage() {
   const params = useParams()
   const router = useRouter()
   const { id } = params
+  const { user } = useAuth()
 
-  const order = React.useMemo(
-    () => mockOrders.find((o) => o.id === id),
-    [id]
-  )
+  const [order, setOrder] = React.useState<Order | undefined>(undefined)
+  const [orders, setOrders] = React.useState<Order[]>([])
+  const [refundApplications, setRefundApplications] = React.useState<RefundApplication[]>([])
+  const [refundDialogOpen, setRefundDialogOpen] = React.useState(false)
+
+  React.useEffect(() => {
+    const all = getStoredOrders()
+    setOrders(all)
+    setOrder(all.find((o) => o.id === id))
+    setRefundApplications(getStoredRefundApplications())
+  }, [id])
 
   const student = React.useMemo(
     () => (order ? mockStudents.find((s) => s.id === order.studentId) : null),
@@ -146,6 +166,45 @@ export default function OrderDetailsPage() {
     }).toString()
     setIsRenewOpen(false)
     router.push(`/regular-course/payment?${queryParams}`)
+  }
+
+  const activeRefund = findActiveRefundApplication(refundApplications, String(id))
+  const latestRejected = [...refundApplications]
+    .filter((a) => a.orderId === id && a.status === RefundApplicationStatus.FIRST_REJECTED)
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0]
+
+  const handleWithdrawRefund = () => {
+    if (!order || !user) return
+    const app = findActiveRefundApplication(refundApplications, order.id)
+    if (!canSalesWithdraw(app)) return
+    const now = new Date()
+    const nextApps = refundApplications.map((a) =>
+      a.id === app!.id
+        ? { ...a, status: RefundApplicationStatus.WITHDRAWN, updatedAt: now }
+        : a
+    )
+    const nextOrders = orders.map((o) =>
+      o.id === order.id ? { ...o, refundFreezeActive: false, updatedAt: now } : o
+    )
+    const logs = [
+      ...getStoredRefundOperationLogs(),
+      createRefundLog({
+        refundApplicationId: app!.id,
+        orderId: order.id,
+        actorRole: "SALES",
+        actorUserId: user.id,
+        actorName: user.name,
+        action: "撤销退费申请",
+        detail: "一审处理前招生老师主动撤销",
+      }),
+    ]
+    saveRefundApplications(nextApps)
+    saveStoredOrders(nextOrders)
+    saveRefundOperationLogs(logs)
+    setRefundApplications(nextApps)
+    setOrders(nextOrders)
+    setOrder(nextOrders.find((o) => o.id === id))
+    toast.success("已撤销申请，课时已解冻")
   }
 
   if (!order) {
@@ -206,7 +265,9 @@ export default function OrderDetailsPage() {
 
           {!isTrial &&
             order.status !== OrderStatus.CANCELLED &&
-            order.status !== OrderStatus.CANCEL_REQUESTED && (
+            order.status !== OrderStatus.CANCEL_REQUESTED &&
+            order.status !== OrderStatus.REFUNDED &&
+            !order.refundFreezeActive && (
               <Button
                 size="sm"
                 className="bg-green-600 hover:bg-green-700 text-white"
@@ -216,8 +277,45 @@ export default function OrderDetailsPage() {
                 续费
               </Button>
             )}
+
+          {user &&
+            order.salesPersonId === user.id &&
+            canSalesApplyRefund(order, refundApplications) && (
+              <Button size="sm" variant="outline" onClick={() => setRefundDialogOpen(true)}>
+                申请退费
+              </Button>
+            )}
+
+          {user &&
+            order.salesPersonId === user.id &&
+            canSalesWithdraw(activeRefund) && (
+              <Button size="sm" variant="secondary" onClick={handleWithdrawRefund}>
+                撤销退费申请
+              </Button>
+            )}
         </div>
       </div>
+
+      {(order.refundFreezeActive || activeRefund) && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50/80 dark:bg-amber-950/20 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
+          {order.refundFreezeActive && (
+            <p>本单课时已因退费申请冻结，在审核结束（通过并完成退款、驳回或您主动撤销）前不可排课消耗。</p>
+          )}
+          {activeRefund?.status === RefundApplicationStatus.PENDING_FIRST_REVIEW && (
+            <p className="mt-1">当前状态：一审待审。审核约 2–3 个工作日；通过后原路退回约 3–5 个工作日。</p>
+          )}
+          {activeRefund?.status === RefundApplicationStatus.PENDING_SECOND_REVIEW && (
+            <p className="mt-1">当前状态：二审待审。</p>
+          )}
+        </div>
+      )}
+
+      {latestRejected?.firstRejectApplicantNote && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">
+          <p className="font-medium text-destructive">最近一次一审驳回说明</p>
+          <p className="mt-1 text-muted-foreground">{latestRejected.firstRejectApplicantNote}</p>
+        </div>
+      )}
 
       {/* 订单全字段信息 */}
       <Card>
@@ -413,7 +511,15 @@ export default function OrderDetailsPage() {
                       {order.transactions.map((tx) => (
                         <TableRow key={tx.id}>
                           <TableCell className="font-medium">
-                            {tx.type === "INITIAL" ? "首次下单" : "续费"}
+                            {tx.type === "INITIAL"
+                              ? "首次下单"
+                              : tx.type === "RENEWAL"
+                                ? "续费"
+                                : tx.type === "REWARD"
+                                  ? "转正红包"
+                                  : tx.type === "REFUND"
+                                    ? "退款"
+                                    : tx.type}
                           </TableCell>
                           <TableCell>¥{tx.amount.toLocaleString()}</TableCell>
                           <TableCell>{tx.hours} 课时</TableCell>
@@ -477,6 +583,19 @@ export default function OrderDetailsPage() {
       </Card>
 
       {/* 续费对话框 */}
+      <RefundApplyDialog
+        open={refundDialogOpen}
+        onOpenChange={setRefundDialogOpen}
+        order={order}
+        user={user}
+        orders={orders}
+        onCommitted={(nextOrders, nextApps) => {
+          setOrders(nextOrders)
+          setRefundApplications(nextApps)
+          setOrder(nextOrders.find((o) => o.id === id))
+        }}
+      />
+
       <Dialog open={isRenewOpen} onOpenChange={setIsRenewOpen}>
         <DialogContent>
           <DialogHeader>

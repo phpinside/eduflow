@@ -92,5 +92,21 @@ export const mockStudents: Student[] = [
     address: '演示地址2',
     createdAt: new Date(),
     updatedAt: new Date()
-  }
+  },
+  ...Array.from({ length: 20 }, (_, i) => {
+    const n = String(i + 1).padStart(2, '0')
+    return {
+      id: `stu-pay-${n}`,
+      name: `退费测${n}`,
+      grade: ['三年级', '五年级', '初一', '初二', '高一'][i % 5],
+      gender: i % 2 === 0 ? '男' : '女',
+      phone: `1399901${String(1000 + i).slice(-4)}`,
+      parentName: `家长${n}`,
+      parentPhone: `1399901${String(1000 + i).slice(-4)}`,
+      school: '测试学校',
+      address: `测试地址${n}`,
+      createdAt: new Date('2025-06-01'),
+      updatedAt: new Date('2025-06-01'),
+    }
+  }),
 ]
