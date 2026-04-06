@@ -18,6 +18,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
+import { cn } from "@/lib/utils"
 import type { Order, RefundApplication, User } from "@/types"
 import { RefundApplicationStatus } from "@/types"
 import {
@@ -68,13 +69,36 @@ export function RefundApplyDialog(props: {
   const [reason, setReason] = React.useState("")
   const [target, setTarget] = React.useState<RefundTarget>("ORDER")
   const [requestedAmount, setRequestedAmount] = React.useState("")
+  const [requestedHours, setRequestedHours] = React.useState("")
   const [submitting, setSubmitting] = React.useState(false)
 
   const hasPacket = order ? orderHasRedPacket(order) : false
   const kind = order
     ? resolveRefundKind(order, target === "RED_PACKET" ? "RED_PACKET" : "ORDER")
     : "REGULAR"
-  const { max, breakdown } = order ? getComputedMaxForKind(order, kind) : { max: 0 }
+  const apps = React.useMemo(() => getStoredRefundApplications(), [open])
+  const { max, breakdown } = order ? getComputedMaxForKind(order, kind, apps) : { max: 0 }
+  const maxHours = breakdown?.maxRefundableHours ?? 0
+  const perHourAmount = React.useMemo(() => {
+    if (!breakdown) return 0
+    if (!maxHours) return 0
+    return Math.round((max / maxHours) * 100) / 100
+  }, [breakdown, maxHours, max])
+  const isRegularByHours = target === "ORDER" && kind !== "TRIAL"
+  const redPacketAlreadyRefunded = React.useMemo(() => {
+    if (!order) return false
+    return apps.some(
+      (a) =>
+        a.orderId === order.id &&
+        a.refundKind === "RED_PACKET" &&
+        a.status === RefundApplicationStatus.REFUND_SUCCESS
+    )
+  }, [apps, order])
+  const currentApplyHours = Math.floor(Number(requestedHours))
+  const currentUnitPrice =
+    isRegularByHours && Number.isFinite(currentApplyHours) && currentApplyHours > 0
+      ? Math.round((Number(requestedAmount || 0) / currentApplyHours) * 100) / 100
+      : 0
 
   React.useEffect(() => {
     if (!open || !order) return
@@ -85,24 +109,62 @@ export function RefundApplyDialog(props: {
   React.useEffect(() => {
     if (!open || !order) return
     const k = resolveRefundKind(order, target === "RED_PACKET" ? "RED_PACKET" : "ORDER")
-    const { max: m } = getComputedMaxForKind(order, k)
+    const { max: m, breakdown: b } = getComputedMaxForKind(order, k, apps)
     setRequestedAmount(String(m > 0 ? m : ""))
-  }, [open, order, target])
+    if (k !== "TRIAL" && target === "ORDER") {
+      setRequestedHours(String(b?.maxRefundableHours ?? ""))
+    } else {
+      setRequestedHours("")
+    }
+  }, [open, order, target, apps])
+
+  React.useEffect(() => {
+    if (!isRegularByHours) return
+    const h = Math.floor(Number(requestedHours))
+    if (!Number.isFinite(h) || h <= 0 || !maxHours) {
+      setRequestedAmount("")
+      return
+    }
+    const cappedHours = Math.min(maxHours, h)
+    const amt = Math.min(max, Math.round(perHourAmount * cappedHours * 100) / 100)
+    setRequestedAmount(String(amt))
+  }, [requestedHours, isRegularByHours, maxHours, perHourAmount, max])
 
   const handleSubmit = async () => {
-    if (!order || !user) return
+    if (!order) return
+    if (!user) return
     if (target === "RED_PACKET" && !hasPacket) {
       toast.error("该订单无转正红包记录")
       return
     }
-    const amt = Math.floor(Number(requestedAmount))
-    if (!Number.isFinite(amt) || amt <= 0) {
-      toast.error("申请退款金额须大于 0")
+    if (target === "RED_PACKET" && redPacketAlreadyRefunded) {
+      toast.error("该订单转正红包已退款，不可再次申请")
       return
     }
-    if (amt > max) {
-      toast.error(`申请金额不能超过剩余最大可退金额 ¥${max.toLocaleString()}`)
-      return
+    const amt = Math.round(Number(requestedAmount) * 100) / 100
+    const hrs = Math.floor(Number(requestedHours))
+    if (isRegularByHours) {
+      if (!Number.isFinite(hrs) || hrs <= 0) {
+        toast.error("申请退款课时须大于 0")
+        return
+      }
+      if (hrs > maxHours) {
+        toast.error(`申请课时不能超过可申请上限 ${maxHours} 课时`)
+        return
+      }
+      if (!Number.isFinite(amt) || amt <= 0 || amt > max) {
+        toast.error(`计算退款金额异常，请检查课时输入（最大可退 ¥${max.toLocaleString()}）`)
+        return
+      }
+    } else {
+      if (!Number.isFinite(amt) || amt <= 0) {
+        toast.error("申请退款金额须大于 0")
+        return
+      }
+      if (amt > max) {
+        toast.error(`申请金额不能超过剩余最大可退金额 ¥${max.toLocaleString()}`)
+        return
+      }
     }
 
     setSubmitting(true)
@@ -118,7 +180,11 @@ export function RefundApplyDialog(props: {
       refundKind: kind,
       status: RefundApplicationStatus.PENDING_FIRST_REVIEW,
       reason: reason.trim() || undefined,
+      requestedHours: isRegularByHours ? hrs : undefined,
       requestedAmount: amt,
+      finalRefundHours: undefined,
+      userOriginalRequestedAmount: amt,
+      userOriginalRequestedHours: isRegularByHours ? hrs : undefined,
       computedMaxAtApply: max,
       breakdown: breakdown,
       createdAt: now,
@@ -146,7 +212,7 @@ export function RefundApplyDialog(props: {
         actorUserId: user.id,
         actorName: user.name,
         action: "发起退费申请",
-        detail: `类型 ${kind}，申请金额 ¥${amt}`,
+        detail: `类型 ${kind}，${isRegularByHours ? `申请课时 ${hrs} 课时，` : ""}申请金额 ¥${amt}`,
       }),
     ]
 
@@ -168,7 +234,8 @@ export function RefundApplyDialog(props: {
         <DialogHeader>
           <DialogTitle>申请退费</DialogTitle>
           <DialogDescription>
-            订单号 {order.id}，提交后系统将立即冻结本单剩余课时，在审核结束前提请不可再次申请退费。
+            订单号 {order.id}
+            ，提交后系统将立即冻结本单剩余课时，在审核结束前提请不可再次申请退费。
           </DialogDescription>
         </DialogHeader>
 
@@ -193,9 +260,20 @@ export function RefundApplyDialog(props: {
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="RED_PACKET" id="rt-packet" />
-                  <Label htmlFor="rt-packet" className="font-normal cursor-pointer">
+                  <RadioGroupItem
+                    value="RED_PACKET"
+                    id="rt-packet"
+                    disabled={redPacketAlreadyRefunded}
+                  />
+                  <Label
+                    htmlFor="rt-packet"
+                    className={cn(
+                      "font-normal cursor-pointer",
+                      redPacketAlreadyRefunded && "cursor-not-allowed text-muted-foreground"
+                    )}
+                  >
                     仅退转正红包（全额可退，以实际支付为准）
+                    {redPacketAlreadyRefunded && "（已退款，不可重复申请）"}
                   </Label>
                 </div>
               </RadioGroup>
@@ -212,14 +290,28 @@ export function RefundApplyDialog(props: {
                 <span>{breakdown.consumedHours} 课时</span>
                 <span className="text-muted-foreground">剩余课时</span>
                 <span>{breakdown.remainingHours} 课时</span>
+                <span className="text-muted-foreground">冻结课时</span>
+                <span>{breakdown.frozenHours} 课时</span>
+                <span className="text-muted-foreground">历史已退课时</span>
+                <span>{breakdown.historicalRequestedHours} 课时</span>
+                <span className="text-muted-foreground font-medium">当前可申请课时</span>
+                <span className="font-semibold text-primary">{breakdown.maxRefundableHours} 课时</span>
                 <span className="text-muted-foreground">缴纳总费用</span>
                 <span>¥{breakdown.totalFee.toLocaleString()}</span>
+                <span className="text-muted-foreground">正课实缴</span>
+                <span>¥{(breakdown.regularPaidAmount ?? breakdown.totalFee).toLocaleString()}</span>
+                <span className="text-muted-foreground">转正红包</span>
+                <span>¥{(breakdown.redPacketAmount ?? 0).toLocaleString()}</span>
                 <span className="text-muted-foreground">不可退费部分</span>
                 <span>
                   ¥{breakdown.nonRefundableAmount.toLocaleString()}（{breakdown.totalHours}×20 元/课时）
                 </span>
                 <span className="text-muted-foreground">已消耗课时费用</span>
                 <span>¥{breakdown.consumedLessonFee.toLocaleString()}</span>
+                <span className="text-muted-foreground">历史已退款金额</span>
+                <span>¥{(breakdown.historicalRefundedAmount ?? 0).toLocaleString()}</span>
+                <span className="text-muted-foreground">流程冻结金额</span>
+                <span>¥{(breakdown.pendingFrozenAmount ?? 0).toLocaleString()}</span>
                 <span className="text-muted-foreground font-medium">剩余最大可退</span>
                 <span className="font-semibold text-primary">
                   ¥{breakdown.maxRefundable.toLocaleString()}
@@ -242,26 +334,55 @@ export function RefundApplyDialog(props: {
 
           {target === "RED_PACKET" && (
             <div className="rounded-md border p-3 text-sm">
-              转正红包已缴合计{" "}
-              <span className="font-semibold">¥{max.toLocaleString()}</span>
-              ，可申请全额退还（人工审核）。
+              <div>
+                转正红包已缴合计 <span className="font-semibold">¥{max.toLocaleString()}</span>，可申请全额退还（人工审核）。
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                红包退费与正课退费分开处理；选择“仅退转正红包”时不影响正课实缴部分。
+              </div>
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="refund-amt">申请退款金额（元）</Label>
-            <Input
-              id="refund-amt"
-              type="number"
-              min={1}
-              max={max}
-              value={requestedAmount}
-              onChange={(e) => setRequestedAmount(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              须大于 0 且不超过 ¥{max.toLocaleString()}
-            </p>
-          </div>
+          {isRegularByHours ? (
+            <div className="space-y-2">
+              <Label htmlFor="refund-hours">申请退款课时（课时）</Label>
+              <Input
+                id="refund-hours"
+                type="number"
+                min={1}
+                max={maxHours}
+                value={requestedHours}
+                onChange={(e) => setRequestedHours(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                可申请上限 {maxHours} 课时；系统将自动计算退款金额
+              </p>
+              <div className="rounded-md bg-muted/50 p-3 text-sm">
+                预计退款金额：<span className="font-semibold text-primary">¥{Number(requestedAmount || 0).toLocaleString()}</span>
+              </div>
+              <div className="rounded-md bg-blue-50/70 p-3 text-sm text-blue-800">
+                本次申请对应单课时退费价：
+                <span className="ml-1 font-semibold">
+                  {currentUnitPrice > 0 ? `¥${currentUnitPrice.toLocaleString()}/课时` : "—"}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="refund-amt">申请退款金额（元）</Label>
+              <Input
+                id="refund-amt"
+                type="number"
+                min={1}
+                max={max}
+                value={requestedAmount}
+                onChange={(e) => setRequestedAmount(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                须大于 0 且不超过 ¥{max.toLocaleString()}
+              </p>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="refund-reason">退费原因（选填）</Label>

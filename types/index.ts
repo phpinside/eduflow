@@ -112,9 +112,16 @@ export enum RefundApplicationStatus {
 /** 正课/续课可退金额明细快照（申请时保存便于审核端展示） */
 export interface RegularRefundBreakdown {
   totalFee: number
+  regularPaidAmount?: number
+  redPacketAmount?: number
   totalHours: number
   consumedHours: number
   remainingHours: number
+  frozenHours?: number
+  historicalRequestedHours?: number
+  maxRefundableHours?: number
+  historicalRefundedAmount?: number
+  pendingFrozenAmount?: number
   nonRefundableAmount: number
   consumedLessonFee: number
   maxRefundable: number
@@ -128,7 +135,12 @@ export interface RefundApplication {
   refundKind: RefundKind
   status: RefundApplicationStatus
   reason?: string
+  requestedHours?: number
   requestedAmount: number
+  finalRefundHours?: number
+  /** 用户（或运营代填）首次提交时的申请金额，不因审核调整而改写 */
+  userOriginalRequestedAmount?: number
+  userOriginalRequestedHours?: number
   computedMaxAtApply: number
   breakdown?: RegularRefundBreakdown
   createdAt: Date

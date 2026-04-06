@@ -672,6 +672,7 @@ export default function ManagerOrdersPage() {
           )}
         </CardContent>
       </Card>
+
     </div>
   )
 }

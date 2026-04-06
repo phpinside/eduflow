@@ -29,6 +29,13 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   Table,
   TableBody,
   TableCell,
@@ -52,6 +59,7 @@ import {
   createRefundLog,
   findActiveRefundApplication,
 } from "@/lib/refund-domain"
+import { getLatestUnitPriceByGrade } from "@/lib/course-pricing"
 import type { Order, RefundApplication } from "@/types"
 import { OrderStatus, OrderType, RefundApplicationStatus } from "@/types"
 
@@ -151,16 +159,17 @@ export default function OrderDetailsPage() {
 
   const [isRenewOpen, setIsRenewOpen] = React.useState(false)
   const [renewHours, setRenewHours] = React.useState(40)
+  const [renewGrade, setRenewGrade] = React.useState("初一")
 
   const handleRenewOrder = () => {
     if (!order) return
-    const pricePerHour = 200
+    const pricePerHour = getLatestUnitPriceByGrade(renewGrade)
     const totalCost = pricePerHour * renewHours
     const queryParams = new URLSearchParams({
       type: "renew",
       studentName: student?.name || "未知学生",
       subject: order.subject,
-      grade: order.grade,
+      grade: renewGrade,
       totalHours: renewHours.toString(),
       price: totalCost.toString(),
     }).toString()
@@ -271,7 +280,10 @@ export default function OrderDetailsPage() {
               <Button
                 size="sm"
                 className="bg-green-600 hover:bg-green-700 text-white"
-                onClick={() => setIsRenewOpen(true)}
+                onClick={() => {
+                  setRenewGrade(order.grade)
+                  setIsRenewOpen(true)
+                }}
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
                 续费
@@ -606,6 +618,19 @@ export default function OrderDetailsPage() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
+              <Label htmlFor="renew-grade">续费年级（按最新单价）</Label>
+              <Select value={renewGrade} onValueChange={setRenewGrade}>
+                <SelectTrigger id="renew-grade">
+                  <SelectValue placeholder="选择年级" />
+                </SelectTrigger>
+                <SelectContent>
+                  {["四年级","五年级","六年级","初一","初二","初三","高一","高二","高三"].map((g) => (
+                    <SelectItem key={g} value={g}>{g}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
               <Label htmlFor="hours">续费课时数</Label>
               <Input
                 id="hours"
@@ -618,7 +643,7 @@ export default function OrderDetailsPage() {
             <div className="flex justify-between items-center bg-muted/50 p-3 rounded-md">
               <span className="text-sm text-muted-foreground">预计费用</span>
               <span className="font-bold text-lg">
-                ¥{(200 * renewHours).toLocaleString()}
+                ¥{(getLatestUnitPriceByGrade(renewGrade) * renewHours).toLocaleString()}
               </span>
             </div>
           </div>

@@ -37,6 +37,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { Checkbox } from "@/components/ui/checkbox"
+import { getLatestUnitPriceByGrade, LATEST_GRADE_UNIT_PRICE } from "@/lib/course-pricing"
 
 // --- Constants ---
 
@@ -52,17 +53,6 @@ const WEEKDAYS = [
   { value: "saturday", label: "周六" },
   { value: "sunday", label: "周日" },
 ]
-
-const PRICING: Record<string, number> = {
-  "四年级": 150, "五年级": 150,
-  "六年级": 180,
-  "初一": 200,
-  "初二": 220,
-  "初三": 250,
-  "高一": 280,
-  "高二": 300,
-  "高三": 320,
-}
 
 // Generate time options (00:00 - 23:30)
 const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
@@ -200,7 +190,7 @@ function CreateRegularCourseForm() {
   const weeklySchedule = watch("weeklySchedule") || []
   
   // Cost Calculation
-  const pricePerHour = selectedGrade ? PRICING[selectedGrade] : 0
+  const pricePerHour = selectedGrade ? getLatestUnitPriceByGrade(selectedGrade) : 0
   const totalCost = pricePerHour * totalHours
 
   // Fill Test Data
@@ -590,14 +580,9 @@ function CreateRegularCourseForm() {
                     <div className="space-y-1 w-full">
                         <p className="font-semibold">价格参考表：</p>
                         <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                            <span>四年级/五年级: ¥150</span>
-                            <span>六年级: ¥180</span>
-                            <span>初一: ¥200</span>
-                            <span>初二: ¥220</span>
-                            <span>初三: ¥250</span>
-                            <span>高一: ¥280</span>
-                            <span>高二: ¥300</span>
-                            <span>高三: ¥320</span>
+                            {Object.entries(LATEST_GRADE_UNIT_PRICE).map(([g, p]) => (
+                              <span key={g}>{g}: ¥{p}</span>
+                            ))}
                         </div>
                     </div>
                 </CardFooter>

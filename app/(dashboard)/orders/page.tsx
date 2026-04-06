@@ -50,6 +50,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+import { getLatestUnitPriceByGrade } from "@/lib/course-pricing"
 import { mockStudents } from "@/lib/mock-data/students"
 import { mockUsers } from "@/lib/mock-data/users"
 import {
@@ -67,8 +68,8 @@ import {
   canSalesWithdraw,
   createRefundLog,
   findActiveRefundApplication,
+  getComputedMaxForKind,
   getOrderTotalPaid,
-  getRegularRefundBreakdown,
 } from "@/lib/refund-domain"
 import type { Order, RefundApplication } from "@/types"
 import { OrderStatus, OrderType, RefundApplicationStatus } from "@/types"
@@ -118,6 +119,7 @@ export default function OrdersPage() {
   const [isRenewOpen, setIsRenewOpen] = React.useState(false)
   const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null)
   const [renewHours, setRenewHours] = React.useState(40)
+  const [renewGrade, setRenewGrade] = React.useState("初一")
 
   const [refundDialogOpen, setRefundDialogOpen] = React.useState(false)
 
@@ -255,16 +257,15 @@ export default function OrdersPage() {
 
   const handleRenewOrder = () => {
     if (!selectedOrder) return
-    
-    // Simple pricing logic for demo
-    const pricePerHour = 200 
+
+    const pricePerHour = getLatestUnitPriceByGrade(renewGrade)
     const totalCost = pricePerHour * renewHours
     
     const queryParams = new URLSearchParams({
         type: "renew", // Indicate renewal
         studentName: getStudentName(selectedOrder.studentId),
         subject: selectedOrder.subject,
-        grade: selectedOrder.grade,
+        grade: renewGrade,
         totalHours: renewHours.toString(),
         price: totalCost.toString(),
     }).toString()
@@ -381,14 +382,21 @@ export default function OrdersPage() {
                 {orders
                   .filter((o) => o.studentId === studentId)
                   .map((o) => {
+                    const regularKind = o.transactions?.some((t) => t.type === "RENEWAL")
+                      ? "RENEWAL"
+                      : "REGULAR"
+                    const regularCalc =
+                      o.type === OrderType.REGULAR
+                        ? getComputedMaxForKind(o, regularKind, refundApplications).breakdown
+                        : undefined
                     const consumed =
                       o.type === OrderType.REGULAR
-                        ? Math.max(0, o.totalHours - (o.remainingHours ?? 0))
+                        ? (regularCalc?.consumedHours ?? Math.max(0, o.totalHours - (o.remainingHours ?? 0)))
                         : "—"
                     const paid = getOrderTotalPaid(o)
                     const maxRef =
                       o.type === OrderType.REGULAR
-                        ? getRegularRefundBreakdown(o).maxRefundable
+                        ? (regularCalc?.maxRefundable ?? 0)
                         : o.price
                     return (
                       <tr key={o.id} className="border-b border-border/60">
@@ -666,6 +674,7 @@ export default function OrdersPage() {
                           onClick={(e) => {
                             e.stopPropagation()
                             setSelectedOrder(order)
+                            setRenewGrade(order.grade)
                             setIsRenewOpen(true)
                           }}
                         >
@@ -776,6 +785,19 @@ export default function OrdersPage() {
             </DialogHeader>
             <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
+                    <Label htmlFor="renew-grade">续费年级（按最新单价）</Label>
+                    <Select value={renewGrade} onValueChange={setRenewGrade}>
+                      <SelectTrigger id="renew-grade">
+                        <SelectValue placeholder="选择年级" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["四年级","五年级","六年级","初一","初二","初三","高一","高二","高三"].map((g) => (
+                          <SelectItem key={g} value={g}>{g}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                </div>
+                <div className="grid gap-2">
                     <Label htmlFor="hours">续费课时数</Label>
                     <Input 
                         id="hours" 
@@ -788,7 +810,7 @@ export default function OrdersPage() {
                 <div className="flex justify-between items-center bg-muted/50 p-3 rounded-md">
                     <span className="text-sm text-muted-foreground">预计费用</span>
                     <span className="font-bold text-lg">
-                        ¥{(200 * renewHours).toLocaleString()}
+                        ¥{(getLatestUnitPriceByGrade(renewGrade) * renewHours).toLocaleString()}
                     </span>
                 </div>
             </div>

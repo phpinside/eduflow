@@ -4,9 +4,9 @@ import * as React from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
-import { mockOrders } from "@/lib/mock-data/orders"
 import { mockStudents } from "@/lib/mock-data/students"
-import { OrderStatus } from "@/types"
+import { getStoredOrders, getStoredRefundApplications } from "@/lib/storage"
+import { OrderStatus, RefundApplicationStatus, type Order, type RefundApplication } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -107,6 +107,7 @@ interface StudentRow {
     isManual?: boolean
     // 原始 order id（用于操作按钮链接）
     orderId?: string
+    refundStatusLabel?: string
 }
 
 export default function MyStudentsPage() {
@@ -139,6 +140,8 @@ export default function MyStudentsPage() {
 
     // 手动录入相关状态
     const [manualStudents, setManualStudents] = React.useState<ManualStudentRecord[]>([])
+    const [storedOrders, setStoredOrders] = React.useState<Order[]>([])
+    const [refundApps, setRefundApps] = React.useState<RefundApplication[]>([])
     const [showStudentFormDialog, setShowStudentFormDialog] = React.useState(false)
     const [editingStudent, setEditingStudent] = React.useState<StudentFormData | undefined>(undefined)
 
@@ -147,11 +150,29 @@ export default function MyStudentsPage() {
         friday: "周五", saturday: "周六", sunday: "周日"
     }
 
+    React.useEffect(() => {
+        setStoredOrders(getStoredOrders())
+        setRefundApps(getStoredRefundApplications())
+    }, [])
+
+    const getRefundStatusLabel = React.useCallback((orderId: string) => {
+        const active = refundApps.find(
+            (a) =>
+                a.orderId === orderId &&
+                (a.status === RefundApplicationStatus.PENDING_FIRST_REVIEW ||
+                    a.status === RefundApplicationStatus.PENDING_SECOND_REVIEW)
+        )
+        if (active?.status === RefundApplicationStatus.PENDING_FIRST_REVIEW) return "退费一审中"
+        if (active?.status === RefundApplicationStatus.PENDING_SECOND_REVIEW) return "退费二审中"
+        const done = refundApps.find((a) => a.orderId === orderId)
+        return done ? "退费相关" : ""
+    }, [refundApps])
+
     // 从订单构建学员行
     const orderRows = React.useMemo((): StudentRow[] => {
         if (!user) return []
 
-        return mockOrders
+        return storedOrders
             .filter(order => {
                 const isAssigned = order.assignedTeacherId === user.id &&
                     [OrderStatus.ASSIGNED, OrderStatus.IN_PROGRESS, OrderStatus.COMPLETED].includes(order.status)
@@ -173,9 +194,10 @@ export default function MyStudentsPage() {
                     studentId: student?.id,
                     isTransferred: order.transferredOutFrom === user.id,
                     orderId: order.id,
+                    refundStatusLabel: getRefundStatusLabel(order.id),
                 }
             })
-    }, [user])
+    }, [user, storedOrders, getRefundStatusLabel])
 
     // 手动录入行
     const manualRows = React.useMemo((): StudentRow[] => {
@@ -447,6 +469,11 @@ export default function MyStudentsPage() {
                                                             {row.isManual && (
                                                                 <Badge variant="outline" className="text-[10px] px-1 py-0 border-blue-400 text-blue-500 bg-blue-50">
                                                                     手动录入
+                                                                </Badge>
+                                                            )}
+                                                            {row.refundStatusLabel && (
+                                                                <Badge variant="outline" className="text-[10px] px-1 py-0 border-amber-400 text-amber-700 bg-amber-50">
+                                                                    {row.refundStatusLabel}
                                                                 </Badge>
                                                             )}
                                                         </div>

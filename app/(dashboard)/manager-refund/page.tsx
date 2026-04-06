@@ -65,8 +65,14 @@ import {
   getStoredFinancialRecords,
   saveStoredFinancialRecords,
 } from "@/lib/storage"
-import { createRefundLog } from "@/lib/refund-domain"
-import { NON_REFUNDABLE_PER_HOUR } from "@/lib/refund-domain"
+import {
+  createRefundLog,
+  getRefundableCeilingForApplication,
+  NON_REFUNDABLE_PER_HOUR,
+  getOrderTotalPaid,
+  sumHistoricalRefundedAmount,
+  sumPendingFrozenAmount,
+} from "@/lib/refund-domain"
 
 const ITEMS_PER_PAGE = 20
 
@@ -144,6 +150,9 @@ export default function ManagerRefundPage() {
   const [noteDraft, setNoteDraft] = React.useState("")
   const [rejectNote, setRejectNote] = React.useState("")
   const [finalAmountDraft, setFinalAmountDraft] = React.useState("")
+  const [firstPassAmountDraft, setFirstPassAmountDraft] = React.useState("")
+  const [finalHoursDraft, setFinalHoursDraft] = React.useState("")
+  const [firstPassHoursDraft, setFirstPassHoursDraft] = React.useState("")
   const [actionApp, setActionApp] = React.useState<RefundApplication | null>(null)
   const [actionType, setActionType] = React.useState<
     "first_ok" | "first_reject" | "second_ok" | "second_reject" | "withdraw_first" | null
@@ -237,6 +246,9 @@ export default function ManagerRefundPage() {
     setNoteDraft(presetNote)
     setRejectNote("")
     setFinalAmountDraft(presetAmount || String(app.requestedAmount))
+    setFirstPassAmountDraft(String(app.requestedAmount))
+    setFinalHoursDraft(String(app.requestedHours ?? ""))
+    setFirstPassHoursDraft(String(app.requestedHours ?? ""))
   }
 
   const runSecondExecute = (
@@ -309,8 +321,73 @@ export default function ManagerRefundPage() {
     }
 
     if (actionType === "first_ok") {
+      const curBefore = nextApps[appIdx]
+      const newAmt = Math.round(Number(firstPassAmountDraft) * 100) / 100
+      if (!Number.isFinite(newAmt) || newAmt <= 0) {
+        toast.error("请输入有效的退款金额")
+        setIsSubmitting(false)
+        return
+      }
+      const newHours =
+        curBefore.refundKind === "REGULAR" || curBefore.refundKind === "RENEWAL"
+          ? Math.floor(Number(firstPassHoursDraft))
+          : undefined
+      if (
+        (curBefore.refundKind === "REGULAR" || curBefore.refundKind === "RENEWAL") &&
+        (!Number.isFinite(newHours) || (newHours ?? 0) <= 0)
+      ) {
+        toast.error("请输入有效的退款课时")
+        setIsSubmitting(false)
+        return
+      }
+      if (newHours != null) {
+        const ceil = getRefundableCeilingForApplication(
+          order,
+          curBefore.refundKind,
+          nextApps.filter((a) => a.id !== curBefore.id)
+        ).breakdown?.maxRefundableHours
+        if (ceil != null && newHours > ceil) {
+          toast.error(`退款课时不能超过最大可退 ${ceil} 课时`)
+          setIsSubmitting(false)
+          return
+        }
+      }
+      const totalPaid = getOrderTotalPaid(order)
+      const refundedDone = sumHistoricalRefundedAmount(
+        order.id,
+        nextApps.filter((a) => a.id !== curBefore.id)
+      )
+      const frozenPending = sumPendingFrozenAmount(
+        order.id,
+        nextApps.filter((a) => a.id !== curBefore.id)
+      )
+      if (newAmt > Math.max(0, totalPaid - refundedDone - frozenPending)) {
+        toast.error(`退款金额累计不可超过用户该订单总支付金额 ¥${totalPaid.toLocaleString()}`)
+        setIsSubmitting(false)
+        return
+      }
+      const orig = curBefore.userOriginalRequestedAmount ?? curBefore.requestedAmount
+      const prevAmt = curBefore.requestedAmount
+      const detailParts = [
+        `用户原始申请 ¥${orig.toLocaleString()}`,
+        prevAmt !== newAmt
+          ? `退款金额 ¥${prevAmt.toLocaleString()} → ¥${newAmt.toLocaleString()}`
+          : `退款金额 ¥${newAmt.toLocaleString()}（相对申请单未调整）`,
+      ]
+      if (newHours != null) {
+        const prevHours = curBefore.requestedHours ?? 0
+        detailParts.push(
+          prevHours !== newHours
+            ? `退款课时 ${prevHours} → ${newHours}`
+            : `退款课时 ${newHours}（相对申请单未调整）`
+        )
+      }
+      if (noteDraft.trim()) detailParts.push(`批注：${noteDraft.trim()}`)
       nextApps[appIdx] = {
         ...nextApps[appIdx],
+        requestedHours: newHours,
+        requestedAmount: newAmt,
+        userOriginalRequestedAmount: curBefore.userOriginalRequestedAmount ?? orig,
         status: RefundApplicationStatus.PENDING_SECOND_REVIEW,
         firstReviewNote: noteDraft.trim() || nextApps[appIdx].firstReviewNote,
         firstReviewerId: opId,
@@ -326,7 +403,7 @@ export default function ManagerRefundPage() {
           actorUserId: opId,
           actorName: opName,
           action: "一审通过",
-          detail: noteDraft.trim() || undefined,
+          detail: detailParts.join("；"),
         }),
       ])
       toast.success("已进入二审待审")
@@ -446,15 +523,78 @@ export default function ManagerRefundPage() {
       ])
       toast.success("二审已驳回，已退回一审待审并解冻课时")
     } else if (actionType === "second_ok") {
-      const amt = Math.floor(Number(finalAmountDraft))
+      const curBefore = nextApps[appIdx]
+      const amt = Math.round(Number(finalAmountDraft) * 100) / 100
       if (!Number.isFinite(amt) || amt <= 0) {
         toast.error("请输入有效的退款金额")
         setIsSubmitting(false)
         return
       }
+      const finalHours =
+        curBefore.refundKind === "REGULAR" || curBefore.refundKind === "RENEWAL"
+          ? Math.floor(Number(finalHoursDraft))
+          : undefined
+      if (
+        (curBefore.refundKind === "REGULAR" || curBefore.refundKind === "RENEWAL") &&
+        (!Number.isFinite(finalHours) || (finalHours ?? 0) <= 0)
+      ) {
+        toast.error("请输入有效的退款课时")
+        setIsSubmitting(false)
+        return
+      }
+      if (finalHours != null) {
+        const ceil = getRefundableCeilingForApplication(
+          order,
+          curBefore.refundKind,
+          nextApps.filter((a) => a.id !== curBefore.id)
+        ).breakdown?.maxRefundableHours
+        if (ceil != null && finalHours > ceil) {
+          toast.error(`退款课时不能超过最大可退 ${ceil} 课时`)
+          setIsSubmitting(false)
+          return
+        }
+      }
+      const totalPaid = getOrderTotalPaid(order)
+      const refundedDone = sumHistoricalRefundedAmount(
+        order.id,
+        nextApps.filter((a) => a.id !== curBefore.id)
+      )
+      const frozenPending = sumPendingFrozenAmount(
+        order.id,
+        nextApps.filter((a) => a.id !== curBefore.id)
+      )
+      if (amt > Math.max(0, totalPaid - refundedDone - frozenPending)) {
+        toast.error(`退款金额累计不可超过用户该订单总支付金额 ¥${totalPaid.toLocaleString()}`)
+        setIsSubmitting(false)
+        return
+      }
+      const orig = curBefore.userOriginalRequestedAmount ?? curBefore.requestedAmount
+      const prevAmt = curBefore.requestedAmount
       const exec = runSecondExecute(nextApps[appIdx], order, amt)
+      const detailParts = [
+        `用户原始申请 ¥${orig.toLocaleString()}`,
+        prevAmt !== amt
+          ? `二审确认退款金额 ¥${prevAmt.toLocaleString()} → ¥${amt.toLocaleString()}`
+          : `二审确认退款金额 ¥${amt.toLocaleString()}（相对申请单未调整）`,
+      ]
+      if (finalHours != null) {
+        const prevHours = curBefore.requestedHours ?? 0
+        detailParts.push(
+          prevHours !== finalHours
+            ? `二审确认退款课时 ${prevHours} → ${finalHours}`
+            : `二审确认退款课时 ${finalHours}（相对申请单未调整）`
+        )
+      }
+      if (noteDraft.trim()) detailParts.push(`批注：${noteDraft.trim()}`)
+      detailParts.push(
+        exec.success ? `已触发原路退回 ¥${amt.toLocaleString()}` : "退款执行失败（模拟）"
+      )
       nextApps[appIdx] = {
         ...nextApps[appIdx],
+        requestedHours: finalHours,
+        requestedAmount: amt,
+        finalRefundHours: finalHours,
+        userOriginalRequestedAmount: curBefore.userOriginalRequestedAmount ?? orig,
         secondReviewNote: noteDraft.trim() || nextApps[appIdx].secondReviewNote,
         secondReviewerId: opId,
         secondReviewerName: opName,
@@ -469,13 +609,18 @@ export default function ManagerRefundPage() {
       const oi = nextOrders.findIndex((o) => o.id === order.id)
       if (oi !== -1 && exec.success) {
         const o = nextOrders[oi]
+        const refundHours = Math.max(
+          0,
+          Math.min(o.remainingHours, finalHours ?? o.remainingHours)
+        )
+        const nextRemaining = Math.max(0, o.remainingHours - refundHours)
         const tx = [
           ...(o.transactions ?? []),
           {
             id: `tx-rfd-${Date.now()}`,
             type: "REFUND" as const,
             amount: -Math.abs(amt),
-            hours: o.remainingHours,
+            hours: refundHours,
             createdAt: now,
           },
         ]
@@ -489,8 +634,8 @@ export default function ManagerRefundPage() {
         } else {
           nextOrders[oi] = {
             ...o,
-            status: OrderStatus.REFUNDED,
-            remainingHours: 0,
+            status: nextRemaining === 0 ? OrderStatus.REFUNDED : o.status,
+            remainingHours: nextRemaining,
             refundFreezeActive: false,
             transactions: tx,
             updatedAt: now,
@@ -512,7 +657,7 @@ export default function ManagerRefundPage() {
           actorUserId: opId,
           actorName: opName,
           action: "二审通过",
-          detail: `确认退款 ¥${amt}；${exec.success ? "已触发原路退回" : "执行失败"}`,
+          detail: detailParts.join("；"),
         }),
       ])
     }
@@ -780,10 +925,34 @@ export default function ManagerRefundPage() {
         }}
         actionType={actionType}
         actionApp={actionApp}
+        refundCeilingMax={
+          actionApp && orders.find((x) => x.id === actionApp.orderId)
+            ? getRefundableCeilingForApplication(
+                orders.find((x) => x.id === actionApp.orderId)!,
+                actionApp.refundKind,
+                applications.filter((a) => a.id !== actionApp.id)
+              ).max
+            : 0
+        }
+        refundCeilingHours={
+          actionApp && orders.find((x) => x.id === actionApp.orderId)
+            ? (getRefundableCeilingForApplication(
+                orders.find((x) => x.id === actionApp.orderId)!,
+                actionApp.refundKind,
+                applications.filter((a) => a.id !== actionApp.id)
+              ).breakdown?.maxRefundableHours ?? 0)
+            : 0
+        }
         noteDraft={noteDraft}
         setNoteDraft={setNoteDraft}
         rejectNote={rejectNote}
         setRejectNote={setRejectNote}
+        firstPassHoursDraft={firstPassHoursDraft}
+        setFirstPassHoursDraft={setFirstPassHoursDraft}
+        firstPassAmountDraft={firstPassAmountDraft}
+        setFirstPassAmountDraft={setFirstPassAmountDraft}
+        finalHoursDraft={finalHoursDraft}
+        setFinalHoursDraft={setFinalHoursDraft}
         finalAmountDraft={finalAmountDraft}
         setFinalAmountDraft={setFinalAmountDraft}
         onConfirm={handleConfirmAction}
@@ -1208,9 +1377,27 @@ function DetailDialog(props: {
               <div className="font-medium">{app.refundKind}</div>
             </div>
             <div>
-              <span className="text-muted-foreground">申请金额</span>
+              <span className="text-muted-foreground">当前申请金额</span>
               <div className="font-medium text-primary">¥{app.requestedAmount.toLocaleString()}</div>
             </div>
+            {app.requestedHours != null && (
+              <div>
+                <span className="text-muted-foreground">当前申请课时</span>
+                <div className="font-medium text-primary">{app.requestedHours} 课时</div>
+              </div>
+            )}
+            <div>
+              <span className="text-muted-foreground">用户原始申请</span>
+              <div className="font-medium">
+                ¥{(app.userOriginalRequestedAmount ?? app.requestedAmount).toLocaleString()}
+              </div>
+            </div>
+            {app.userOriginalRequestedHours != null && (
+              <div>
+                <span className="text-muted-foreground">用户原始申请课时</span>
+                <div className="font-medium">{app.userOriginalRequestedHours} 课时</div>
+              </div>
+            )}
             <div>
               <span className="text-muted-foreground">提交时上限</span>
               <div className="font-medium">¥{app.computedMaxAtApply.toLocaleString()}</div>
@@ -1234,6 +1421,12 @@ function DetailDialog(props: {
                 <span>{app.breakdown.remainingHours}</span>
                 <span className="text-muted-foreground">缴纳总费用</span>
                 <span>¥{app.breakdown.totalFee.toLocaleString()}</span>
+                <span className="text-muted-foreground">正课实缴</span>
+                <span>
+                  ¥{(app.breakdown.regularPaidAmount ?? app.breakdown.totalFee).toLocaleString()}
+                </span>
+                <span className="text-muted-foreground">转正红包</span>
+                <span>¥{(app.breakdown.redPacketAmount ?? 0).toLocaleString()}</span>
                 <span className="text-muted-foreground">不可退费（×{NON_REFUNDABLE_PER_HOUR}）</span>
                 <span>¥{app.breakdown.nonRefundableAmount.toLocaleString()}</span>
                 <span className="text-muted-foreground">已消耗课时费用</span>
@@ -1280,10 +1473,18 @@ function ActionDialog(props: {
   onOpenChange: (v: boolean) => void
   actionType: string | null
   actionApp: RefundApplication | null
+  refundCeilingMax: number
+  refundCeilingHours: number
   noteDraft: string
   setNoteDraft: (s: string) => void
   rejectNote: string
   setRejectNote: (s: string) => void
+  firstPassHoursDraft: string
+  setFirstPassHoursDraft: (s: string) => void
+  firstPassAmountDraft: string
+  setFirstPassAmountDraft: (s: string) => void
+  finalHoursDraft: string
+  setFinalHoursDraft: (s: string) => void
   finalAmountDraft: string
   setFinalAmountDraft: (s: string) => void
   onConfirm: () => void
@@ -1294,10 +1495,18 @@ function ActionDialog(props: {
     onOpenChange,
     actionType,
     actionApp,
+    refundCeilingMax,
+    refundCeilingHours,
     noteDraft,
     setNoteDraft,
     rejectNote,
     setRejectNote,
+    firstPassHoursDraft,
+    setFirstPassHoursDraft,
+    firstPassAmountDraft,
+    setFirstPassAmountDraft,
+    finalHoursDraft,
+    setFinalHoursDraft,
     finalAmountDraft,
     setFinalAmountDraft,
     onConfirm,
@@ -1317,6 +1526,67 @@ function ActionDialog(props: {
             ? "二审驳回"
             : "一审撤回"
 
+  const isHourEditable = actionApp.refundKind === "REGULAR" || actionApp.refundKind === "RENEWAL"
+  const suggestedUnitPrice =
+    isHourEditable && refundCeilingHours > 0 ? refundCeilingMax / refundCeilingHours : 0
+
+  React.useEffect(() => {
+    if (!isHourEditable || actionType !== "first_ok" || !suggestedUnitPrice) return
+    const h = Math.floor(Number(firstPassHoursDraft))
+    if (!Number.isFinite(h) || h <= 0) return
+    const safeH = Math.min(h, Math.max(0, refundCeilingHours))
+    const nextAmt = Math.round(safeH * suggestedUnitPrice * 100) / 100
+    setFirstPassAmountDraft(String(nextAmt))
+  }, [
+    isHourEditable,
+    actionType,
+    firstPassHoursDraft,
+    refundCeilingHours,
+    suggestedUnitPrice,
+    setFirstPassAmountDraft,
+  ])
+
+  React.useEffect(() => {
+    if (!isHourEditable || actionType !== "second_ok" || !suggestedUnitPrice) return
+    const h = Math.floor(Number(finalHoursDraft))
+    if (!Number.isFinite(h) || h <= 0) return
+    const safeH = Math.min(h, Math.max(0, refundCeilingHours))
+    const nextAmt = Math.round(safeH * suggestedUnitPrice * 100) / 100
+    setFinalAmountDraft(String(nextAmt))
+  }, [
+    isHourEditable,
+    actionType,
+    finalHoursDraft,
+    refundCeilingHours,
+    suggestedUnitPrice,
+    setFinalAmountDraft,
+  ])
+
+  const roughUnit = isHourEditable && refundCeilingMax > 0
+    ? refundCeilingMax / Math.max(1, actionApp.requestedHours ?? 1)
+    : 0
+  const amountWarning =
+    actionType === "second_ok" && isHourEditable && roughUnit > 0
+      ? (() => {
+          const a = Number(finalAmountDraft)
+          if (!Number.isFinite(a) || a <= 0) return ""
+          const h = a / roughUnit
+          const nearest = Math.round(h)
+          const reversible = Math.abs(h - nearest) <= 0.2
+          if (!reversible) return "当前金额无法反推出整数课时，将按输入金额继续处理。"
+          if (nearest > Math.max(0, actionApp.requestedHours ?? nearest)) {
+            return "按当前金额反推的课时超过申请单原课时，建议复核。"
+          }
+          return ""
+        })()
+      : ""
+  const realtimeHint =
+    actionType === "first_ok"
+      ? "修改课时会自动重算建议退款金额，请优先按课时复核；如手动改金额将保留你的输入。"
+      : actionType === "second_ok"
+        ? "修改课时会自动重算建议退款金额，请优先按课时复核；如手动改金额将保留你的输入。"
+        : ""
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -1324,7 +1594,42 @@ function ActionDialog(props: {
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>退费单 {actionApp.id}</DialogDescription>
         </DialogHeader>
+        {realtimeHint && (
+          <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            {realtimeHint}
+          </div>
+        )}
         <div className="grid gap-4 py-2">
+          {actionType === "first_ok" && (
+            <div className="grid gap-2">
+              {isHourEditable && (
+                <>
+                  <Label>一审确认退款课时（课时）</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={refundCeilingHours > 0 ? refundCeilingHours : undefined}
+                    value={firstPassHoursDraft}
+                    onChange={(e) => setFirstPassHoursDraft(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    最大可退课时 {refundCeilingHours} 课时
+                  </p>
+                </>
+              )}
+              <Label>一审确认退款金额（元）</Label>
+              <Input
+                type="number"
+                min={1}
+                value={firstPassAmountDraft}
+                onChange={(e) => setFirstPassAmountDraft(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                当前最大可退 ¥{refundCeilingMax.toLocaleString()}；用户原始申请 ¥
+                {(actionApp.userOriginalRequestedAmount ?? actionApp.requestedAmount).toLocaleString()}
+              </p>
+            </div>
+          )}
           {(actionType === "first_ok" ||
             actionType === "second_ok" ||
             actionType === "second_reject" ||
@@ -1340,7 +1645,22 @@ function ActionDialog(props: {
           )}
           {actionType === "second_ok" && (
             <div className="grid gap-2">
-              <Label>确认退款金额（元）</Label>
+              {isHourEditable && (
+                <>
+                  <Label>二审确认退款课时（课时）</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={refundCeilingHours > 0 ? refundCeilingHours : undefined}
+                    value={finalHoursDraft}
+                    onChange={(e) => setFinalHoursDraft(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    最大可退课时 {refundCeilingHours} 课时
+                  </p>
+                </>
+              )}
+              <Label>二审确认退款金额（元）</Label>
               <Input
                 type="number"
                 min={1}
@@ -1348,8 +1668,10 @@ function ActionDialog(props: {
                 onChange={(e) => setFinalAmountDraft(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                默认与申请金额一致，可按财务复核结果调整（须大于 0）
+                不超过 ¥{refundCeilingMax.toLocaleString()}；用户原始申请 ¥
+                {(actionApp.userOriginalRequestedAmount ?? actionApp.requestedAmount).toLocaleString()}
               </p>
+              {amountWarning && <p className="text-xs text-amber-600">{amountWarning}</p>}
             </div>
           )}
           {(actionType === "first_reject" || actionType === "second_reject") && (

@@ -43,6 +43,11 @@ export function EventCard({ event, onClick, style, className }: EventCardProps) 
       ) : (
         <div className="flex flex-col h-full">
           <span className="font-semibold truncate">{event.title}</span>
+          {event.refundTag && (
+            <span className="truncate text-[10px] font-medium text-amber-700">
+              {event.refundTag}
+            </span>
+          )}
           <span className="truncate opacity-80">{format(event.startTime, 'HH:mm')} - {format(event.endTime, 'HH:mm')}</span>
           {event.studentName && <span className="truncate opacity-80 mt-auto">{event.studentName}</span>}
         </div>

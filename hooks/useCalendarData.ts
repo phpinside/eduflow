@@ -25,6 +25,7 @@ import {
 } from '@/types'
 import { mockLessons } from '@/lib/mock-data/lessons'
 import { mockOrders } from '@/lib/mock-data/orders'
+import { getStoredOrders, getStoredRefundApplications } from '@/lib/storage'
 
 export type ViewType = 'month' | 'week' | 'day'
 
@@ -34,6 +35,7 @@ export interface CalendarEvent extends TeacherCalendarSlot {
   orderType?: OrderType
   subject?: string
   grade?: string
+  refundTag?: string
 }
 
 // Helper to parse "HH:mm" to { hours, minutes }
@@ -59,6 +61,19 @@ export function useCalendarData(currentDate: Date, view: ViewType) {
   
   const events = useMemo(() => {
     const allSlots: CalendarEvent[] = []
+    const orders = typeof window === 'undefined' ? mockOrders : getStoredOrders()
+    const refundApps = typeof window === 'undefined' ? [] : getStoredRefundApplications()
+    const getRefundTag = (orderId?: string) => {
+      if (!orderId) return undefined
+      const active = refundApps.find(
+        (a) =>
+          a.orderId === orderId &&
+          (a.status === 'PENDING_FIRST_REVIEW' || a.status === 'PENDING_SECOND_REVIEW')
+      )
+      if (active) return '退费处理中'
+      const hist = refundApps.find((a) => a.orderId === orderId)
+      return hist ? '退费相关' : undefined
+    }
 
     // 1. Process existing concrete lessons
     mockLessons.forEach(lesson => {
@@ -79,7 +94,7 @@ export function useCalendarData(currentDate: Date, view: ViewType) {
     })
 
     // 2. Process Trial Orders (One-time)
-    mockOrders
+    orders
       .filter(o => o.type === OrderType.TRIAL && o.scheduledAt && o.status !== OrderStatus.CANCELLED)
       .forEach(order => {
         if (!order.scheduledAt) return
@@ -102,7 +117,8 @@ export function useCalendarData(currentDate: Date, view: ViewType) {
           studentName: '试课学生', // simplified
           orderType: OrderType.TRIAL,
           subject: order.subject,
-          grade: order.grade
+          grade: order.grade,
+          refundTag: getRefundTag(order.id),
         })
       })
 
@@ -112,7 +128,7 @@ export function useCalendarData(currentDate: Date, view: ViewType) {
     const generationStart = startOfMonth(addDays(currentDate, -30))
     const generationEnd = endOfMonth(addDays(currentDate, 30))
     
-    mockOrders
+    orders
       .filter(o => o.type === OrderType.REGULAR && o.status === OrderStatus.IN_PROGRESS && o.weeklySchedule)
       .forEach(order => {
         if (!order.weeklySchedule) return
@@ -147,7 +163,8 @@ export function useCalendarData(currentDate: Date, view: ViewType) {
                  studentName: '正课学生',
                  orderType: OrderType.REGULAR,
                  subject: order.subject,
-                 grade: order.grade
+                 grade: order.grade,
+                 refundTag: getRefundTag(order.id),
                })
             }
           })
