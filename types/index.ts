@@ -26,6 +26,8 @@ export interface User {
   campusAccount?: string     // 9800校区账号
   /** 正式支付功能（招生老师）；未设置时视为开启 */
   formalPaymentEnabled?: boolean
+  /** 最小起充课时数（招生老师）；未设置时默认 10；最小 0.5，须为 0.5 的倍数 */
+  minRechargeHours?: number
   recommendedForTrial?: boolean // 系统推荐试课
   managerId?: string         // 归属的学管ID（伴学教练专用）
   managerName?: string       // 归属的学管姓名（冗余字段，便于展示）

@@ -18,8 +18,19 @@ import { toast } from "sonner"
 import { ArrowLeft, Save } from "lucide-react"
 import { Role, User, UserStatus } from "@/types"
 import { getStoredUsers, saveMockData, STORAGE_KEYS } from "@/lib/storage"
+import { useAuth } from "@/contexts/AuthContext"
+
+const DEFAULT_MIN_RECHARGE_HOURS = 10
+const MIN_RECHARGE_HOURS_MIN = 0.5
+
+function isMultipleOfHalfHour(h: number): boolean {
+  const doubled = h * 2
+  return Number.isFinite(doubled) && Math.abs(doubled - Math.round(doubled)) < 1e-6
+}
 
 export default function UserEditPage() {
+  const { user: sessionUser } = useAuth()
+  const canEditMinRechargeHours = sessionUser?.roles.includes(Role.OPERATOR) ?? false
   const router = useRouter()
   const params = useParams()
   const userId = params.id as string
@@ -78,6 +89,19 @@ export default function UserEditPage() {
     if (!editForm.phone?.trim()) {
       toast.error("手机号不能为空")
       return
+    }
+    if (editForm.roles?.includes(Role.SALES) && canEditMinRechargeHours) {
+      const h = editForm.minRechargeHours
+      if (h !== undefined) {
+        if (!Number.isFinite(h) || h < MIN_RECHARGE_HOURS_MIN) {
+          toast.error(`最小起充课时数须不小于 ${MIN_RECHARGE_HOURS_MIN}`)
+          return
+        }
+        if (!isMultipleOfHalfHour(h)) {
+          toast.error("最小起充课时数须为 0.5 的倍数")
+          return
+        }
+      }
     }
 
     setIsSaving(true)
@@ -301,6 +325,53 @@ export default function UserEditPage() {
                     <SelectItem value="false">关闭</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label>最小起充课时数</Label>
+                {canEditMinRechargeHours ? (
+                  <>
+                    <Input
+                      type="number"
+                      min={MIN_RECHARGE_HOURS_MIN}
+                      step={0.5}
+                      value={editForm.minRechargeHours ?? DEFAULT_MIN_RECHARGE_HOURS}
+                      onChange={(e) => {
+                        const raw = e.target.value
+                        if (raw === "") {
+                          setEditForm({ ...editForm, minRechargeHours: undefined })
+                          return
+                        }
+                        const n = parseFloat(raw)
+                        setEditForm({
+                          ...editForm,
+                          minRechargeHours: Number.isNaN(n) ? undefined : n,
+                        })
+                      }}
+                      onBlur={() => {
+                        setEditForm((prev) => {
+                          const h = prev.minRechargeHours
+                          if (h === undefined || !Number.isFinite(h)) return prev
+                          const snapped = Math.max(
+                            MIN_RECHARGE_HOURS_MIN,
+                            Math.round(h * 2) / 2
+                          )
+                          if (Math.abs(h - snapped) < 1e-6) return prev
+                          return { ...prev, minRechargeHours: snapped }
+                        })
+                      }}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      最小 {MIN_RECHARGE_HOURS_MIN} 课时，须为 0.5 的倍数（失焦时自动对齐）
+                    </p>
+                  </>
+                ) : (
+                  <div className="rounded-md border border-input bg-muted/30 px-3 py-2 text-sm">
+                    {editForm.minRechargeHours ?? DEFAULT_MIN_RECHARGE_HOURS}
+                  </div>
+                )}
+                {!canEditMinRechargeHours && (
+                  <p className="text-xs text-muted-foreground">仅运营人员可修改此项</p>
+                )}
               </div>
             </div>
           </CardContent>
