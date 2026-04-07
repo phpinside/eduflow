@@ -6,7 +6,8 @@ import { Suspense } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm, useFieldArray } from "react-hook-form"
 import * as z from "zod"
-import { format } from "date-fns"
+import { addDays, addMinutes, format, getDay } from "date-fns"
+import { zhCN } from "date-fns/locale"
 import { CalendarIcon, Plus, Trash2, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -53,6 +54,11 @@ const WEEKDAYS = [
   { value: "saturday", label: "周六" },
   { value: "sunday", label: "周日" },
 ]
+
+const SCHEDULING_PATTERNS = [
+  { value: "WEEKLY", label: "每周固定重复" },
+  { value: "INTERVAL_DAYS", label: "每隔N天上课（按日历展开）" },
+] as const
 
 // Generate time options (00:00 - 23:30)
 const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
@@ -102,6 +108,8 @@ const formSchema = z.object({
 
   // Scheduling Info
   totalHours: z.coerce.number().min(1, "课时数必须大于0").max(1000, "课时数不能超过1000"),
+  schedulingPattern: z.enum(["WEEKLY", "INTERVAL_DAYS"]).default("WEEKLY"),
+  intervalDays: z.coerce.number().min(1, "间隔天数至少为1天").max(30, "间隔天数最多30天").optional(),
   
   weeklySchedule: z.array(scheduleSchema).optional(), // We will handle UI specially for this
 
@@ -148,6 +156,8 @@ function CreateRegularCourseForm() {
       previousTutoringTypes: "",
       parentPhone: "",
       totalHours: 10,
+      schedulingPattern: "WEEKLY",
+      intervalDays: 2,
       weeklySchedule: [],
       firstClassStartTime: "",
       firstClassEndTime: "",
@@ -187,11 +197,99 @@ function CreateRegularCourseForm() {
 
   const selectedGrade = watch("grade")
   const totalHours = watch("totalHours") || 0
+  const schedulingPattern = watch("schedulingPattern")
+  const intervalDays = watch("intervalDays") || 2
   const weeklySchedule = watch("weeklySchedule") || []
+  const firstClassDate = watch("firstClassDate")
+  const firstClassStartTime = watch("firstClassStartTime")
+  const firstClassEndTime = watch("firstClassEndTime")
   
   // Cost Calculation
   const pricePerHour = selectedGrade ? getLatestUnitPriceByGrade(selectedGrade) : 0
   const totalCost = pricePerHour * totalHours
+
+  const timeToMinutes = (t?: string) => {
+    if (!t || !t.includes(":")) return 0
+    const [h, m] = t.split(":").map(Number)
+    return h * 60 + m
+  }
+
+  const singleLessonMinutes = React.useMemo(() => {
+    const start = timeToMinutes(firstClassStartTime)
+    const end = timeToMinutes(firstClassEndTime)
+    if (start > 0 && end > start) return end - start
+    return 120
+  }, [firstClassStartTime, firstClassEndTime])
+  const singleLessonHours = singleLessonMinutes / 60
+  const totalSessions = Math.max(0, Math.ceil((totalHours || 0) / Math.max(singleLessonHours, 0.5)))
+
+  const weekdayToIndex: Record<string, number> = {
+    sunday: 0,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6,
+  }
+
+  const previewSchedules = React.useMemo(() => {
+    if (!firstClassDate || !firstClassStartTime || !firstClassEndTime || totalSessions <= 0) return []
+
+    const startMins = timeToMinutes(firstClassStartTime)
+    const baseDate = new Date(firstClassDate)
+    baseDate.setHours(0, 0, 0, 0)
+
+    if (schedulingPattern === "INTERVAL_DAYS") {
+      return Array.from({ length: totalSessions }, (_, i) => {
+        const date = addDays(baseDate, i * Math.max(1, intervalDays))
+        const startAt = new Date(date)
+        startAt.setHours(Math.floor(startMins / 60), startMins % 60, 0, 0)
+        const remainingHours = Math.max(0, totalHours - i * singleLessonHours)
+        const lessonHours = Math.min(singleLessonHours, remainingHours)
+        const endAt = addMinutes(startAt, Math.round(lessonHours * 60))
+        return { index: i + 1, startAt, endAt, lessonHours }
+      })
+    }
+
+    const activeWeekly = weeklySchedule.filter((s) => s.startTime && s.endTime)
+    if (activeWeekly.length === 0) return []
+
+    const lessons: Array<{ index: number; startAt: Date; endAt: Date; lessonHours: number }> = []
+    let cursor = new Date(baseDate)
+    let guard = 0
+
+    while (lessons.length < totalSessions && guard < 500) {
+      guard += 1
+      const dow = getDay(cursor)
+      for (const s of activeWeekly) {
+        if (weekdayToIndex[s.day] !== dow) continue
+        const mins = timeToMinutes(s.startTime)
+        const ends = timeToMinutes(s.endTime)
+        if (ends <= mins) continue
+        const startAt = new Date(cursor)
+        startAt.setHours(Math.floor(mins / 60), mins % 60, 0, 0)
+        if (startAt < new Date(firstClassDate)) continue
+        const remainingHours = Math.max(0, totalHours - lessons.length * singleLessonHours)
+        const lessonHours = Math.min((ends - mins) / 60, remainingHours)
+        const endAt = addMinutes(startAt, Math.round(lessonHours * 60))
+        lessons.push({ index: lessons.length + 1, startAt, endAt, lessonHours })
+        if (lessons.length >= totalSessions) break
+      }
+      cursor = addDays(cursor, 1)
+    }
+    return lessons
+  }, [
+    firstClassDate,
+    firstClassStartTime,
+    firstClassEndTime,
+    intervalDays,
+    schedulingPattern,
+    singleLessonHours,
+    totalHours,
+    totalSessions,
+    weeklySchedule,
+  ])
 
   // Fill Test Data
   const fillTestData = () => {
@@ -420,57 +518,37 @@ function CreateRegularCourseForm() {
                                         <FormMessage />
                                     </FormItem>
                                 )} />
+                                <FormField control={form.control} name="schedulingPattern" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>排课模式*</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <FormControl><SelectTrigger><SelectValue placeholder="选择排课模式" /></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                {SCHEDULING_PATTERNS.map(item => (
+                                                    <SelectItem key={item.value} value={item.value}>
+                                                        {item.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                {schedulingPattern === "INTERVAL_DAYS" && (
+                                  <FormField control={form.control} name="intervalDays" render={({ field }) => (
+                                      <FormItem>
+                                          <FormLabel>上课间隔天数*</FormLabel>
+                                          <FormControl><Input type="number" min={1} max={30} {...field} /></FormControl>
+                                          <FormDescription>例如 2 表示每隔 2 天上一次课。</FormDescription>
+                                          <FormMessage />
+                                      </FormItem>
+                                  )} />
+                                )}
                             </div>
                         </div>
 
-                        {/* Weekly Schedule */}
-                        <div className="space-y-4 border-t pt-4">
-                            <h3 className="text-sm font-medium text-muted-foreground">上课时间安排</h3>
-                            <div className="space-y-3">
-                                {WEEKDAYS.map(day => {
-                                    const scheduleItem = weeklySchedule.find(s => s.day === day.value)
-                                    const isSelected = !!scheduleItem
-
-                                    return (
-                                        <div key={day.value} className={cn("flex items-center gap-4 p-3 rounded-lg border", isSelected ? "bg-accent/10 border-accent" : "border-border")}>
-                                            <div className="flex items-center gap-2 w-24">
-                                            <Checkbox 
-                                                checked={isSelected} 
-                                                onCheckedChange={() => toggleDay(day.value)}
-                                            />
-                                                <span className="text-sm font-medium">{day.label}</span>
-                                            </div>
-                                            
-                                            {isSelected ? (
-                                                <div className="flex items-center gap-2 flex-1">
-                                                    <Select value={scheduleItem.startTime} onValueChange={(v) => updateScheduleTime(day.value, 'startTime', v)}>
-                                                        <SelectTrigger className="w-[120px] h-8"><SelectValue /></SelectTrigger>
-                                                        <SelectContent>
-                                                            {TIME_OPTIONS.map(t => <SelectItem key={`start-${t}`} value={t}>{t}</SelectItem>)}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <span className="text-muted-foreground">-</span>
-                                                    <Select value={scheduleItem.endTime} onValueChange={(v) => updateScheduleTime(day.value, 'endTime', v)}>
-                                                        <SelectTrigger className="w-[120px] h-8"><SelectValue /></SelectTrigger>
-                                                        <SelectContent>
-                                                            {TIME_OPTIONS.map(t => <SelectItem key={`end-${t}`} value={t}>{t}</SelectItem>)}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    {scheduleItem.startTime && scheduleItem.endTime && scheduleItem.startTime >= scheduleItem.endTime && (
-                                                        <span className="text-xs text-destructive">结束时间需晚于开始时间</span>
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <div className="text-sm text-muted-foreground">未安排</div>
-                                            )}
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        </div>
-
-                        {/* First Class Time */}
-                         <div className="space-y-4 border-t pt-4">
+                            {/* First Class Time */}
+                            <div className="space-y-4 border-t pt-4">
                             <h3 className="text-sm font-medium text-muted-foreground">首次课时间 (可选)</h3>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                                 <FormField control={form.control} name="firstClassDate" render={({ field }) => (
@@ -516,6 +594,98 @@ function CreateRegularCourseForm() {
                             {form.formState.errors.firstClassEndTime && (
                                 <p className="text-sm font-medium text-destructive">{form.formState.errors.firstClassEndTime.message}</p>
                             )}
+                        </div>
+
+                        {/* Weekly Schedule */}
+                        <div className="space-y-4 border-t pt-4">
+                            <h3 className="text-sm font-medium text-muted-foreground">上课时间安排</h3>
+                            {schedulingPattern === "WEEKLY" ? (
+                            <div className="space-y-3">
+                                {WEEKDAYS.map(day => {
+                                    const scheduleItem = weeklySchedule.find(s => s.day === day.value)
+                                    const isSelected = !!scheduleItem
+
+                                    return (
+                                        <div key={day.value} className={cn("flex items-center gap-4 p-3 rounded-lg border", isSelected ? "bg-accent/10 border-accent" : "border-border")}>
+                                            <div className="flex items-center gap-2 w-24">
+                                            <Checkbox 
+                                                checked={isSelected} 
+                                                onCheckedChange={() => toggleDay(day.value)}
+                                            />
+                                                <span className="text-sm font-medium">{day.label}</span>
+                                            </div>
+                                            
+                                            {isSelected ? (
+                                                <div className="flex items-center gap-2 flex-1">
+                                                    <Select value={scheduleItem.startTime} onValueChange={(v) => updateScheduleTime(day.value, 'startTime', v)}>
+                                                        <SelectTrigger className="w-[120px] h-8"><SelectValue /></SelectTrigger>
+                                                        <SelectContent>
+                                                            {TIME_OPTIONS.map(t => <SelectItem key={`start-${t}`} value={t}>{t}</SelectItem>)}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <span className="text-muted-foreground">-</span>
+                                                    <Select value={scheduleItem.endTime} onValueChange={(v) => updateScheduleTime(day.value, 'endTime', v)}>
+                                                        <SelectTrigger className="w-[120px] h-8"><SelectValue /></SelectTrigger>
+                                                        <SelectContent>
+                                                            {TIME_OPTIONS.map(t => <SelectItem key={`end-${t}`} value={t}>{t}</SelectItem>)}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    {scheduleItem.startTime && scheduleItem.endTime && scheduleItem.startTime >= scheduleItem.endTime && (
+                                                        <span className="text-xs text-destructive">结束时间需晚于开始时间</span>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <div className="text-sm text-muted-foreground">未安排</div>
+                                            )}
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                            ) : (
+                              <div className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+                                当前模式按“首次课 + 间隔天数”自动生成后续课表，不需要每周固定勾选。
+                              </div>
+                            )}
+                        </div>
+
+                        {/* Schedule Preview */}
+                        <div className="space-y-4 border-t pt-4">
+                            <h3 className="text-sm font-medium text-muted-foreground">后续上课时间预览</h3>
+                            <div className="rounded-md border p-3 space-y-2">
+                                <div className="text-xs text-muted-foreground">
+                                    预计共 {totalSessions} 次课；单次约 {singleLessonHours.toFixed(2)} 课时；总课时 {totalHours}
+                                </div>
+                                {previewSchedules.length === 0 ? (
+                                  <p className="text-sm text-muted-foreground">
+                                    请先填写首次课日期/时间，并设置排课模式后查看完整预览。
+                                  </p>
+                                ) : (
+                                  <div className="max-h-56 overflow-auto rounded border">
+                                    <table className="w-full text-sm">
+                                      <thead className="bg-muted/40 sticky top-0">
+                                        <tr>
+                                          <th className="text-left px-3 py-2">次序</th>
+                                          <th className="text-left px-3 py-2">日期</th>
+                                          <th className="text-left px-3 py-2">时间</th>
+                                          <th className="text-left px-3 py-2">课时</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {previewSchedules.map((item) => (
+                                          <tr key={`${item.index}-${item.startAt.toISOString()}`} className="border-t">
+                                            <td className="px-3 py-2">第{item.index}次</td>
+                                            <td className="px-3 py-2">{format(item.startAt, "yyyy-MM-dd (EEE)", { locale: zhCN })}</td>
+                                            <td className="px-3 py-2">
+                                              {format(item.startAt, "HH:mm")} - {format(item.endAt, "HH:mm")}
+                                            </td>
+                                            <td className="px-3 py-2">{item.lessonHours.toFixed(2)}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* Remarks */}
