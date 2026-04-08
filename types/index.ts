@@ -96,6 +96,9 @@ export interface Order {
 
   /** 退费流程中课时冻结：为 true 时剩余课时不可排课消耗（原型层提示与校验） */
   refundFreezeActive?: boolean
+
+  /** 是否需要代充鼎伴学费用（正课下单场景） */
+  needsDingbanxueRecharge?: boolean
 }
 
 /** 退费申请类型：试课 / 正课(含续课) / 仅转正红包 */

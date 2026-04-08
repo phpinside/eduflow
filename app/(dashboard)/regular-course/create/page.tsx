@@ -86,6 +86,7 @@ const formSchema = z.object({
   campusName: z.string().optional(),
   campusAccount: z.string().optional(),
   studentAccount: z.string().optional(),
+  needsDingbanxueRecharge: z.boolean().default(true),
 
   // Student Basic Info
   studentName: z.string().min(1, "请输入学生姓名"),
@@ -127,6 +128,12 @@ const formSchema = z.object({
 }, {
     message: "首次课结束时间必须晚于开始时间",
     path: ["firstClassEndTime"],
+}).refine((data) => {
+    if (data.needsDingbanxueRecharge) return true
+    return !!data.campusName?.trim() && !!data.campusAccount?.trim() && !!data.studentAccount?.trim()
+}, {
+    message: "不代充鼎伴学费用时，校区名称/校区账号/学生账号不能为空",
+    path: ["campusName"],
 });
 
 type FormValues = z.infer<typeof formSchema>
@@ -142,6 +149,7 @@ function CreateRegularCourseForm() {
       campusName: "",
       campusAccount: "",
       studentAccount: "",
+      needsDingbanxueRecharge: true,
       studentName: "",
       gender: "男",
       subject: undefined,
@@ -197,6 +205,7 @@ function CreateRegularCourseForm() {
 
   const selectedGrade = watch("grade")
   const totalHours = watch("totalHours") || 0
+  const needsDingbanxueRecharge = watch("needsDingbanxueRecharge")
   const schedulingPattern = watch("schedulingPattern")
   const intervalDays = watch("intervalDays") || 2
   const weeklySchedule = watch("weeklySchedule") || []
@@ -207,6 +216,8 @@ function CreateRegularCourseForm() {
   // Cost Calculation
   const pricePerHour = selectedGrade ? getLatestUnitPriceByGrade(selectedGrade) : 0
   const totalCost = pricePerHour * totalHours
+  const dingbanxueDeduction = needsDingbanxueRecharge ? 0 : 20 * totalHours
+  const payableAmount = Math.max(0, totalCost - dingbanxueDeduction)
 
   const timeToMinutes = (t?: string) => {
     if (!t || !t.includes(":")) return 0
@@ -296,6 +307,7 @@ function CreateRegularCourseForm() {
     setValue("campusName", "北京校区")
     setValue("campusAccount", "beijing_01")
     setValue("studentAccount", "stu_001")
+    setValue("needsDingbanxueRecharge", true)
     setValue("studentName", "张三")
     setValue("gender", "男")
     setValue("subject", "数学")
@@ -349,7 +361,8 @@ function CreateRegularCourseForm() {
         subject: data.subject,
         grade: data.grade,
         totalHours: totalHours.toString(),
-        price: totalCost.toString(),
+        price: payableAmount.toString(),
+        needsDingbanxueRecharge: String(needsDingbanxueRecharge),
     }).toString()
     
     router.push(`/regular-course/payment?${queryParams}`)
@@ -405,6 +418,19 @@ function CreateRegularCourseForm() {
                         {/* Campus Info */}
                         <div className="space-y-4">
                             <h3 className="text-sm font-medium text-muted-foreground">校区相关信息</h3>
+                            <FormField control={form.control} name="needsDingbanxueRecharge" render={({ field }) => (
+                              <FormItem className="flex flex-row items-center gap-2 rounded-md border p-3">
+                                <FormControl>
+                                  <Checkbox checked={field.value} onCheckedChange={(v) => field.onChange(Boolean(v))} />
+                                </FormControl>
+                                <div className="space-y-0.5">
+                                  <FormLabel className="cursor-pointer">需要代充鼎伴学费用</FormLabel>
+                                  <FormDescription>
+                                    默认选中。取消勾选后，将从应付金额中扣减 20 元/课时，且校区信息必填。
+                                  </FormDescription>
+                                </div>
+                              </FormItem>
+                            )} />
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <FormField control={form.control} name="campusName" render={({ field }) => (
                                     <FormItem><FormLabel>校区名称</FormLabel><FormControl><Input placeholder="北京校区" {...field} /></FormControl><FormMessage /></FormItem>
@@ -739,10 +765,20 @@ function CreateRegularCourseForm() {
                         <span className="text-muted-foreground">总课时数</span>
                         <span className="font-medium">{totalHours}</span>
                     </div>
+                    <div className="flex justify-between items-center pb-2 border-b">
+                        <span className="text-muted-foreground">原始总费用</span>
+                        <span className="font-medium">¥{totalCost.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center pb-2 border-b">
+                        <span className="text-muted-foreground">扣减鼎伴学费用</span>
+                        <span className="font-medium">
+                            {needsDingbanxueRecharge ? "¥0" : `-¥${dingbanxueDeduction.toLocaleString()}`}
+                        </span>
+                    </div>
                     <div className="pt-2 flex justify-between items-center">
-                        <span className="font-bold text-lg">总费用</span>
+                        <span className="font-bold text-lg">应付费用</span>
                         <span className="font-bold text-2xl text-primary">
-                            ¥{totalCost.toLocaleString()}
+                            ¥{payableAmount.toLocaleString()}
                         </span>
                     </div>
                 </CardContent>

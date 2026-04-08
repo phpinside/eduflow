@@ -17,6 +17,10 @@ export default function RegularCoursePaymentPage() {
   const grade = searchParams.get("grade") || "未知年级"
   const totalHours = searchParams.get("totalHours") || "0"
   const price = parseFloat(searchParams.get("price") || "0")
+  const needsDingbanxueRecharge = searchParams.get("needsDingbanxueRecharge") !== "false"
+  const hoursNum = parseFloat(totalHours || "0")
+  const deduction = needsDingbanxueRecharge ? 0 : Math.max(0, hoursNum) * 20
+  const originalPrice = price + deduction
   
   const [paymentMethod, setPaymentMethod] = React.useState<"wechat" | "alipay">("wechat")
   const [isProcessing, setIsProcessing] = React.useState(false)
@@ -57,7 +61,15 @@ export default function RegularCoursePaymentPage() {
              </div>
              <div className="flex justify-between text-sm">
                 <span>正课费用</span>
-                <span>¥{price}</span>
+                <span>¥{originalPrice}</span>
+             </div>
+             <div className="flex justify-between text-sm">
+                <span>代收鼎伴学费用</span>
+                <span>{needsDingbanxueRecharge ? "¥0" : `-¥${deduction}`}</span>
+             </div>
+             <div className="flex justify-between text-sm">
+                <span>是否代充鼎伴学费用</span>
+                <span>{needsDingbanxueRecharge ? "需要代充" : "不需要代充"}</span>
              </div>
           </div>
           <Separator />

@@ -75,6 +75,7 @@ type EnrichedFinancialRecord = FinancialRecord & {
   campusName: string
   campusAccount: string
   studentAccount: string
+  dingbanxueRechargeRequired: "需要代缴" | "-"
   gAccountRechargeStatus: "待充值" | "已充值" | "无需充值"
 }
 
@@ -148,7 +149,7 @@ export default function FinancialRecordsPage() {
     )
   }, [filters])
 
-  const loadRecords = () => {
+  function loadRecords() {
     setRecords(getStoredFinancialRecords())
   }
 
@@ -158,7 +159,9 @@ export default function FinancialRecordsPage() {
     return records.map((record) => {
       const order = orders.find((o) => o.id === record.orderId)
       const student = order ? students.find((s) => s.id === order.studentId) : undefined
-      const isRegularRecharge = order?.type === "REGULAR" && record.type === "RECHARGE"
+      const rechargeRequired = order?.needsDingbanxueRecharge !== false
+      const isRegularRechargeScenario = order?.type === "REGULAR" && record.type === "RECHARGE"
+      const isRegularRecharge = isRegularRechargeScenario && rechargeRequired
       return {
         ...record,
         order,
@@ -171,6 +174,7 @@ export default function FinancialRecordsPage() {
         campusName: order?.campusName ?? "-",
         campusAccount: order?.campusAccount ?? "-",
         studentAccount: order?.studentAccount ?? "-",
+        dingbanxueRechargeRequired: isRegularRecharge ? "需要代缴" : "-",
         gAccountRechargeStatus:
           isRegularRecharge ? (rechargeStatusMap[record.id] ?? "待充值") : "无需充值",
       }
@@ -608,6 +612,7 @@ export default function FinancialRecordsPage() {
                   <TableHead>校区名称</TableHead>
                   <TableHead>校区账号</TableHead>
                   <TableHead>学生账号</TableHead>
+                  <TableHead>是否代缴鼎伴学</TableHead>
                   <TableHead>G账号充值状态</TableHead>
                   <TableHead>金额</TableHead>
                   <TableHead>招生老师</TableHead>
@@ -620,7 +625,7 @@ export default function FinancialRecordsPage() {
               <TableBody>
                 {paginatedRecords.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={18} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={19} className="text-center py-8 text-muted-foreground">
                       暂无记录
                     </TableCell>
                   </TableRow>
@@ -655,6 +660,7 @@ export default function FinancialRecordsPage() {
                       <TableCell>{record.campusName}</TableCell>
                       <TableCell>{record.campusAccount}</TableCell>
                       <TableCell>{record.studentAccount}</TableCell>
+                      <TableCell>{record.dingbanxueRechargeRequired}</TableCell>
                       <TableCell>
                         <Badge
                           variant={record.gAccountRechargeStatus === "已充值" ? "default" : "outline"}
