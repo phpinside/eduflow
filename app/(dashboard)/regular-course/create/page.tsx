@@ -38,7 +38,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { Checkbox } from "@/components/ui/checkbox"
-import { getLatestUnitPriceByGrade, LATEST_GRADE_UNIT_PRICE } from "@/lib/course-pricing"
 
 // --- Constants ---
 
@@ -386,7 +385,18 @@ function CreateRegularCourseForm() {
             <h2 className="text-3xl font-bold tracking-tight">创建正课单</h2>
             <p className="text-muted-foreground mt-2">填写学生信息和排课需求，生成正课订单。</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
+            <PasteStudentInfoSheetDialog
+              form={form}
+              subjects={SUBJECTS}
+              grades={GRADES}
+              genders={GENDERS}
+              formFieldMap={{
+                schoolProgress: "schoolLearningProgress",
+                otherSubjectsAvg: "otherSubjectsAvgScore",
+                tutoringHistory: "previousTutoringTypes",
+              }}
+            />
             <StudentSelector onSelect={handleStudentSelect} />
         </div>
       </div>
@@ -762,8 +772,6 @@ function CreateRegularCourseForm() {
     </div>
   )
 }
-
-import { StudentSelector } from "@/components/StudentSelector"
 
 export default function CreateRegularCoursePage() {
   return (

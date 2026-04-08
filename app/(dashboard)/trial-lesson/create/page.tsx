@@ -270,6 +270,7 @@ export default function CreateTrialLessonPage() {
 }
 
 import { StudentSelector } from "@/components/StudentSelector"
+import { PasteStudentInfoSheetDialog } from "@/components/PasteStudentInfoSheetDialog"
 
 function ByTeacherForm() {
   const router = useRouter()
@@ -736,7 +737,14 @@ function ByStudentForm() {
 function StudentInfoFields({ form, showSubjectGrade = false, onStudentSelect }: { form: any, showSubjectGrade?: boolean, onStudentSelect?: (student: any) => void }) {
     return (
         <div className="grid gap-6">
-            <div className="flex justify-end">
+            <div className="flex w-full items-center justify-between gap-2">
+                <PasteStudentInfoSheetDialog
+                  form={form}
+                  showSubjectGrade={showSubjectGrade}
+                  subjects={SUBJECTS}
+                  grades={GRADES}
+                  genders={GENDERS}
+                />
                 <StudentSelector onSelect={(student) => {
                     // Update form fields
                     form.setValue("studentName", student.name)
