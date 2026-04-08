@@ -10,6 +10,7 @@ import { addDays, addMinutes, format, getDay } from "date-fns"
 import { zhCN } from "date-fns/locale"
 import { CalendarIcon, Plus, Trash2, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { getLatestUnitPriceByGrade, LATEST_GRADE_UNIT_PRICE } from "@/lib/course-pricing"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import {
@@ -38,6 +39,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { Checkbox } from "@/components/ui/checkbox"
+import { StudentSelector } from "@/components/StudentSelector"
+import { PasteStudentInfoSheetDialog } from "@/components/PasteStudentInfoSheetDialog"
 
 // --- Constants ---
 

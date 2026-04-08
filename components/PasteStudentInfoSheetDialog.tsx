@@ -23,8 +23,9 @@ export type PasteStudentInfoFieldMap = Partial<
 >
 
 type PasteStudentInfoSheetDialogProps = {
-  /** Dynamic field names (formFieldMap) require a loose setValue signature */
-  form: UseFormReturn<Record<string, unknown>>
+  /** Loose typing: dynamic formFieldMap paths + multiple parent form shapes */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  form: UseFormReturn<any>
   showSubjectGrade?: boolean
   subjects: readonly string[]
   grades: readonly string[]
