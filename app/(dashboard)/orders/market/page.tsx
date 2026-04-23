@@ -32,8 +32,10 @@ import { toast } from "sonner"
 
 import { mockOrders } from "@/lib/mock-data/orders"
 import { mockStudents } from "@/lib/mock-data/students"
-import { Order, OrderStatus, OrderType } from "@/types"
+import { mockUsers } from "@/lib/mock-data/users"
+import { Order, OrderStatus, OrderType, BranchCompany } from "@/types"
 import { cn } from "@/lib/utils"
+import { getStoredBranchCompanies } from "@/lib/storage"
 
 // --- Constants ---
 const SUBJECTS = ["全部科目", "数学", "物理", "英语", "化学", "语文", "生物", "历史", "地理", "政治"] as const
@@ -49,6 +51,8 @@ interface ExtendedOrder extends Order {
   studentName?: string
   studentGender?: string
   studentScore?: string
+  branchName?: string
+  branchCsName?: string
 }
 
 export default function OrderMarketPage() {
@@ -62,9 +66,13 @@ export default function OrderMarketPage() {
   // State for orders
   const [marketOrders, setMarketOrders] = React.useState<ExtendedOrder[]>([])
   const [now, setNow] = React.useState(new Date())
+  const [branchCompanies, setBranchCompanies] = React.useState<BranchCompany[]>([])
 
   // Initialize Data
   React.useEffect(() => {
+    // Load branch companies
+    setBranchCompanies(getStoredBranchCompanies())
+    
     // Timer for countdown updates
     const timer = setInterval(() => setNow(new Date()), 1000)
 
@@ -82,6 +90,8 @@ export default function OrderMarketPage() {
         const deadline = addMinutes(createdAt, ORDER_TIMEOUT_MINUTES)
         
         const applicants = Array.from({ length: Math.floor(Math.random() * 5) }, (_, i) => `coach_${i}`)
+        const salesPerson = mockUsers.find(u => u.id === order.salesPersonId)
+        const branchCompany = branchCompanies.find(b => b.id === salesPerson?.branchCompanyId)
         
         return {
           ...order,
@@ -91,7 +101,9 @@ export default function OrderMarketPage() {
           isApplied: false,
           studentName: student?.name || "未知学生",
           studentGender: student?.gender,
-          studentScore: (order as any).lastExamScore || "暂无成绩"
+          studentScore: (order as any).lastExamScore || "暂无成绩",
+          branchName: branchCompany?.name || "—",
+          branchCsName: branchCompany?.csName || "—",
         }
       })
 
@@ -116,6 +128,9 @@ export default function OrderMarketPage() {
       const randomDay = weekDays[Math.floor(Math.random() * weekDays.length)]
       const startHour = 9 + Math.floor(Math.random() * 11) // 9:00 - 20:00
       
+      const salesPerson = mockUsers.find(u => u.id === "sales-1")
+      const branchCompany = branchCompanies.find(b => b.id === salesPerson?.branchCompanyId)
+              
       return {
         id: uniqueId,
         type,
@@ -142,7 +157,9 @@ export default function OrderMarketPage() {
           startTime: `${startHour}:00`, 
           endTime: `${startHour + 2}:00` 
         }] : undefined,
-        remarks: ["基础较弱，需耐心", "目标考重点", "性格内向", "喜欢互动", "需要提升解题速度"][Math.floor(Math.random() * 5)]
+        remarks: ["基础较弱，需耐心", "目标考重点", "性格内向", "喜欢互动", "需要提升解题速度"][Math.floor(Math.random() * 5)],
+        branchName: branchCompany?.name || "—",
+        branchCsName: branchCompany?.csName || "—",
       }
     }
 
@@ -332,6 +349,18 @@ export default function OrderMarketPage() {
                 备注: {(order as any).remarks}
              </div>
           )}
+          
+          {/* 新增：分公司信息 */}
+          <div className="bg-blue-50 p-2 rounded border border-blue-100">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-muted-foreground">分公司：</span>
+              <span className="font-medium text-blue-700">{order.branchName}</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs mt-1">
+              <span className="text-muted-foreground">专属客服：</span>
+              <span className="font-medium text-blue-700">{order.branchCsName}</span>
+            </div>
+          </div>
         </CardContent>
         <CardFooter className="pt-3 border-t bg-muted/20 flex justify-between items-center">
             <div className="flex items-center gap-1 text-sm text-muted-foreground">

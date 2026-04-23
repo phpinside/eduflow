@@ -42,8 +42,8 @@ import {
 
 import { mockStudents } from "@/lib/mock-data/students"
 import { mockUsers } from "@/lib/mock-data/users"
-import { getStoredOrders } from "@/lib/storage"
-import type { Order } from "@/types"
+import { getStoredOrders, getStoredBranchCompanies } from "@/lib/storage"
+import type { Order, BranchCompany } from "@/types"
 import { OrderStatus, OrderType } from "@/types"
 import { cn } from "@/lib/utils"
 import { ORDER_STATUS_MAP, ORDER_STATUS_COLOR_MAP } from "@/lib/order-constants"
@@ -56,9 +56,11 @@ const PAGE_SIZE = 10
 export default function ManagerOrdersPage() {
   const router = useRouter()
   const [orders, setOrders] = React.useState<Order[]>([])
+  const [branchCompanies, setBranchCompanies] = React.useState<BranchCompany[]>([])
 
   React.useEffect(() => {
     setOrders(getStoredOrders())
+    setBranchCompanies(getStoredBranchCompanies())
   }, [])
 
   // 筛选条件状态
@@ -78,6 +80,12 @@ export default function ManagerOrdersPage() {
   const [parentPhoneSearch, setParentPhoneSearch] = React.useState("")
   const [tutorNameSearch, setTutorNameSearch] = React.useState("")
   const [tutorPhoneSearch, setTutorPhoneSearch] = React.useState("")
+  
+  // 新增：分公司、负责人、专属客服、待审核客服多选筛选
+  const [selectedBranches, setSelectedBranches] = React.useState<string[]>([])
+  const [selectedManagers, setSelectedManagers] = React.useState<string[]>([])
+  const [selectedCsNames, setSelectedCsNames] = React.useState<string[]>([])
+  const [selectedPendingReviewers, setSelectedPendingReviewers] = React.useState<string[]>([])
 
   // 分页状态
   const [currentPage, setCurrentPage] = React.useState(1)
@@ -95,6 +103,45 @@ export default function ManagerOrdersPage() {
       grades: Array.from(gradesSet).sort()
     }
   }, [orders])
+  
+  // 获取所有唯一的分公司、负责人、专属客服、待审核客服（用于多选筛选）
+  const filterOptions = React.useMemo(() => {
+    const branchesSet = new Set<string>()
+    const managersSet = new Set<string>()
+    const csNamesSet = new Set<string>()
+    const pendingReviewersSet = new Set<string>()
+    
+    orders.forEach((order) => {
+      const salesPerson = mockUsers.find(u => u.id === order.salesPersonId)
+      const branchCompany = branchCompanies.find(b => b.id === salesPerson?.branchCompanyId)
+      
+      if (branchCompany?.name && branchCompany.name !== "—") {
+        branchesSet.add(branchCompany.name)
+      }
+      if (branchCompany?.managerName && branchCompany.managerName !== "—") {
+        managersSet.add(branchCompany.managerName)
+      }
+      if (branchCompany?.csName && branchCompany.csName !== "—") {
+        csNamesSet.add(branchCompany.csName)
+      }
+      
+      // 待审核客服：筛选状态为 PENDING_CS_REVIEW 的订单
+      if (order.status === OrderStatus.PENDING_CS_REVIEW) {
+        // 这里可以根据实际业务逻辑确定"待审核客服"的值
+        // 暂时使用分公司名称作为标识
+        if (branchCompany?.name && branchCompany.name !== "—") {
+          pendingReviewersSet.add(branchCompany.name)
+        }
+      }
+    })
+    
+    return {
+      branches: Array.from(branchesSet).sort(),
+      managers: Array.from(managersSet).sort(),
+      csNames: Array.from(csNamesSet).sort(),
+      pendingReviewers: Array.from(pendingReviewersSet).sort()
+    }
+  }, [orders, branchCompanies])
 
   // 切换状态选择
   const toggleStatus = (status: OrderStatus) => {
@@ -105,18 +152,64 @@ export default function ManagerOrdersPage() {
     )
     setCurrentPage(1) // 重置到第一页
   }
+  
+  // 切换分公司选择
+  const toggleBranch = (branch: string) => {
+    setSelectedBranches(prev =>
+      prev.includes(branch)
+        ? prev.filter(b => b !== branch)
+        : [...prev, branch]
+    )
+    setCurrentPage(1)
+  }
+  
+  // 切换负责人选择
+  const toggleManager = (manager: string) => {
+    setSelectedManagers(prev =>
+      prev.includes(manager)
+        ? prev.filter(m => m !== manager)
+        : [...prev, manager]
+    )
+    setCurrentPage(1)
+  }
+  
+  // 切换专属客服选择
+  const toggleCsName = (csName: string) => {
+    setSelectedCsNames(prev =>
+      prev.includes(csName)
+        ? prev.filter(c => c !== csName)
+        : [...prev, csName]
+    )
+    setCurrentPage(1)
+  }
+  
+  // 切换待审核客服选择
+  const togglePendingReviewer = (reviewer: string) => {
+    setSelectedPendingReviewers(prev =>
+      prev.includes(reviewer)
+        ? prev.filter(r => r !== reviewer)
+        : [...prev, reviewer]
+    )
+    setCurrentPage(1)
+  }
 
   // 筛选后的订单
   const filteredOrders = React.useMemo(() => {
     return orders.map((order) => {
       const student = mockStudents.find(s => s.id === order.studentId)
       const tutor = mockUsers.find(u => u.id === order.assignedTeacherId)
+      const salesPerson = mockUsers.find(u => u.id === order.salesPersonId)
+      const branchCompany = branchCompanies.find(b => b.id === salesPerson?.branchCompanyId)
+      
       return {
         ...order,
         studentName: student?.name || "未知",
         _parentPhone: student?.parentPhone || "",
         _tutorName: tutor?.name || "",
         _tutorPhone: tutor?.phone || "",
+        _branchName: branchCompany?.name || "—",
+        _branchManager: branchCompany?.managerName || "—",
+        _branchCs: branchCompany?.csName || "—",
       }
     }).filter(order => {
       // 订单号筛选
@@ -186,6 +279,31 @@ export default function ManagerOrdersPage() {
       if (tutorPhoneSearch && !order._tutorPhone.toLowerCase().includes(tutorPhoneSearch.toLowerCase())) {
         return false
       }
+      
+      // 分公司筛选（多选）
+      if (selectedBranches.length > 0 && !selectedBranches.includes(order._branchName)) {
+        return false
+      }
+      
+      // 负责人筛选（多选）
+      if (selectedManagers.length > 0 && !selectedManagers.includes(order._branchManager)) {
+        return false
+      }
+      
+      // 专属客服筛选（多选）
+      if (selectedCsNames.length > 0 && !selectedCsNames.includes(order._branchCs)) {
+        return false
+      }
+      
+      // 待审核客服筛选（多选）- 筛选状态为 PENDING_CS_REVIEW 且属于选定分公司的订单
+      if (selectedPendingReviewers.length > 0) {
+        if (order.status !== OrderStatus.PENDING_CS_REVIEW) {
+          return false
+        }
+        if (!selectedPendingReviewers.includes(order._branchName)) {
+          return false
+        }
+      }
 
       return true
     })
@@ -203,6 +321,10 @@ export default function ManagerOrdersPage() {
     parentPhoneSearch,
     tutorNameSearch,
     tutorPhoneSearch,
+    selectedBranches,
+    selectedManagers,
+    selectedCsNames,
+    selectedPendingReviewers,
   ])
 
   // 分页后的订单
@@ -229,6 +351,10 @@ export default function ManagerOrdersPage() {
     setParentPhoneSearch("")
     setTutorNameSearch("")
     setTutorPhoneSearch("")
+    setSelectedBranches([])
+    setSelectedManagers([])
+    setSelectedCsNames([])
+    setSelectedPendingReviewers([])
     setCurrentPage(1)
   }
 
@@ -529,6 +655,130 @@ export default function ManagerOrdersPage() {
                 })}
               </div>
             </div>
+            
+            {/* 第六行：分公司（多选） */}
+            {filterOptions.branches.length > 0 && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">分公司（可多选）</label>
+                <div className="flex flex-wrap gap-2">
+                  {filterOptions.branches.map((branch) => {
+                    const isSelected = selectedBranches.includes(branch)
+                    return (
+                      <div
+                        key={branch}
+                        onClick={() => toggleBranch(branch)}
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-2 rounded-md border cursor-pointer transition-colors",
+                          isSelected 
+                            ? "bg-blue-500 text-white border-blue-500" 
+                            : "bg-background hover:bg-accent"
+                        )}
+                      >
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => toggleBranch(branch)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <span className="text-sm">{branch}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+            
+            {/* 第七行：负责人（多选） */}
+            {filterOptions.managers.length > 0 && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">负责人（可多选）</label>
+                <div className="flex flex-wrap gap-2">
+                  {filterOptions.managers.map((manager) => {
+                    const isSelected = selectedManagers.includes(manager)
+                    return (
+                      <div
+                        key={manager}
+                        onClick={() => toggleManager(manager)}
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-2 rounded-md border cursor-pointer transition-colors",
+                          isSelected 
+                            ? "bg-green-500 text-white border-green-500" 
+                            : "bg-background hover:bg-accent"
+                        )}
+                      >
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => toggleManager(manager)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <span className="text-sm">{manager}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+            
+            {/* 第八行：专属客服（多选） */}
+            {filterOptions.csNames.length > 0 && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">专属客服（可多选）</label>
+                <div className="flex flex-wrap gap-2">
+                  {filterOptions.csNames.map((csName) => {
+                    const isSelected = selectedCsNames.includes(csName)
+                    return (
+                      <div
+                        key={csName}
+                        onClick={() => toggleCsName(csName)}
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-2 rounded-md border cursor-pointer transition-colors",
+                          isSelected 
+                            ? "bg-purple-500 text-white border-purple-500" 
+                            : "bg-background hover:bg-accent"
+                        )}
+                      >
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => toggleCsName(csName)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <span className="text-sm">{csName}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+            
+            {/* 第九行：待审核客服（多选） */}
+            {filterOptions.pendingReviewers.length > 0 && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">待审核客服（可多选）</label>
+                <div className="flex flex-wrap gap-2">
+                  {filterOptions.pendingReviewers.map((reviewer) => {
+                    const isSelected = selectedPendingReviewers.includes(reviewer)
+                    return (
+                      <div
+                        key={reviewer}
+                        onClick={() => togglePendingReviewer(reviewer)}
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-2 rounded-md border cursor-pointer transition-colors",
+                          isSelected 
+                            ? "bg-orange-500 text-white border-orange-500" 
+                            : "bg-background hover:bg-accent"
+                        )}
+                      >
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => togglePendingReviewer(reviewer)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <span className="text-sm">{reviewer}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* 筛选结果统计 */}
             <div className="text-sm text-muted-foreground">
@@ -545,6 +795,9 @@ export default function ManagerOrdersPage() {
                   <TableHead>类型</TableHead>
                   <TableHead>学生</TableHead>
                   <TableHead>年级/科目</TableHead>
+                  <TableHead>分公司</TableHead>
+                  <TableHead>负责人</TableHead>
+                  <TableHead>专属客服</TableHead>
                   <TableHead>状态</TableHead>
                   <TableHead>申请人数</TableHead>
                   <TableHead>创建时间</TableHead>
@@ -569,6 +822,9 @@ export default function ManagerOrdersPage() {
                       </TableCell>
                       <TableCell>{order.studentName}</TableCell>
                       <TableCell>{order.grade} {order.subject}</TableCell>
+                      <TableCell>{order._branchName}</TableCell>
+                      <TableCell>{order._branchManager}</TableCell>
+                      <TableCell>{order._branchCs}</TableCell>
                       <TableCell>
                         <Badge variant={ORDER_STATUS_COLOR_MAP[order.status]}>
                           {ORDER_STATUS_MAP[order.status]}
@@ -587,7 +843,7 @@ export default function ManagerOrdersPage() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
+                    <TableCell colSpan={10} className="h-24 text-center">
                       暂无符合条件的订单
                     </TableCell>
                   </TableRow>

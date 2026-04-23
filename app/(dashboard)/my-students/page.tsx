@@ -5,8 +5,9 @@ import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 import { mockStudents } from "@/lib/mock-data/students"
-import { getStoredOrders, getStoredRefundApplications } from "@/lib/storage"
-import { OrderStatus, RefundApplicationStatus, type Order, type RefundApplication } from "@/types"
+import { mockUsers } from "@/lib/mock-data/users"
+import { getStoredOrders, getStoredRefundApplications, getStoredBranchCompanies, getStoredUsers } from "@/lib/storage"
+import { OrderStatus, RefundApplicationStatus, type Order, type RefundApplication, type BranchCompany } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -108,6 +109,8 @@ interface StudentRow {
     // 原始 order id（用于操作按钮链接）
     orderId?: string
     refundStatusLabel?: string
+    branchName?: string
+    branchCsName?: string
 }
 
 export default function MyStudentsPage() {
@@ -144,6 +147,7 @@ export default function MyStudentsPage() {
     const [refundApps, setRefundApps] = React.useState<RefundApplication[]>([])
     const [showStudentFormDialog, setShowStudentFormDialog] = React.useState(false)
     const [editingStudent, setEditingStudent] = React.useState<StudentFormData | undefined>(undefined)
+    const [branchCompanies, setBranchCompanies] = React.useState<BranchCompany[]>([])
 
     const dayLabels: Record<string, string> = {
         monday: "周一", tuesday: "周二", wednesday: "周三", thursday: "周四",
@@ -153,6 +157,7 @@ export default function MyStudentsPage() {
     React.useEffect(() => {
         setStoredOrders(getStoredOrders())
         setRefundApps(getStoredRefundApplications())
+        setBranchCompanies(getStoredBranchCompanies())
     }, [])
 
     const getRefundStatusLabel = React.useCallback((orderId: string) => {
@@ -181,6 +186,9 @@ export default function MyStudentsPage() {
             })
             .map(order => {
                 const student = mockStudents.find(s => s.id === order.studentId)
+                const salesPerson = mockUsers.find(u => u.id === order.salesPersonId)
+                const branchCompany = branchCompanies.find(b => b.id === salesPerson?.branchCompanyId)
+                
                 return {
                     rowId: order.id,
                     studentAccount: order.studentAccount ?? "",
@@ -195,6 +203,8 @@ export default function MyStudentsPage() {
                     isTransferred: order.transferredOutFrom === user.id,
                     orderId: order.id,
                     refundStatusLabel: getRefundStatusLabel(order.id),
+                    branchName: branchCompany?.name || "—",
+                    branchCsName: branchCompany?.csName || "—",
                 }
             })
     }, [user, storedOrders, getRefundStatusLabel])
@@ -425,6 +435,8 @@ export default function MyStudentsPage() {
                                     <TableHead className="w-[80px]">科目</TableHead>
                                     <TableHead className="w-[90px] text-center">总计课时</TableHead>
                                     <TableHead className="w-[90px] text-center">剩余课时</TableHead>
+                                    <TableHead className="w-[140px]">分公司</TableHead>
+                                    <TableHead className="w-[100px]">专属客服</TableHead>
                                     <TableHead className="text-right w-[160px]">操作</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -492,6 +504,16 @@ export default function MyStudentsPage() {
                                                         : "font-medium text-primary"
                                                 }>
                                                     {row.remainingHours !== "" ? row.remainingHours : "—"}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className="text-xs text-muted-foreground">
+                                                    {row.branchName}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className="text-xs font-medium text-blue-700">
+                                                    {row.branchCsName}
                                                 </span>
                                             </TableCell>
                                          

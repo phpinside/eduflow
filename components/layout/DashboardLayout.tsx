@@ -142,6 +142,12 @@ const navItems: NavItem[] = [
     roles: [Role.OPERATOR]
   },
   {
+    title: "分公司管理",
+    href: "/branch-companies",
+    icon: Store,
+    roles: [Role.OPERATOR]
+  },
+  {
     title: "财务记录",
     href: "/financial-records",
     icon: CircleDollarSign,

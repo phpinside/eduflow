@@ -38,8 +38,8 @@ import {
   Search
 } from "lucide-react"
 import { toast } from "sonner"
-import { FinancialRecord, Order } from "@/types"
-import { getStoredFinancialRecords, getStoredOrders, getStoredStudents } from "@/lib/storage"
+import { FinancialRecord, Order, BranchCompany } from "@/types"
+import { getStoredFinancialRecords, getStoredOrders, getStoredStudents, getStoredBranchCompanies, getStoredUsers } from "@/lib/storage"
 import { cn } from "@/lib/utils"
 
 const ITEMS_PER_PAGE = 30
@@ -77,6 +77,8 @@ type EnrichedFinancialRecord = FinancialRecord & {
   studentAccount: string
   dingbanxueRechargeRequired: "需要代缴" | "-"
   gAccountRechargeStatus: "待充值" | "已充值" | "无需充值"
+  branchName: string
+  branchCsName: string
 }
 
 const buildDefaultFilters = (): FinancialFilters => ({
@@ -156,9 +158,13 @@ export default function FinancialRecordsPage() {
   const enrichedRecords = useMemo<EnrichedFinancialRecord[]>(() => {
     const orders = getStoredOrders()
     const students = getStoredStudents()
+    const branchCompanies = getStoredBranchCompanies()
+    const users = getStoredUsers()
     return records.map((record) => {
       const order = orders.find((o) => o.id === record.orderId)
       const student = order ? students.find((s) => s.id === order.studentId) : undefined
+      const salesPerson = users.find((u) => u.id === record.salesPersonId)
+      const branchCompany = branchCompanies.find(b => b.id === salesPerson?.branchCompanyId)
       const rechargeRequired = order?.needsDingbanxueRecharge !== false
       const isRegularRechargeScenario = order?.type === "REGULAR" && record.type === "RECHARGE"
       const isRegularRecharge = isRegularRechargeScenario && rechargeRequired
@@ -177,6 +183,8 @@ export default function FinancialRecordsPage() {
         dingbanxueRechargeRequired: isRegularRecharge ? "需要代缴" : "-",
         gAccountRechargeStatus:
           isRegularRecharge ? (rechargeStatusMap[record.id] ?? "待充值") : "无需充值",
+        branchName: branchCompany?.name || "—",
+        branchCsName: branchCompany?.csName || "—",
       }
     })
   }, [records, rechargeStatusMap])
@@ -612,6 +620,8 @@ export default function FinancialRecordsPage() {
                   <TableHead>校区名称</TableHead>
                   <TableHead>校区账号</TableHead>
                   <TableHead>学生账号</TableHead>
+                  <TableHead>分公司</TableHead>
+                  <TableHead>专属客服</TableHead>
                   <TableHead>是否代缴鼎伴学</TableHead>
                   <TableHead>G账号充值状态</TableHead>
                   <TableHead>金额</TableHead>
@@ -625,7 +635,7 @@ export default function FinancialRecordsPage() {
               <TableBody>
                 {paginatedRecords.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={19} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={21} className="text-center py-8 text-muted-foreground">
                       暂无记录
                     </TableCell>
                   </TableRow>
@@ -660,6 +670,8 @@ export default function FinancialRecordsPage() {
                       <TableCell>{record.campusName}</TableCell>
                       <TableCell>{record.campusAccount}</TableCell>
                       <TableCell>{record.studentAccount}</TableCell>
+                      <TableCell>{record.branchName}</TableCell>
+                      <TableCell>{record.branchCsName}</TableCell>
                       <TableCell>{record.dingbanxueRechargeRequired}</TableCell>
                       <TableCell>
                         <Badge

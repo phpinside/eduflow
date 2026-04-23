@@ -31,6 +31,8 @@ export interface User {
   recommendedForTrial?: boolean // 系统推荐试课
   managerId?: string         // 归属的学管ID（伴学教练专用）
   managerName?: string       // 归属的学管姓名（冗余字段，便于展示）
+  branchCompanyId?: string   // 所属分公司ID（招生老师专用）
+  branchCompanyName?: string // 所属分公司名称（冗余字段）
   createdAt: Date
   updatedAt: Date
 }
@@ -477,6 +479,21 @@ export interface Subject {
   code: string                       // 科目编号
   name: string                       // 科目名称
   description: string                // 科目简介
+  enabled: boolean                   // 是否启用
+  createdAt: Date
+  updatedAt: Date
+}
+
+// ========== 分公司管理 ==========
+
+export interface BranchCompany {
+  id: string
+  name: string                       // 分公司名称（必填）
+  managerName: string                // 负责人名称（必填）
+  phone?: string                     // 联系电话（选填）
+  wechat?: string                    // 微信号（选填）
+  csName: string                     // 专属客服人员姓名（必填）
+  csPhone?: string                   // 专属客服人员电话（选填）
   enabled: boolean                   // 是否启用
   createdAt: Date
   updatedAt: Date

@@ -23,6 +23,8 @@ export const mockUsers: User[] = [
     status: UserStatus.APPROVED,
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sales_demo1',
     wechatQrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=wxid_sales_demo1',
+    branchCompanyId: 'branch-1',
+    branchCompanyName: '上海鼎伴学分公司',
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01')
   },
@@ -33,6 +35,8 @@ export const mockUsers: User[] = [
     roles: [Role.SALES],
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sales1',
     wechatQrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=wxid_sales1',
+    branchCompanyId: 'branch-2',
+    branchCompanyName: '北京鼎伴学分公司',
     createdAt: new Date('2023-01-01'),
     updatedAt: new Date('2023-01-01')
   },
@@ -43,6 +47,8 @@ export const mockUsers: User[] = [
     roles: [Role.SALES],
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sales2',
     wechatQrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=wxid_sales2',
+    branchCompanyId: 'branch-1',
+    branchCompanyName: '上海鼎伴学分公司',
     createdAt: new Date('2023-01-01'),
     updatedAt: new Date('2023-01-01')
   },
@@ -53,6 +59,8 @@ export const mockUsers: User[] = [
     roles: [Role.SALES],
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sales3',
     wechatQrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=wxid_sales3',
+    branchCompanyId: 'branch-3',
+    branchCompanyName: '广州鼎伴学分公司',
     createdAt: new Date('2023-01-01'),
     updatedAt: new Date('2023-01-01')
   },
@@ -63,6 +71,8 @@ export const mockUsers: User[] = [
     roles: [Role.SALES],
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sales4',
     wechatQrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=wxid_sales4',
+    branchCompanyId: 'branch-4',
+    branchCompanyName: '深圳鼎伴学分公司',
     createdAt: new Date('2023-01-01'),
     updatedAt: new Date('2023-01-01')
   },
@@ -73,6 +83,8 @@ export const mockUsers: User[] = [
     roles: [Role.SALES],
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sales5',
     wechatQrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=wxid_sales5',
+    branchCompanyId: 'branch-2',
+    branchCompanyName: '北京鼎伴学分公司',
     createdAt: new Date('2023-01-01'),
     updatedAt: new Date('2023-01-01')
   },

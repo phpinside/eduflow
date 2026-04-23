@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,7 +9,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { toast } from "sonner"
 import { Upload, Camera } from "lucide-react"
-import { Role } from "@/types"
+import { Role, BranchCompany } from "@/types"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { getStoredBranchCompanies } from "@/lib/storage"
 
 const DEFAULT_AVATAR = "https://api.dicebear.com/7.x/notionists/svg?seed=default"
 
@@ -20,6 +22,7 @@ export default function ProfilePage() {
     name: user?.name || "",
     campusName: user?.campusName || "",
     campusAccount: user?.campusAccount || "",
+    branchCompanyId: user?.branchCompanyId || "",
   })
   const [passwords, setPasswords] = useState({ newPassword: "", confirmPassword: "" })
   const [selectedAvatar, setSelectedAvatar] = useState(user?.avatar || DEFAULT_AVATAR)
@@ -27,6 +30,11 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const avatarInputRef = useRef<HTMLInputElement>(null)
   const qrFileInputRef = useRef<HTMLInputElement>(null)
+  const [branchCompanies, setBranchCompanies] = useState<BranchCompany[]>([])
+
+  useEffect(() => {
+    setBranchCompanies(getStoredBranchCompanies().filter(c => c.enabled))
+  }, [])
 
   if (!user) return null
 
@@ -91,6 +99,7 @@ export default function ProfilePage() {
         name: formData.name,
         campusName: formData.campusName,
         campusAccount: formData.campusAccount,
+        branchCompanyId: formData.branchCompanyId,
         avatar: selectedAvatar,
         wechatQrCode: qrCode || undefined,
       }
@@ -186,28 +195,50 @@ export default function ProfilePage() {
 
             {/* Campus info for SALES role */}
             {user?.roles.includes(Role.SALES) && (
-              <div className="grid gap-6 md:grid-cols-2">
+              <>
+                {/* Branch Company Selection */}
                 <div className="space-y-2">
-                  <Label htmlFor="campusName">9800校区名称</Label>
-                  <Input
-                    id="campusName"
-                    name="campusName"
-                    value={formData.campusName}
-                    onChange={handleInputChange}
-                    placeholder="请输入校区名称"
-                  />
+                  <Label>所属鼎伴学分公司</Label>
+                  <Select
+                    value={formData.branchCompanyId}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, branchCompanyId: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="请选择所属分公司" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {branchCompanies.map(company => (
+                        <SelectItem key={company.id} value={company.id}>
+                          {company.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="campusAccount">9800校区账号</Label>
-                  <Input
-                    id="campusAccount"
-                    name="campusAccount"
-                    value={formData.campusAccount}
-                    onChange={handleInputChange}
-                    placeholder="请输入校区账号"
-                  />
+
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="campusName">9800校区名称</Label>
+                    <Input
+                      id="campusName"
+                      name="campusName"
+                      value={formData.campusName}
+                      onChange={handleInputChange}
+                      placeholder="请输入校区名称"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="campusAccount">9800校区账号</Label>
+                    <Input
+                      id="campusAccount"
+                      name="campusAccount"
+                      value={formData.campusAccount}
+                      onChange={handleInputChange}
+                      placeholder="请输入校区账号"
+                    />
+                  </div>
                 </div>
-              </div>
+              </>
             )}
 
             {/* Password Change */}

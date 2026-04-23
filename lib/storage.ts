@@ -12,6 +12,7 @@ import type { Order, OrderStatus } from '@/types'
 import { OrderStatus as OrderStatusEnum } from '@/types'
 import { mockRefundApplications } from './mock-data/refund-applications'
 import { mockRefundOperationLogs } from './mock-data/refund-logs'
+import { mockBranchCompanies } from './mock-data/branch-companies'
 
 export const STORAGE_KEYS = {
   USERS: 'eduflow:users',
@@ -26,6 +27,7 @@ export const STORAGE_KEYS = {
   FINANCIAL_RECORDS: 'eduflow:financial-records',
   REFUND_APPLICATIONS: 'eduflow:refund-applications',
   REFUND_OPERATION_LOGS: 'eduflow:refund-operation-logs',
+  BRANCH_COMPANIES: 'eduflow:branch-companies',
 }
 
 const isBrowser = typeof window !== 'undefined'
@@ -94,6 +96,14 @@ export const getStoredRefundOperationLogs = () =>
 
 export const saveRefundOperationLogs = (data: typeof mockRefundOperationLogs) =>
   saveMockData(STORAGE_KEYS.REFUND_OPERATION_LOGS, data)
+
+// === 新增：分公司管理相关工具函数 ===
+
+export const getStoredBranchCompanies = () =>
+  getMockData(STORAGE_KEYS.BRANCH_COMPANIES, mockBranchCompanies)
+
+export const saveStoredBranchCompanies = (data: typeof mockBranchCompanies) =>
+  saveMockData(STORAGE_KEYS.BRANCH_COMPANIES, data)
 
 // === 新增：草稿订单相关工具函数 ===
 
@@ -199,4 +209,5 @@ export const initializeMockData = () => {
   if (!localStorage.getItem(STORAGE_KEYS.FINANCIAL_RECORDS)) saveMockData(STORAGE_KEYS.FINANCIAL_RECORDS, mockFinancialRecords)
   if (!localStorage.getItem(STORAGE_KEYS.REFUND_APPLICATIONS)) saveMockData(STORAGE_KEYS.REFUND_APPLICATIONS, mockRefundApplications)
   if (!localStorage.getItem(STORAGE_KEYS.REFUND_OPERATION_LOGS)) saveMockData(STORAGE_KEYS.REFUND_OPERATION_LOGS, mockRefundOperationLogs)
+  if (!localStorage.getItem(STORAGE_KEYS.BRANCH_COMPANIES)) saveMockData(STORAGE_KEYS.BRANCH_COMPANIES, mockBranchCompanies)
 }
