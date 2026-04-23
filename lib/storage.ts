@@ -8,7 +8,8 @@ import { mockSubjects } from './mock-data/subjects'
 import { mockOrderAccordRecords } from './mock-data/order-accord'
 import { mockTeacherAccordRecords } from './mock-data/teacher-accord'
 import { mockFinancialRecords } from './mock-data/financial-records'
-import type { Order } from '@/types'
+import type { Order, OrderStatus } from '@/types'
+import { OrderStatus as OrderStatusEnum } from '@/types'
 import { mockRefundApplications } from './mock-data/refund-applications'
 import { mockRefundOperationLogs } from './mock-data/refund-logs'
 
@@ -93,6 +94,69 @@ export const getStoredRefundOperationLogs = () =>
 
 export const saveRefundOperationLogs = (data: typeof mockRefundOperationLogs) =>
   saveMockData(STORAGE_KEYS.REFUND_OPERATION_LOGS, data)
+
+// === 新增：草稿订单相关工具函数 ===
+
+/**
+ * 获取草稿订单的唯一性键值
+ * 使用 studentId + subject + grade 作为唯一标识
+ */
+export function getDraftKey(order: Partial<Order>): string {
+  return `${order.studentId || ''}_${order.subject || ''}_${order.grade || ''}`
+}
+
+/**
+ * 检查是否存在冲突的草稿订单
+ * @returns 返回冲突的草稿订单，如果不存在则返回 undefined
+ */
+export function findConflictingDraft(order: Partial<Order>, excludeOrderId?: string): Order | undefined {
+  if (!order.studentId || !order.subject || !order.grade) {
+    return undefined
+  }
+  
+  const key = getDraftKey(order)
+  const drafts = getStoredOrders().filter(o => o.status === OrderStatusEnum.DRAFT)
+  
+  return drafts.find(o => 
+    o.id !== excludeOrderId && // 排除当前编辑的订单
+    getDraftKey(o) === key
+  )
+}
+
+/**
+ * 检查并更新排单中超时的订单
+ * @param timeoutHours 超时时长（小时），默认 3 小时
+ * @returns 返回更新的订单数量
+ */
+export function checkAndUpdateSchedulingTimeout(timeoutHours: number = 3): number {
+  const orders = getStoredOrders()
+  const now = new Date()
+  let updatedCount = 0
+  
+  const updatedOrders = orders.map(order => {
+    if (order.status === OrderStatusEnum.SCHEDULING && order.schedulingStartTime) {
+      const start = new Date(order.schedulingStartTime)
+      const elapsed = (now.getTime() - start.getTime()) / (1000 * 60 * 60) // 小时
+      
+      if (elapsed >= timeoutHours) {
+        updatedCount++
+        return {
+          ...order,
+          status: OrderStatusEnum.PENDING,
+          schedulingStartTime: undefined,
+          updatedAt: now
+        }
+      }
+    }
+    return order
+  })
+  
+  if (updatedCount > 0) {
+    saveStoredOrders(updatedOrders)
+  }
+  
+  return updatedCount
+}
 
 // Initialize all data
 export const initializeMockData = () => {

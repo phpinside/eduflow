@@ -10,7 +10,6 @@ import { addDays, addMinutes, format, getDay } from "date-fns"
 import { zhCN } from "date-fns/locale"
 import { CalendarIcon, Plus, Trash2, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { getLatestUnitPriceByGrade, LATEST_GRADE_UNIT_PRICE } from "@/lib/course-pricing"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import {
@@ -39,8 +38,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { Checkbox } from "@/components/ui/checkbox"
-import { StudentSelector } from "@/components/StudentSelector"
-import { PasteStudentInfoSheetDialog } from "@/components/PasteStudentInfoSheetDialog"
+import { getLatestUnitPriceByGrade, LATEST_GRADE_UNIT_PRICE } from "@/lib/course-pricing"
 
 // --- Constants ---
 
@@ -401,18 +399,7 @@ function CreateRegularCourseForm() {
             <h2 className="text-3xl font-bold tracking-tight">创建正课单</h2>
             <p className="text-muted-foreground mt-2">填写学生信息和排课需求，生成正课订单。</p>
         </div>
-        <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
-            <PasteStudentInfoSheetDialog
-              form={form}
-              subjects={SUBJECTS}
-              grades={GRADES}
-              genders={GENDERS}
-              formFieldMap={{
-                schoolProgress: "schoolLearningProgress",
-                otherSubjectsAvg: "otherSubjectsAvgScore",
-                tutoringHistory: "previousTutoringTypes",
-              }}
-            />
+        <div className="flex gap-2">
             <StudentSelector onSelect={handleStudentSelect} />
         </div>
       </div>
@@ -439,7 +426,8 @@ function CreateRegularCourseForm() {
                                 <div className="space-y-0.5">
                                   <FormLabel className="cursor-pointer">需要代充鼎伴学费用</FormLabel>
                                   <FormDescription>
-                                    默认选中。取消勾选后，将从应付金额中扣减 20 元/课时，且校区信息必填。
+                                    课程默认单价已包含代充鼎伴学费用：20元/课时（代收费用，一经支付，此费用即支付给鼎伴学，交付中心不负责退款，如需退款，请自行联系鼎伴学）。
+                                    如您已有鼎伴学G账号，则您可取消本选项，直接使用该G账号课时上课（注意：请确保该G账号课时充足/需自行充值，否则将无法上课）。
                                   </FormDescription>
                                 </div>
                               </FormItem>
@@ -783,7 +771,7 @@ function CreateRegularCourseForm() {
                         <span className="font-medium">¥{totalCost.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between items-center pb-2 border-b">
-                        <span className="text-muted-foreground">扣减鼎伴学费用</span>
+                        <span className="text-muted-foreground">招生老师已缴鼎伴学费用</span>
                         <span className="font-medium">
                             {needsDingbanxueRecharge ? "¥0" : `-¥${dingbanxueDeduction.toLocaleString()}`}
                         </span>
@@ -811,6 +799,8 @@ function CreateRegularCourseForm() {
     </div>
   )
 }
+
+import { StudentSelector } from "@/components/StudentSelector"
 
 export default function CreateRegularCoursePage() {
   return (

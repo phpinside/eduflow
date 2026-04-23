@@ -62,29 +62,9 @@ import {
 import { getLatestUnitPriceByGrade } from "@/lib/course-pricing"
 import type { Order, RefundApplication } from "@/types"
 import { OrderStatus, OrderType, RefundApplicationStatus } from "@/types"
+import { ORDER_STATUS_MAP, ORDER_STATUS_COLOR_MAP } from "@/lib/order-constants"
 
-const STATUS_MAP: Record<OrderStatus, string> = {
-  [OrderStatus.PENDING]: "待接单",
-  [OrderStatus.ASSIGNED]: "已分配",
-  [OrderStatus.IN_PROGRESS]: "进行中",
-  [OrderStatus.COMPLETED]: "已完成",
-  [OrderStatus.CANCELLED]: "已取消",
-  [OrderStatus.CANCEL_REQUESTED]: "取消申请中",
-  [OrderStatus.REFUNDED]: "已退款",
-}
 
-const STATUS_COLOR_MAP: Record<
-  OrderStatus,
-  "default" | "secondary" | "destructive" | "outline"
-> = {
-  [OrderStatus.PENDING]: "secondary",
-  [OrderStatus.ASSIGNED]: "default",
-  [OrderStatus.IN_PROGRESS]: "default",
-  [OrderStatus.COMPLETED]: "outline",
-  [OrderStatus.CANCELLED]: "destructive",
-  [OrderStatus.CANCEL_REQUESTED]: "destructive",
-  [OrderStatus.REFUNDED]: "outline",
-}
 
 const DAY_MAP: Record<string, string> = {
   monday: "周一",
@@ -216,6 +196,66 @@ export default function OrderDetailsPage() {
     toast.success("已撤销申请，课时已解冻")
   }
 
+  // === 新增：模拟支付功能 ===
+  const handleSimulatePayment = () => {
+    if (!order) return
+    
+    const confirmed = confirm(`模拟支付：确认完成订单 ${order.id} 的支付？\n金额：¥${order.price.toLocaleString()}`)
+    if (!confirmed) return
+    
+    const now = new Date()
+    const updatedOrder = {
+      ...order,
+      isPaid: true,
+      status: OrderStatus.PENDING_CS_REVIEW,
+      updatedAt: now
+    }
+    
+    const nextOrders = orders.map(o => o.id === order.id ? updatedOrder : o)
+    saveStoredOrders(nextOrders)
+    setOrders(nextOrders)
+    setOrder(updatedOrder)
+    
+    toast.success('支付成功！订单已进入客服审核流程')
+  }
+
+  // === 新增：提交草稿订单 ===
+  const handleSubmitDraft = () => {
+    if (!order) return
+    
+    const confirmed = confirm('确认提交此草稿订单？提交后将进入待支付状态。')
+    if (!confirmed) return
+    
+    const now = new Date()
+    const updatedOrder = {
+      ...order,
+      status: OrderStatus.PENDING_PAYMENT,
+      isPaid: false,
+      updatedAt: now
+    }
+    
+    const nextOrders = orders.map(o => o.id === order.id ? updatedOrder : o)
+    saveStoredOrders(nextOrders)
+    setOrders(nextOrders)
+    setOrder(updatedOrder)
+    
+    toast.success('订单已提交，等待支付')
+  }
+
+  // === 新增：删除草稿订单 ===
+  const handleDeleteDraft = () => {
+    if (!order) return
+    
+    const confirmed = confirm('确认删除此草稿订单？此操作不可恢复。')
+    if (!confirmed) return
+    
+    const nextOrders = orders.filter(o => o.id !== order.id)
+    saveStoredOrders(nextOrders)
+    
+    toast.success('草稿订单已删除')
+    router.push('/orders')
+  }
+
   if (!order) {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh] space-y-4">
@@ -245,8 +285,8 @@ export default function OrderDetailsPage() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-xl font-bold tracking-tight">订单详情</h1>
-            <Badge variant={STATUS_COLOR_MAP[order.status]}>
-              {STATUS_MAP[order.status]}
+            <Badge variant={ORDER_STATUS_COLOR_MAP[order.status]}>
+              {ORDER_STATUS_MAP[order.status]}
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -255,6 +295,45 @@ export default function OrderDetailsPage() {
         </div>
 
         <div className="flex gap-2 shrink-0">
+          {/* 草稿状态：显示保存、提交、删除按钮 */}
+          {order.status === OrderStatus.DRAFT && (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => toast.info('草稿自动保存功能待实现')}
+              >
+                保存草稿
+              </Button>
+              <Button
+                size="sm"
+                className="bg-green-600 hover:bg-green-700 text-white"
+                onClick={handleSubmitDraft}
+              >
+                提交订单
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={handleDeleteDraft}
+              >
+                删除
+              </Button>
+            </>
+          )}
+          
+          {/* 待支付状态：显示去支付按钮 */}
+          {order.status === OrderStatus.PENDING_PAYMENT && (
+            <Button
+              size="sm"
+              className="bg-green-600 hover:bg-green-700 text-white"
+              onClick={handleSimulatePayment}
+            >
+              <CreditCard className="mr-2 h-4 w-4" />
+              去支付
+            </Button>
+          )}
+          
           {isTrial && order.status === OrderStatus.COMPLETED && (
             <Button
               size="sm"

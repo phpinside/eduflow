@@ -46,26 +46,9 @@ import { getStoredOrders } from "@/lib/storage"
 import type { Order } from "@/types"
 import { OrderStatus, OrderType } from "@/types"
 import { cn } from "@/lib/utils"
+import { ORDER_STATUS_MAP, ORDER_STATUS_COLOR_MAP } from "@/lib/order-constants"
 
-const STATUS_MAP: Record<OrderStatus, string> = {
-  [OrderStatus.PENDING]: "待接单",
-  [OrderStatus.ASSIGNED]: "已分配",
-  [OrderStatus.IN_PROGRESS]: "进行中",
-  [OrderStatus.COMPLETED]: "已完成",
-  [OrderStatus.CANCELLED]: "已取消",
-  [OrderStatus.CANCEL_REQUESTED]: "取消申请中",
-  [OrderStatus.REFUNDED]: "已退款",
-}
 
-const STATUS_COLOR_MAP: Record<OrderStatus, "default" | "secondary" | "destructive" | "outline"> = {
-  [OrderStatus.PENDING]: "secondary",
-  [OrderStatus.ASSIGNED]: "default",
-  [OrderStatus.IN_PROGRESS]: "default",
-  [OrderStatus.COMPLETED]: "outline",
-  [OrderStatus.CANCELLED]: "destructive",
-  [OrderStatus.CANCEL_REQUESTED]: "destructive",
-  [OrderStatus.REFUNDED]: "outline",
-}
 
 // 每页显示数量
 const PAGE_SIZE = 10
@@ -522,7 +505,7 @@ export default function ManagerOrdersPage() {
             <div>
               <label className="text-sm font-medium mb-2 block">订单状态（可多选）</label>
               <div className="flex flex-wrap gap-2">
-                {Object.entries(STATUS_MAP).map(([status, label]) => {
+                {Object.entries(ORDER_STATUS_MAP).map(([status, label]) => {
                   const isSelected = selectedStatuses.includes(status as OrderStatus)
                   return (
                     <div
@@ -587,8 +570,8 @@ export default function ManagerOrdersPage() {
                       <TableCell>{order.studentName}</TableCell>
                       <TableCell>{order.grade} {order.subject}</TableCell>
                       <TableCell>
-                        <Badge variant={STATUS_COLOR_MAP[order.status]}>
-                          {STATUS_MAP[order.status]}
+                        <Badge variant={ORDER_STATUS_COLOR_MAP[order.status]}>
+                          {ORDER_STATUS_MAP[order.status]}
                         </Badge>
                       </TableCell>
                       <TableCell>

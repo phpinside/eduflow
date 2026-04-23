@@ -73,26 +73,10 @@ import {
 } from "@/lib/refund-domain"
 import type { Order, RefundApplication } from "@/types"
 import { OrderStatus, OrderType, RefundApplicationStatus } from "@/types"
+import { FormField } from "@/components/ui/form"
+import { ORDER_STATUS_MAP, ORDER_STATUS_COLOR_MAP } from "@/lib/order-constants"
 
-const STATUS_MAP: Record<OrderStatus, string> = {
-  [OrderStatus.PENDING]: "待接单",
-  [OrderStatus.ASSIGNED]: "已分配",
-  [OrderStatus.IN_PROGRESS]: "进行中",
-  [OrderStatus.COMPLETED]: "已完成",
-  [OrderStatus.CANCELLED]: "已取消",
-  [OrderStatus.CANCEL_REQUESTED]: "取消申请中",
-  [OrderStatus.REFUNDED]: "已退款",
-}
 
-const STATUS_COLOR_MAP: Record<OrderStatus, "default" | "secondary" | "destructive" | "outline"> = {
-  [OrderStatus.PENDING]: "secondary",
-  [OrderStatus.ASSIGNED]: "default",
-  [OrderStatus.IN_PROGRESS]: "default",
-  [OrderStatus.COMPLETED]: "outline",
-  [OrderStatus.CANCELLED]: "destructive",
-  [OrderStatus.CANCEL_REQUESTED]: "destructive",
-  [OrderStatus.REFUNDED]: "outline",
-}
 
 export default function OrdersPage() {
   const router = useRouter()
@@ -124,6 +108,7 @@ export default function OrdersPage() {
   const [refundDialogOpen, setRefundDialogOpen] = React.useState(false)
 
   const [orderTypeFilter, setOrderTypeFilter] = React.useState<string>("ALL")
+  const [statusFilter, setStatusFilter] = React.useState<string>("ALL")
   const [filterStudentName, setFilterStudentName] = React.useState("")
   const [filterStudentGAccount, setFilterStudentGAccount] = React.useState("")
   const [filterParentPhone, setFilterParentPhone] = React.useState("")
@@ -177,6 +162,7 @@ export default function OrdersPage() {
         }) => {
         if (studentId && order.studentId !== studentId) return false
         if (orderTypeFilter !== "ALL" && order.type !== orderTypeFilter) return false
+        if (statusFilter !== "ALL" && order.status !== statusFilter) return false
         if (subjectFilter !== "ALL" && order.subject !== subjectFilter) {
           return false
         }
@@ -233,6 +219,7 @@ export default function OrdersPage() {
     orders,
     studentId,
     orderTypeFilter,
+    statusFilter,
     subjectFilter,
     gradeFilter,
     orderDateRange,
@@ -245,6 +232,7 @@ export default function OrdersPage() {
 
   const resetFilters = () => {
     setOrderTypeFilter("ALL")
+    setStatusFilter("ALL")
     setSubjectFilter("ALL")
     setGradeFilter("ALL")
     setOrderDateRange({ from: undefined, to: undefined })
@@ -453,6 +441,22 @@ export default function OrdersPage() {
                 </Select>
               </div>
               <div className="space-y-2">
+                <Label htmlFor="filter-status">订单状态</Label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger id="filter-status" className="w-full">
+                    <SelectValue placeholder="全部状态" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">全部</SelectItem>
+                    {Object.entries(ORDER_STATUS_MAP).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="filter-subject">科目</Label>
                 <Select value={subjectFilter} onValueChange={setSubjectFilter}>
                   <SelectTrigger id="filter-subject" className="w-full">
@@ -630,7 +634,7 @@ export default function OrdersPage() {
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant={STATUS_COLOR_MAP[order.status]}>{STATUS_MAP[order.status]}</Badge>
+                  <Badge variant={ORDER_STATUS_COLOR_MAP[order.status]}>{ORDER_STATUS_MAP[order.status]}</Badge>
                   {order.refundFreezeActive && (
                     <Badge variant="secondary">课时冻结</Badge>
                   )}
@@ -784,19 +788,11 @@ export default function OrdersPage() {
                 </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                    <Label htmlFor="renew-grade">续费年级（按最新单价）</Label>
-                    <Select value={renewGrade} onValueChange={setRenewGrade}>
-                      <SelectTrigger id="renew-grade">
-                        <SelectValue placeholder="选择年级" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {["四年级","五年级","六年级","初一","初二","初三","高一","高二","高三"].map((g) => (
-                          <SelectItem key={g} value={g}>{g}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                </div>
+            <label>
+                <input type="checkbox" checked />
+                课程默认单价已包含代充鼎伴学费用：20元/课时（代收费用，一经支付，此费用即支付给鼎伴学，交付中心不负责退款，如需退款，请自行联系鼎伴学）。
+                如您已有鼎伴学G账号，则您可取消本选项，直接使用该G账号课时上课（注意：请确保该G账号课时充足/需自行充值，否则将无法上课）。
+            </label>
                 <div className="grid gap-2">
                     <Label htmlFor="hours">续费课时数</Label>
                     <Input 
@@ -812,6 +808,8 @@ export default function OrdersPage() {
                     <span className="font-bold text-lg">
                         ¥{(getLatestUnitPriceByGrade(renewGrade) * renewHours).toLocaleString()}
                     </span>
+                    <label>招生老师已缴鼎伴学费用: 0  </label>
+                    <label>实际应支付费用：¥{(getLatestUnitPriceByGrade(renewGrade) * renewHours).toLocaleString()}</label>
                 </div>
             </div>
             <DialogFooter>

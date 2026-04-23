@@ -41,13 +41,21 @@ export enum OrderType {
 }
 
 export enum OrderStatus {
-  PENDING = 'PENDING',       // 待接单
-  ASSIGNED = 'ASSIGNED',     // 已分配
-  IN_PROGRESS = 'IN_PROGRESS', // 进行中
-  COMPLETED = 'COMPLETED',   // 已完成
-  CANCELLED = 'CANCELLED',   // 已取消
-  CANCEL_REQUESTED = 'CANCEL_REQUESTED', // 取消申请中（历史兼容，新退费请用 RefundApplication）
-  REFUNDED = 'REFUNDED'      // 已退款（二审通过并完成原路退回）
+  // 新增状态（仅适用于正课订单 + 在线支付试课订单）
+  DRAFT = 'DRAFT',                           // 草稿订单
+  PENDING_PAYMENT = 'PENDING_PAYMENT',       // 待支付
+  PENDING_CS_REVIEW = 'PENDING_CS_REVIEW',   // 待客服专员审核
+  PENDING_FINANCE_REVIEW = 'PENDING_FINANCE_REVIEW', // 待财务审核
+  SCHEDULING = 'SCHEDULING',                 // 排单中
+  
+  // 原有状态
+  PENDING = 'PENDING',                       // 待接单
+  ASSIGNED = 'ASSIGNED',                     // 已分配
+  IN_PROGRESS = 'IN_PROGRESS',               // 进行中
+  COMPLETED = 'COMPLETED',                   // 已完成
+  CANCELLED = 'CANCELLED',                   // 已取消
+  CANCEL_REQUESTED = 'CANCEL_REQUESTED',     // 取消申请中（历史兼容，新退费请用 RefundApplication）
+  REFUNDED = 'REFUNDED'                      // 已退款（二审通过并完成原路退回）
 }
 
 export interface Order {
@@ -99,6 +107,26 @@ export interface Order {
 
   /** 是否需要代充鼎伴学费用（正课下单场景） */
   needsDingbanxueRecharge?: boolean
+  
+  // === 新增字段：订单审核与支付流程 ===
+  
+  /** 支付凭证图片（Base64数组，存储在localStorage） */
+  paymentVouchers?: string[]
+  
+  /** 客服审核批注 */
+  csReviewNote?: string
+  
+  /** 财务审核批注/驳回原因 */
+  financeReviewNote?: string
+  
+  /** 排单中开始时间（用于计算3小时倒计时） */
+  schedulingStartTime?: Date
+  
+  /** 订单是否已支付（用于判断从 DRAFT 提交后的流向） */
+  isPaid?: boolean
+  
+  /** 试课订单支付方式：ONLINE(在线) / OFFLINE(线下)，默认 OFFLINE */
+  trialPaymentMethod?: 'ONLINE' | 'OFFLINE'
 }
 
 /** 退费申请类型：试课 / 正课(含续课) / 仅转正红包 */

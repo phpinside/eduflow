@@ -1691,4 +1691,487 @@ export const mockOrders: Order[] = [
       { id: 'tx-rfd-rp-h-2', type: 'REWARD', amount: 199, hours: 0, createdAt: new Date('2025-08-06T10:00:00') },
     ],
   },
+  
+  // === 新增：新状态示例订单 ===
+  
+  // 草稿订单示例
+  {
+    id: 'ord-draft-1',
+    type: OrderType.REGULAR,
+    status: OrderStatus.DRAFT,
+    studentId: 'stu-1',
+    salesPersonId: 'user-sales-1',
+    subject: '数学',
+    grade: '四年级',
+    totalHours: 20,
+    remainingHours: 20,
+    price: 4000,
+    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+    updatedAt: new Date(Date.now() - 30 * 60 * 1000),
+    lastExamScore: "85",
+    examMaxScore: "100",
+    textbookVersion: "人教版",
+    remarks: "草稿订单示例，待补充完整信息"
+  },
+  
+  // 待支付订单示例
+  {
+    id: 'ord-pending-pay-1',
+    type: OrderType.REGULAR,
+    status: OrderStatus.PENDING_PAYMENT,
+    studentId: 'stu-2',
+    salesPersonId: 'user-sales-1',
+    subject: '英语',
+    grade: '初二',
+    totalHours: 30,
+    remainingHours: 30,
+    price: 6000,
+    isPaid: false,
+    createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
+    updatedAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
+    lastExamScore: "90",
+    examMaxScore: "120",
+    textbookVersion: "仁爱版",
+    remarks: "已提交订单，等待家长支付"
+  },
+  
+  // 待客服审核订单示例
+  {
+    id: 'ord-cs-review-1',
+    type: OrderType.REGULAR,
+    status: OrderStatus.PENDING_CS_REVIEW,
+    studentId: 'stu-3',
+    salesPersonId: 'user-sales-2',
+    subject: '物理',
+    grade: '高一',
+    totalHours: 40,
+    remainingHours: 40,
+    price: 8000,
+    isPaid: true,
+    paymentVouchers: [], // 运营人员将上传支付凭证
+    createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
+    updatedAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
+    lastExamScore: "75",
+    examMaxScore: "100",
+    textbookVersion: "人教版",
+    remarks: "已完成支付，等待客服审核"
+  },
+  
+  // 待财务审核订单示例
+  {
+    id: 'ord-finance-review-1',
+    type: OrderType.REGULAR,
+    status: OrderStatus.PENDING_FINANCE_REVIEW,
+    studentId: 'stu-4',
+    salesPersonId: 'user-sales-3',
+    subject: '化学',
+    grade: '高二',
+    totalHours: 50,
+    remainingHours: 50,
+    price: 10000,
+    isPaid: true,
+    paymentVouchers: ['data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='], // 模拟图片
+    csReviewNote: "支付凭证已核实，金额无误",
+    createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000),
+    updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+    lastExamScore: "80",
+    examMaxScore: "100",
+    textbookVersion: "苏教版",
+    remarks: "客服已通过，等待财务审核"
+  },
+  
+  // 排单中订单示例
+  {
+    id: 'ord-scheduling-1',
+    type: OrderType.REGULAR,
+    status: OrderStatus.SCHEDULING,
+    studentId: 'stu-5',
+    salesPersonId: 'user-sales-1',
+    subject: '语文',
+    grade: '五年级',
+    totalHours: 20,
+    remainingHours: 20,
+    price: 4000,
+    isPaid: true,
+    schedulingStartTime: new Date(Date.now() - 1 * 60 * 60 * 1000), // 1小时前开始排单
+    createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
+    updatedAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
+    lastExamScore: "88",
+    examMaxScore: "100",
+    textbookVersion: "部编版",
+    remarks: "已进入排单流程，等待分配教练"
+  },
+  
+  // 在线支付试课订单示例
+  {
+    id: 'ord-trial-online-1',
+    type: OrderType.TRIAL,
+    status: OrderStatus.PENDING_PAYMENT,
+    studentId: 'stu-1',
+    salesPersonId: 'user-sales-2',
+    managerId: 'user-manager-1',
+    subject: '数学',
+    grade: '四年级',
+    totalHours: 1,
+    remainingHours: 1,
+    price: 99,
+    trialPaymentMethod: 'ONLINE',
+    isPaid: false,
+    createdAt: new Date(Date.now() - 30 * 60 * 1000),
+    updatedAt: new Date(Date.now() - 30 * 60 * 1000),
+    scheduledAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+    remarks: "在线支付试课订单"
+  },
+  
+  // 线下支付试课订单示例（直接变为待接单）
+  {
+    id: 'ord-trial-offline-1',
+    type: OrderType.TRIAL,
+    status: OrderStatus.PENDING,
+    studentId: 'stu-2',
+    salesPersonId: 'user-sales-2',
+    managerId: 'user-manager-1',
+    subject: '英语',
+    grade: '初二',
+    totalHours: 1,
+    remainingHours: 1,
+    price: 0,
+    trialPaymentMethod: 'OFFLINE',
+    isPaid: false,
+    applicantIds: ['user-tutor-1', 'user-tutor-2'],
+    createdAt: new Date(Date.now() - 20 * 60 * 1000),
+    updatedAt: new Date(Date.now() - 20 * 60 * 1000),
+    scheduledAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+    remarks: "线下支付试课订单，直接进入待接单"
+  },
+  
+  // === 更多测试数据：完整状态流转示例 ===
+  
+  // 草稿订单 - 数学正课（刚创建）
+  {
+    id: 'ord-draft-math-1',
+    type: OrderType.REGULAR,
+    status: OrderStatus.DRAFT,
+    studentId: 'stu-1',
+    salesPersonId: 'user-sales-1',
+    subject: '数学',
+    grade: '四年级',
+    totalHours: 24,
+    remainingHours: 24,
+    price: 4800,
+    createdAt: new Date(Date.now() - 15 * 60 * 1000), // 15分钟前
+    updatedAt: new Date(Date.now() - 15 * 60 * 1000),
+    lastExamScore: "92",
+    examMaxScore: "100",
+    textbookVersion: "北师大版",
+    campusName: "北京朝阳校区",
+    campusAccount: "cy001",
+    remarks: "家长咨询中，等待确认课时和价格"
+  },
+  
+  // 草稿订单 - 英语正课（信息较完整）
+  {
+    id: 'ord-draft-eng-1',
+    type: OrderType.REGULAR,
+    status: OrderStatus.DRAFT,
+    studentId: 'stu-2',
+    salesPersonId: 'user-sales-2',
+    subject: '英语',
+    grade: '初二',
+    totalHours: 36,
+    remainingHours: 36,
+    price: 7200,
+    createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3小时前
+    updatedAt: new Date(Date.now() - 10 * 60 * 1000), // 10分钟前更新
+    lastExamScore: "88",
+    examMaxScore: "120",
+    textbookVersion: "外研版",
+    schoolProgress: "Unit 5",
+    otherSubjectsAvgScore: "85",
+    previousTutoringTypes: "线下一对一",
+    campusName: "上海浦东校区",
+    campusAccount: "pd002",
+    studentAccount: "student_eng_001",
+    remarks: "家长已确认，等待提交订单"
+  },
+  
+  // 待支付订单 - 物理正课（刚提交）
+  {
+    id: 'ord-pay-physics-1',
+    type: OrderType.REGULAR,
+    status: OrderStatus.PENDING_PAYMENT,
+    studentId: 'stu-3',
+    salesPersonId: 'user-sales-3',
+    subject: '物理',
+    grade: '五年级',
+    totalHours: 40,
+    remainingHours: 40,
+    price: 8000,
+    isPaid: false,
+    createdAt: new Date(Date.now() - 20 * 60 * 1000), // 20分钟前
+    updatedAt: new Date(Date.now() - 20 * 60 * 1000),
+    lastExamScore: "78",
+    examMaxScore: "100",
+    textbookVersion: "人教版",
+    schoolProgress: "力学章节",
+    campusName: "广州天河校区",
+    campusAccount: "th003",
+    studentAccount: "student_phy_001",
+    remarks: "订单已提交，发送支付链接给家长"
+  },
+  
+  // 待支付订单 - 化学正课（即将超时）
+  {
+    id: 'ord-pay-chem-1',
+    type: OrderType.REGULAR,
+    status: OrderStatus.PENDING_PAYMENT,
+    studentId: 'stu-4',
+    salesPersonId: 'user-sales-1',
+    subject: '化学',
+    grade: '高一',
+    totalHours: 30,
+    remainingHours: 30,
+    price: 6000,
+    isPaid: false,
+    createdAt: new Date(Date.now() - 23 * 60 * 60 * 1000), // 23小时前
+    updatedAt: new Date(Date.now() - 23 * 60 * 60 * 1000),
+    lastExamScore: "82",
+    examMaxScore: "100",
+    textbookVersion: "苏教版",
+    campusName: "深圳南山校区",
+    campusAccount: "ns004",
+    studentAccount: "student_chem_001",
+    remarks: "家长说今天内会支付"
+  },
+  
+  // 待客服审核 - 语文正课（有凭证）
+  {
+    id: 'ord-cs-chinese-1',
+    type: OrderType.REGULAR,
+    status: OrderStatus.PENDING_CS_REVIEW,
+    studentId: 'stu-5',
+    salesPersonId: 'user-sales-2',
+    subject: '数学',
+    grade: '三年级',
+    totalHours: 20,
+    remainingHours: 20,
+    price: 4000,
+    isPaid: true,
+    paymentVouchers: [
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+    ],
+    createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4小时前
+    updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2小时前支付
+    lastExamScore: "90",
+    examMaxScore: "100",
+    textbookVersion: "部编版",
+    campusName: "杭州西湖校区",
+    campusAccount: "xh005",
+    studentAccount: "student_chi_001",
+    remarks: "家长已上传支付截图，等待客服核实"
+  },
+  
+  // 待客服审核 - 数学正课（多张凭证）
+  {
+    id: 'ord-cs-math-2',
+    type: OrderType.REGULAR,
+    status: OrderStatus.PENDING_CS_REVIEW,
+    studentId: 'stu-1',
+    salesPersonId: 'user-sales-3',
+    subject: '数学',
+    grade: '四年级',
+    totalHours: 48,
+    remainingHours: 48,
+    price: 9600,
+    isPaid: true,
+    paymentVouchers: [
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+    ],
+    createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6小时前
+    updatedAt: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5小时前支付
+    lastExamScore: "95",
+    examMaxScore: "100",
+    textbookVersion: "人教版",
+    campusName: "成都武侯校区",
+    campusAccount: "wh006",
+    studentAccount: "student_math_002",
+    remarks: "大额订单，需要仔细核对支付凭证"
+  },
+  
+  // 待财务审核 - 英语正课（客服已通过）
+  {
+    id: 'ord-fin-eng-1',
+    type: OrderType.REGULAR,
+    status: OrderStatus.PENDING_FINANCE_REVIEW,
+    studentId: 'stu-2',
+    salesPersonId: 'user-sales-1',
+    subject: '英语',
+    grade: '初二',
+    totalHours: 60,
+    remainingHours: 60,
+    price: 12000,
+    isPaid: true,
+    paymentVouchers: [
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+    ],
+    csReviewNote: "支付凭证清晰，金额12000元已核实，银行转账记录匹配",
+    createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000), // 8小时前
+    updatedAt: new Date(Date.now() - 1 * 60 * 60 * 1000), // 1小时前客服通过
+    lastExamScore: "110",
+    examMaxScore: "150",
+    textbookVersion: "外研版",
+    campusName: "南京鼓楼校区",
+    campusAccount: "gl007",
+    studentAccount: "student_eng_002",
+    remarks: "高考冲刺班，家长急切希望尽快排课"
+  },
+  
+  // 待财务审核 - 物理正课（需要驳回重审）
+  {
+    id: 'ord-fin-phys-1',
+    type: OrderType.REGULAR,
+    status: OrderStatus.PENDING_FINANCE_REVIEW,
+    studentId: 'stu-4',
+    salesPersonId: 'user-sales-2',
+    subject: '物理',
+    grade: '高一',
+    totalHours: 36,
+    remainingHours: 36,
+    price: 7200,
+    isPaid: true,
+    paymentVouchers: [
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+    ],
+    csReviewNote: "凭证模糊，建议重新上传清晰图片",
+    createdAt: new Date(Date.now() - 10 * 60 * 60 * 1000), // 10小时前
+    updatedAt: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3小时前客服通过
+    lastExamScore: "72",
+    examMaxScore: "100",
+    textbookVersion: "人教版",
+    campusName: "武汉江汉校区",
+    campusAccount: "jh008",
+    studentAccount: "student_phy_002",
+    remarks: "财务可能需要驳回要求重新上传凭证"
+  },
+  
+  // 排单中 - 数学正课（刚开始排单）
+  {
+    id: 'ord-sched-math-1',
+    type: OrderType.REGULAR,
+    status: OrderStatus.SCHEDULING,
+    studentId: 'stu-3',
+    salesPersonId: 'user-sales-3',
+    subject: '物理',
+    grade: '五年级',
+    totalHours: 24,
+    remainingHours: 24,
+    price: 4800,
+    isPaid: true,
+    schedulingStartTime: new Date(Date.now() - 30 * 60 * 1000), // 30分钟前开始
+    createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000), // 12小时前
+    updatedAt: new Date(Date.now() - 30 * 60 * 1000),
+    lastExamScore: "88",
+    examMaxScore: "100",
+    textbookVersion: "北师大版",
+    campusName: "西安雁塔校区",
+    campusAccount: "yt009",
+    studentAccount: "student_math_003",
+    remarks: "财务已通过，学管正在匹配合适的教练"
+  },
+  
+  // 排单中 - 英语正课（即将超时）
+  {
+    id: 'ord-sched-eng-2',
+    type: OrderType.REGULAR,
+    status: OrderStatus.SCHEDULING,
+    studentId: 'stu-5',
+    salesPersonId: 'user-sales-1',
+    subject: '数学',
+    grade: '三年级',
+    totalHours: 30,
+    remainingHours: 30,
+    price: 6000,
+    isPaid: true,
+    schedulingStartTime: new Date(Date.now() - 2.5 * 60 * 60 * 1000), // 2.5小时前开始
+    createdAt: new Date(Date.now() - 15 * 60 * 60 * 1000), // 15小时前
+    updatedAt: new Date(Date.now() - 2.5 * 60 * 60 * 1000),
+    lastExamScore: "92",
+    examMaxScore: "120",
+    textbookVersion: "仁爱版",
+    campusName: "重庆渝北校区",
+    campusAccount: "yb010",
+    studentAccount: "student_eng_003",
+    remarks: "排单时间较长，可能即将超时自动回到待接单"
+  },
+  
+  // 排单中 - 语文正课（已超时，应自动变回PENDING）
+  {
+    id: 'ord-sched-chi-timeout',
+    type: OrderType.REGULAR,
+    status: OrderStatus.SCHEDULING,
+    studentId: 'stu-1',
+    salesPersonId: 'user-sales-2',
+    subject: '数学',
+    grade: '四年级',
+    totalHours: 20,
+    remainingHours: 20,
+    price: 4000,
+    isPaid: true,
+    schedulingStartTime: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4小时前开始（已超时）
+    createdAt: new Date(Date.now() - 18 * 60 * 60 * 1000), // 18小时前
+    updatedAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
+    lastExamScore: "85",
+    examMaxScore: "100",
+    textbookVersion: "部编版",
+    campusName: "天津和平校区",
+    campusAccount: "hp011",
+    studentAccount: "student_chi_002",
+    remarks: "此订单已超过3小时排单时限，页面加载时应自动变回待接单状态"
+  },
+  
+  // 在线支付试课 - 待支付
+  {
+    id: 'ord-trial-online-2',
+    type: OrderType.TRIAL,
+    status: OrderStatus.PENDING_PAYMENT,
+    studentId: 'stu-2',
+    salesPersonId: 'user-sales-3',
+    managerId: 'user-manager-1',
+    subject: '英语',
+    grade: '初二',
+    totalHours: 1,
+    remainingHours: 1,
+    price: 99,
+    trialPaymentMethod: 'ONLINE',
+    isPaid: false,
+    createdAt: new Date(Date.now() - 10 * 60 * 1000), // 10分钟前
+    updatedAt: new Date(Date.now() - 10 * 60 * 1000),
+    scheduledAt: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000), // 明天
+    remarks: "在线支付试课，支付后进入客服审核"
+  },
+  
+  // 在线支付试课 - 待客服审核
+  {
+    id: 'ord-trial-online-cs',
+    type: OrderType.TRIAL,
+    status: OrderStatus.PENDING_CS_REVIEW,
+    studentId: 'stu-3',
+    salesPersonId: 'user-sales-1',
+    managerId: 'user-manager-2',
+    subject: '物理',
+    grade: '五年级',
+    totalHours: 1,
+    remainingHours: 1,
+    price: 99,
+    trialPaymentMethod: 'ONLINE',
+    isPaid: true,
+    paymentVouchers: [
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+    ],
+    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2小时前
+    updatedAt: new Date(Date.now() - 1 * 60 * 60 * 1000), // 1小时前支付
+    scheduledAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 后天
+    remarks: "试课订单已完成支付，等待客服快速审核"
+  },
 ]

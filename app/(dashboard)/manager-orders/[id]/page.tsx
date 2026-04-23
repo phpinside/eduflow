@@ -19,6 +19,7 @@ import {
   Search,
   UserPlus,
   X,
+  Check,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -42,6 +43,9 @@ import { mockUsers } from "@/lib/mock-data/users"
 import { getStoredOrders, saveStoredOrders } from "@/lib/storage"
 import type { Order } from "@/types"
 import { OrderStatus, OrderType, Role } from "@/types"
+import { ORDER_STATUS_MAP, ORDER_STATUS_COLOR_MAP, SCHEDULING_TIMEOUT_HOURS } from "@/lib/order-constants"
+import { SchedulingCountdown, VoucherUpload } from "@/components/order/order-review-components"
+import { Upload } from "lucide-react"
 
 function loadOrderFromStorage(orderId: string): Order | undefined {
   return getStoredOrders().find((o) => o.id === orderId)
@@ -59,15 +63,6 @@ function deleteOrderFromStorage(orderId: string) {
   saveStoredOrders(getStoredOrders().filter((o) => o.id !== orderId))
 }
 
-const STATUS_MAP: Record<OrderStatus, string> = {
-  [OrderStatus.PENDING]: "待接单",
-  [OrderStatus.ASSIGNED]: "已分配",
-  [OrderStatus.IN_PROGRESS]: "进行中",
-  [OrderStatus.COMPLETED]: "已完成",
-  [OrderStatus.CANCELLED]: "已取消",
-  [OrderStatus.CANCEL_REQUESTED]: "取消申请中",
-  [OrderStatus.REFUNDED]: "已退款",
-}
 
 const DAY_MAP: Record<string, string> = {
   monday: "周一",
@@ -291,6 +286,12 @@ export default function ManagerOrderDetailsPage() {
   const [teacherSearchQuery, setTeacherSearchQuery] = React.useState("")
   const [selectedTeacherForAdd, setSelectedTeacherForAdd] = React.useState<string | null>(null)
 
+  // === 新增：审核相关状态 ===
+  const [isCsReviewOpen, setIsCsReviewOpen] = React.useState(false)
+  const [isFinanceReviewOpen, setIsFinanceReviewOpen] = React.useState(false)
+  const [reviewNote, setReviewNote] = React.useState("")
+  const [vouchers, setVouchers] = React.useState<string[]>([])
+
   const student = React.useMemo(
     () => (order ? mockStudents.find((s) => s.id === order.studentId) : null),
     [order]
@@ -505,6 +506,80 @@ export default function ManagerOrderDetailsPage() {
     router.push("/manager-orders")
   }
 
+  // === 新增：客服审核处理函数 ===
+  const handleCsApprove = () => {
+    if (!order) return
+    const updated = {
+      ...order,
+      status: OrderStatus.PENDING_FINANCE_REVIEW,
+      csReviewNote: reviewNote || "客服审核通过",
+      paymentVouchers: vouchers.length > 0 ? vouchers : order.paymentVouchers,
+      updatedAt: new Date()
+    }
+    persistOrder(updated)
+    setOrder(updated)
+    setIsCsReviewOpen(false)
+    setReviewNote("")
+    setVouchers([])
+    toast.success('客服审核通过，已转入财务审核')
+  }
+
+  const handleCsReject = () => {
+    if (!reviewNote.trim()) {
+      toast.error('请填写驳回原因')
+      return
+    }
+    if (!order) return
+    const updated = {
+      ...order,
+      status: OrderStatus.PENDING_PAYMENT,
+      financeReviewNote: reviewNote,
+      updatedAt: new Date()
+    }
+    persistOrder(updated)
+    setOrder(updated)
+    setIsCsReviewOpen(false)
+    setReviewNote("")
+    setVouchers([])
+    toast.success('已驳回，返回待支付状态')
+  }
+
+  // === 新增：财务审核处理函数 ===
+  const handleFinanceApprove = () => {
+    if (!order) return
+    const updated = {
+      ...order,
+      status: OrderStatus.SCHEDULING,
+      financeReviewNote: reviewNote || "财务审核通过",
+      schedulingStartTime: new Date(),
+      updatedAt: new Date()
+    }
+    persistOrder(updated)
+    setOrder(updated)
+    setIsFinanceReviewOpen(false)
+    setReviewNote("")
+    toast.success('财务审核通过，已进入排单流程')
+  }
+
+  const handleFinanceReject = () => {
+    if (!reviewNote.trim()) {
+      toast.error('请填写驳回原因')
+      return
+    }
+    if (!order) return
+    const updated = {
+      ...order,
+      status: OrderStatus.PENDING_CS_REVIEW,
+      financeReviewNote: reviewNote,
+      updatedAt: new Date()
+    }
+    persistOrder(updated)
+    setOrder(updated)
+    setIsFinanceReviewOpen(false)
+    setReviewNote("")
+    toast.success('已驳回到客服审核')
+  }
+
   return (
     <div className="space-y-6 container mx-auto pb-10 max-w-5xl">
       {/* Header */}
@@ -515,12 +590,50 @@ export default function ManagerOrderDetailsPage() {
         <div className="flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-2xl font-bold tracking-tight">订单管理详情</h1>
-            <Badge variant="outline">{STATUS_MAP[order.status]}</Badge>
+            <Badge variant="outline">{ORDER_STATUS_MAP[order.status]}</Badge>
           </div>
           <p className="text-sm text-muted-foreground">订单号：{order.id}</p>
         </div>
 
         <div className="flex gap-3 shrink-0">
+          {/* 客服审核按钮 */}
+          {order.status === OrderStatus.PENDING_CS_REVIEW && (
+            <Button
+              size="lg"
+              onClick={() => {
+                setReviewNote(order.csReviewNote || "")
+                setVouchers(order.paymentVouchers || [])
+                setIsCsReviewOpen(true)
+              }}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              <Check className="mr-2 h-5 w-5" />
+              客服审核审核
+            </Button>
+          )}
+
+          {/* 财务审核按钮 */}
+          {order.status === OrderStatus.PENDING_FINANCE_REVIEW && (
+            <Button
+              size="lg"
+              onClick={() => {
+                setReviewNote(order.financeReviewNote || "")
+                setIsFinanceReviewOpen(true)
+              }}
+              className="bg-indigo-600 hover:bg-indigo-700"
+            >
+              <Check className="mr-2 h-5 w-5" />
+              财务专员审核
+            </Button>
+          )}
+
+          {/* 排单倒计时 */}
+          {order.status === OrderStatus.SCHEDULING && order.schedulingStartTime && (
+            <div className="flex items-center">
+              <SchedulingCountdown startTime={order.schedulingStartTime} />
+            </div>
+          )}
+
           <Button
             size="lg"
             onClick={handleOpenAnnouncementDialog}
@@ -1502,6 +1615,135 @@ export default function ManagerOrderDetailsPage() {
               size="lg"
             >
               复制到剪贴板
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* === 新增：客服审核对话框 === */}
+      <Dialog open={isCsReviewOpen} onOpenChange={setIsCsReviewOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>客服专员审核</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* 订单信息摘要 */}
+            <div className="bg-muted p-3 rounded-lg">
+              <p className="text-sm font-medium">订单信息</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                订单号：{order?.id} | {order?.subject} | {order?.grade} | ¥{order?.price.toLocaleString()}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                学生：{student?.name} | 家长：{student?.parentPhone}
+              </p>
+            </div>
+
+            {/* 支付凭证上传 */}
+            <div>
+              <h4 className="text-sm font-medium mb-2">支付凭证</h4>
+              <VoucherUpload
+                vouchers={vouchers}
+                onUpload={(base64) => setVouchers(prev => [...prev, base64])}
+                onRemove={(index) => setVouchers(prev => prev.filter((_, i) => i !== index))}
+              />
+            </div>
+
+            {/* 审核批注 */}
+            <div>
+              <h4 className="text-sm font-medium mb-2">审核批注（选填）</h4>
+              <Textarea
+                placeholder="请输入审核意见，如：支付凭证已核实，金额无误..."
+                value={reviewNote}
+                onChange={(e) => setReviewNote(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setIsCsReviewOpen(false)}>
+              取消
+            </Button>
+            <Button variant="destructive" onClick={handleCsReject}>
+              <X className="mr-2 h-4 w-4" />
+              驳回
+            </Button>
+            <Button onClick={handleCsApprove}>
+              <Check className="mr-2 h-4 w-4" />
+              通过
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* === 新增：财务审核对话框 === */}
+      <Dialog open={isFinanceReviewOpen} onOpenChange={setIsFinanceReviewOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>财务审核</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* 订单信息摘要 */}
+            <div className="bg-muted p-3 rounded-lg">
+              <p className="text-sm font-medium">订单信息</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                订单号：{order?.id} | {order?.subject} | {order?.grade} | ¥{order?.price.toLocaleString()}
+              </p>
+            </div>
+
+            {/* 支付凭证展示 */}
+            {order?.paymentVouchers && order.paymentVouchers.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium mb-2">支付凭证</h4>
+                <div className="flex flex-wrap gap-2">
+                  {order.paymentVouchers.map((voucher, index) => (
+                    <img
+                      key={index}
+                      src={voucher}
+                      alt={`凭证${index + 1}`}
+                      className="w-20 h-20 object-cover rounded border cursor-pointer hover:opacity-80"
+                      onClick={() => window.open(voucher, '_blank')}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 客服审核意见 */}
+            {order?.csReviewNote && (
+              <div>
+                <h4 className="text-sm font-medium mb-1">客服审核意见</h4>
+                <p className="text-sm text-muted-foreground bg-muted p-2 rounded">
+                  {order.csReviewNote}
+                </p>
+              </div>
+            )}
+
+            {/* 财务审核意见 */}
+            <div>
+              <h4 className="text-sm font-medium mb-2">财务审核意见（必填）</h4>
+              <Textarea
+                placeholder={reviewNote ? "修改审核意见..." : "请输入审核意见，如：金额已核实，可以排课..."}
+                value={reviewNote}
+                onChange={(e) => setReviewNote(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setIsFinanceReviewOpen(false)}>
+              取消
+            </Button>
+            <Button variant="destructive" onClick={handleFinanceReject}>
+              <X className="mr-2 h-4 w-4" />
+              驳回
+            </Button>
+            <Button onClick={handleFinanceApprove}>
+              <Check className="mr-2 h-4 w-4" />
+              通过
             </Button>
           </DialogFooter>
         </DialogContent>

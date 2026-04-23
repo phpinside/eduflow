@@ -24,28 +24,10 @@ import { Separator } from "@/components/ui/separator"
 import { mockOrders } from "@/lib/mock-data/orders"
 import { mockStudents } from "@/lib/mock-data/students"
 import { OrderStatus, OrderType } from "@/types"
+import { ORDER_STATUS_MAP, ORDER_STATUS_COLOR_MAP } from "@/lib/order-constants"
 
 const ORDER_TIMEOUT_MINUTES = 30
 
-const STATUS_MAP: Record<OrderStatus, string> = {
-  [OrderStatus.PENDING]: "待接单",
-  [OrderStatus.ASSIGNED]: "已分配",
-  [OrderStatus.IN_PROGRESS]: "进行中",
-  [OrderStatus.COMPLETED]: "已完成",
-  [OrderStatus.CANCELLED]: "已取消",
-  [OrderStatus.CANCEL_REQUESTED]: "取消申请中",
-  [OrderStatus.REFUNDED]: "已退款",
-}
-
-const STATUS_COLOR_MAP: Record<OrderStatus, "default" | "secondary" | "destructive" | "outline"> = {
-  [OrderStatus.PENDING]: "secondary",
-  [OrderStatus.ASSIGNED]: "default",
-  [OrderStatus.IN_PROGRESS]: "default",
-  [OrderStatus.COMPLETED]: "outline",
-  [OrderStatus.CANCELLED]: "destructive",
-  [OrderStatus.CANCEL_REQUESTED]: "destructive",
-  [OrderStatus.REFUNDED]: "outline",
-}
 
 function Field({
   label,
@@ -185,8 +167,8 @@ export default function MarketOrderDetailsPage() {
             <h1 className="text-xl font-bold tracking-tight">
               {isTrial ? "试听课" : "正式课"}订单
             </h1>
-            <Badge variant={STATUS_COLOR_MAP[order.status]}>
-              {STATUS_MAP[order.status]}
+            <Badge variant={ORDER_STATUS_COLOR_MAP[order.status]}>
+              {ORDER_STATUS_MAP[order.status]}
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">订单号：{order.id}</p>
