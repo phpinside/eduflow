@@ -10,7 +10,8 @@ import {
   Calendar as CalendarIcon,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Check
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -31,6 +32,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
 import {
   Table,
   TableBody,
@@ -86,6 +95,11 @@ export default function ManagerOrdersPage() {
   const [selectedManagers, setSelectedManagers] = React.useState<string[]>([])
   const [selectedCsNames, setSelectedCsNames] = React.useState<string[]>([])
   const [selectedPendingReviewers, setSelectedPendingReviewers] = React.useState<string[]>([])
+
+  // 多选下拉框状态
+  const [isBranchOpen, setIsBranchOpen] = React.useState(false)
+  const [isManagerOpen, setIsManagerOpen] = React.useState(false)
+  const [isCsOpen, setIsCsOpen] = React.useState(false)
 
   // 分页状态
   const [currentPage, setCurrentPage] = React.useState(1)
@@ -195,11 +209,24 @@ export default function ManagerOrdersPage() {
 
   // 筛选后的订单
   const filteredOrders = React.useMemo(() => {
+    const now = new Date()
     return orders.map((order) => {
       const student = mockStudents.find(s => s.id === order.studentId)
       const tutor = mockUsers.find(u => u.id === order.assignedTeacherId)
       const salesPerson = mockUsers.find(u => u.id === order.salesPersonId)
       const branchCompany = branchCompanies.find(b => b.id === salesPerson?.branchCompanyId)
+      
+      // 计算最近的预约时间
+      let nearestScheduledTime: Date | null = null
+      if (order.scheduledAt) {
+        nearestScheduledTime = new Date(order.scheduledAt)
+      } else if (order.firstLessonTime) {
+        // 尝试解析 firstLessonTime（自由文本格式）
+        const parsed = new Date(order.firstLessonTime)
+        if (!isNaN(parsed.getTime())) {
+          nearestScheduledTime = parsed
+        }
+      }
       
       return {
         ...order,
@@ -210,6 +237,7 @@ export default function ManagerOrdersPage() {
         _branchName: branchCompany?.name || "—",
         _branchManager: branchCompany?.managerName || "—",
         _branchCs: branchCompany?.csName || "—",
+        _nearestScheduledTime: nearestScheduledTime,
       }
     }).filter(order => {
       // 订单号筛选
@@ -306,6 +334,11 @@ export default function ManagerOrdersPage() {
       }
 
       return true
+    }).sort((a, b) => {
+      // 按距离当前时间最近的预约时间排序（由近及远）
+      const timeA = a._nearestScheduledTime?.getTime() || Number.MAX_SAFE_INTEGER
+      const timeB = b._nearestScheduledTime?.getTime() || Number.MAX_SAFE_INTEGER
+      return timeA - timeB
     })
   }, [
     orders,
@@ -656,129 +689,149 @@ export default function ManagerOrdersPage() {
               </div>
             </div>
             
-            {/* 第六行：分公司（多选） */}
-            {filterOptions.branches.length > 0 && (
-              <div>
-                <label className="text-sm font-medium mb-2 block">分公司（可多选）</label>
-                <div className="flex flex-wrap gap-2">
-                  {filterOptions.branches.map((branch) => {
-                    const isSelected = selectedBranches.includes(branch)
-                    return (
-                      <div
-                        key={branch}
-                        onClick={() => toggleBranch(branch)}
-                        className={cn(
-                          "flex items-center gap-2 px-3 py-2 rounded-md border cursor-pointer transition-colors",
-                          isSelected 
-                            ? "bg-blue-500 text-white border-blue-500" 
-                            : "bg-background hover:bg-accent"
-                        )}
+            {/* 第六行：分公司、负责人、专属客服（紧凑布局） */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* 分公司多选下拉框 */}
+              {filterOptions.branches.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium mb-2 block">分公司</label>
+                  <Popover open={isBranchOpen} onOpenChange={setIsBranchOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={isBranchOpen}
+                        className="w-full justify-between"
                       >
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={() => toggleBranch(branch)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                        <span className="text-sm">{branch}</span>
-                      </div>
-                    )
-                  })}
+                        {selectedBranches.length > 0
+                          ? `已选择 ${selectedBranches.length} 项`
+                          : "选择分公司..."}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="搜索分公司..." />
+                        <CommandList>
+                          <CommandEmpty>未找到分公司</CommandEmpty>
+                          <CommandGroup>
+                            {filterOptions.branches.map((branch) => (
+                              <CommandItem
+                                key={branch}
+                                onSelect={() => {
+                                  toggleBranch(branch)
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedBranches.includes(branch) ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {branch}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
-              </div>
-            )}
-            
-            {/* 第七行：负责人（多选） */}
-            {filterOptions.managers.length > 0 && (
-              <div>
-                <label className="text-sm font-medium mb-2 block">负责人（可多选）</label>
-                <div className="flex flex-wrap gap-2">
-                  {filterOptions.managers.map((manager) => {
-                    const isSelected = selectedManagers.includes(manager)
-                    return (
-                      <div
-                        key={manager}
-                        onClick={() => toggleManager(manager)}
-                        className={cn(
-                          "flex items-center gap-2 px-3 py-2 rounded-md border cursor-pointer transition-colors",
-                          isSelected 
-                            ? "bg-green-500 text-white border-green-500" 
-                            : "bg-background hover:bg-accent"
-                        )}
+              )}
+              
+              {/* 负责人多选下拉框 */}
+              {filterOptions.managers.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium mb-2 block">负责人</label>
+                  <Popover open={isManagerOpen} onOpenChange={setIsManagerOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={isManagerOpen}
+                        className="w-full justify-between"
                       >
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={() => toggleManager(manager)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                        <span className="text-sm">{manager}</span>
-                      </div>
-                    )
-                  })}
+                        {selectedManagers.length > 0
+                          ? `已选择 ${selectedManagers.length} 项`
+                          : "选择负责人..."}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="搜索负责人..." />
+                        <CommandList>
+                          <CommandEmpty>未找到负责人</CommandEmpty>
+                          <CommandGroup>
+                            {filterOptions.managers.map((manager) => (
+                              <CommandItem
+                                key={manager}
+                                onSelect={() => {
+                                  toggleManager(manager)
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedManagers.includes(manager) ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {manager}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
-              </div>
-            )}
-            
-            {/* 第八行：专属客服（多选） */}
-            {filterOptions.csNames.length > 0 && (
-              <div>
-                <label className="text-sm font-medium mb-2 block">专属客服（可多选）</label>
-                <div className="flex flex-wrap gap-2">
-                  {filterOptions.csNames.map((csName) => {
-                    const isSelected = selectedCsNames.includes(csName)
-                    return (
-                      <div
-                        key={csName}
-                        onClick={() => toggleCsName(csName)}
-                        className={cn(
-                          "flex items-center gap-2 px-3 py-2 rounded-md border cursor-pointer transition-colors",
-                          isSelected 
-                            ? "bg-purple-500 text-white border-purple-500" 
-                            : "bg-background hover:bg-accent"
-                        )}
+              )}
+              
+              {/* 专属客服多选下拉框 */}
+              {filterOptions.csNames.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium mb-2 block">专属客服</label>
+                  <Popover open={isCsOpen} onOpenChange={setIsCsOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={isCsOpen}
+                        className="w-full justify-between"
                       >
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={() => toggleCsName(csName)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                        <span className="text-sm">{csName}</span>
-                      </div>
-                    )
-                  })}
+                        {selectedCsNames.length > 0
+                          ? `已选择 ${selectedCsNames.length} 项`
+                          : "选择专属客服..."}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="搜索专属客服..." />
+                        <CommandList>
+                          <CommandEmpty>未找到专属客服</CommandEmpty>
+                          <CommandGroup>
+                            {filterOptions.csNames.map((csName) => (
+                              <CommandItem
+                                key={csName}
+                                onSelect={() => {
+                                  toggleCsName(csName)
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedCsNames.includes(csName) ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {csName}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
-              </div>
-            )}
-            
-            {/* 第九行：待审核客服（多选） */}
-            {filterOptions.pendingReviewers.length > 0 && (
-              <div>
-                <label className="text-sm font-medium mb-2 block">待审核客服（可多选）</label>
-                <div className="flex flex-wrap gap-2">
-                  {filterOptions.pendingReviewers.map((reviewer) => {
-                    const isSelected = selectedPendingReviewers.includes(reviewer)
-                    return (
-                      <div
-                        key={reviewer}
-                        onClick={() => togglePendingReviewer(reviewer)}
-                        className={cn(
-                          "flex items-center gap-2 px-3 py-2 rounded-md border cursor-pointer transition-colors",
-                          isSelected 
-                            ? "bg-orange-500 text-white border-orange-500" 
-                            : "bg-background hover:bg-accent"
-                        )}
-                      >
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={() => togglePendingReviewer(reviewer)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                        <span className="text-sm">{reviewer}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* 筛选结果统计 */}
             <div className="text-sm text-muted-foreground">
@@ -791,59 +844,102 @@ export default function ManagerOrdersPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>订单号</TableHead>
-                  <TableHead>类型</TableHead>
-                  <TableHead>学生</TableHead>
-                  <TableHead>年级/科目</TableHead>
-                  <TableHead>分公司</TableHead>
-                  <TableHead>负责人</TableHead>
-                  <TableHead>专属客服</TableHead>
-                  <TableHead>状态</TableHead>
-                  <TableHead>申请人数</TableHead>
-                  <TableHead>创建时间</TableHead>
+                  <TableHead className="w-[140px]">订单号</TableHead>
+                  <TableHead className="w-[80px]">类型</TableHead>
+                  <TableHead className="w-[100px]">学生</TableHead>
+                  <TableHead className="w-[120px]">年级/科目</TableHead>
+                  <TableHead className="w-[180px]">分公司信息</TableHead>
+                  <TableHead className="w-[150px]">预约/首课时间</TableHead>
+                  <TableHead className="w-[80px]">课时数</TableHead>
+                  <TableHead className="w-[100px]">状态</TableHead>
+                  <TableHead className="w-[80px]">申请</TableHead>
+                  <TableHead className="min-w-[150px]">备注</TableHead>
+                  <TableHead className="w-[140px]">创建时间</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginatedOrders.length > 0 ? (
                   paginatedOrders.map((order) => (
-                    <TableRow key={order.id}>
+                    <TableRow key={order.id} className="hover:bg-muted/50 transition-colors">
                       <TableCell className="font-medium">
                         <button
                           onClick={() => router.push(`/manager-orders/${order.id}`)}
-                          className="text-primary hover:underline cursor-pointer"
+                          className="text-primary hover:underline cursor-pointer text-sm"
                         >
                           {order.id}
                         </button>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">
+                        <Badge variant="outline" className="text-xs">
                           {order.type === OrderType.TRIAL ? "试课" : "正课"}
                         </Badge>
                       </TableCell>
-                      <TableCell>{order.studentName}</TableCell>
-                      <TableCell>{order.grade} {order.subject}</TableCell>
-                      <TableCell>{order._branchName}</TableCell>
-                      <TableCell>{order._branchManager}</TableCell>
-                      <TableCell>{order._branchCs}</TableCell>
+                      <TableCell className="text-sm font-medium">{order.studentName}</TableCell>
+                      <TableCell className="text-sm">{order.grade} {order.subject}</TableCell>
+                      
+                      {/* 分公司信息整合列 */}
                       <TableCell>
-                        <Badge variant={ORDER_STATUS_COLOR_MAP[order.status]}>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex items-center gap-1">
+                            <span className="text-muted-foreground shrink-0">分公司:</span>
+                            <span className="font-medium text-blue-700">{order._branchName}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-muted-foreground shrink-0">负责人:</span>
+                            <span>{order._branchManager}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-muted-foreground shrink-0">客服:</span>
+                            <span>{order._branchCs}</span>
+                          </div>
+                        </div>
+                      </TableCell>
+                      
+                      {/* 预约/首课时间 */}
+                      <TableCell>
+                        {order._nearestScheduledTime ? (
+                          <div className="text-sm">
+                            {format(order._nearestScheduledTime, "MM-dd HH:mm", { locale: zhCN })}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">未设置</span>
+                        )}
+                      </TableCell>
+                      
+                      {/* 课时数 */}
+                      <TableCell>
+                        <div className="text-sm font-semibold text-primary">
+                          {order.totalHours}
+                        </div>
+                      </TableCell>
+                      
+                      <TableCell>
+                        <Badge variant={ORDER_STATUS_COLOR_MAP[order.status]} className="text-xs">
                           {ORDER_STATUS_MAP[order.status]}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                            <span>{order.applicantIds?.length || 0}</span>
+                            <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span className="text-sm">{order.applicantIds?.length || 0}</span>
                         </div>
                       </TableCell>
+                      
+                      {/* 备注信息 */}
                       <TableCell>
+                        <div className="text-xs max-w-[200px] truncate" title={order.remarks}>
+                          {order.remarks || '-'}
+                        </div>
+                      </TableCell>
+                      
+                      <TableCell className="text-xs text-muted-foreground">
                         {format(new Date(order.createdAt), "yyyy-MM-dd HH:mm", { locale: zhCN })}
                       </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={10} className="h-24 text-center">
+                    <TableCell colSpan={11} className="h-24 text-center">
                       暂无符合条件的订单
                     </TableCell>
                   </TableRow>
