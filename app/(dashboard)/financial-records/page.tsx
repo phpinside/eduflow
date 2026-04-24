@@ -609,114 +609,191 @@ export default function FinancialRecordsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>记录类型</TableHead>
-                  <TableHead>订单号</TableHead>
-                  <TableHead>课程类型</TableHead>
-                  <TableHead>科目</TableHead>
-                  <TableHead>课费标准</TableHead>
-                  <TableHead>总课时</TableHead>
-                  <TableHead>学生姓名</TableHead>
-                  <TableHead>家长电话</TableHead>
-                  <TableHead>校区名称</TableHead>
-                  <TableHead>校区账号</TableHead>
-                  <TableHead>学生账号</TableHead>
-                  <TableHead>分公司</TableHead>
-                  <TableHead>专属客服</TableHead>
-                  <TableHead>是否代缴鼎伴学</TableHead>
-                  <TableHead>G账号充值状态</TableHead>
-                  <TableHead>金额</TableHead>
-                  <TableHead>招生老师</TableHead>
-                  <TableHead>手机号</TableHead>
-                  <TableHead>交易时间</TableHead>
-                  <TableHead>备注</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
+                  <TableHead className="w-[80px]">记录类型</TableHead>
+                  <TableHead className="w-[140px]">订单号</TableHead>
+                  <TableHead className="w-[120px]">科目信息</TableHead>
+                  <TableHead className="w-[100px]">课费标准</TableHead>
+                  <TableHead className="w-[100px]">总课时</TableHead>
+                  <TableHead className="w-[150px]">学生信息</TableHead>
+                  <TableHead className="w-[140px]">校区与分公司</TableHead>
+                  <TableHead className="w-[120px]">G账号</TableHead>
+                  <TableHead className="w-[120px]">金额</TableHead>
+                  <TableHead className="w-[130px]">招生老师</TableHead>
+                  <TableHead className="w-[120px] text-right">操作</TableHead>
+                  <TableHead className="w-[200px]">备注</TableHead>
+                  <TableHead className="w-[160px]">交易时间</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginatedRecords.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={21} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
                       暂无记录
                     </TableCell>
                   </TableRow>
                 ) : (
                   paginatedRecords.map((record) => (
-                    <TableRow key={record.id}>
+                    <TableRow key={record.id} className="hover:bg-muted/50 transition-colors">
+                      {/* 记录类型 */}
                       <TableCell>
                         <Badge
                           className={
                             record.type === 'RECHARGE'
-                              ? 'bg-green-500 hover:bg-green-600'
-                              : 'bg-red-500 hover:bg-red-600'
+                              ? 'bg-green-500 hover:bg-green-600 shadow-sm'
+                              : 'bg-red-500 hover:bg-red-600 shadow-sm'
                           }
                         >
                           {record.type === 'RECHARGE' ? '充值' : '退款'}
                         </Badge>
                       </TableCell>
+                      
+                      {/* 订单号 */}
                       <TableCell className="font-mono text-sm">
                         <Link
                           href={`/manager-orders/${record.orderId}`}
-                          className="text-blue-600 hover:text-blue-800 hover:underline"
+                          className="text-blue-600 hover:text-blue-800 hover:underline transition-colors"
                         >
                           {record.orderId}
                         </Link>
                       </TableCell>
-                      <TableCell>{record.orderTypeLabel}</TableCell>
-                      <TableCell>{record.subject}</TableCell>
-                      <TableCell>{record.feeStandard}</TableCell>
-                      <TableCell>{record.totalHours}</TableCell>
-                      <TableCell>{record.studentName}</TableCell>
-                      <TableCell>{record.parentPhone}</TableCell>
-                      <TableCell>{record.campusName}</TableCell>
-                      <TableCell>{record.campusAccount}</TableCell>
-                      <TableCell>{record.studentAccount}</TableCell>
-                      <TableCell>{record.branchName}</TableCell>
-                      <TableCell>{record.branchCsName}</TableCell>
-                      <TableCell>{record.dingbanxueRechargeRequired}</TableCell>
+                      
+                      {/* 科目信息（整合：课程类型、科目） */}
                       <TableCell>
-                        <Badge
-                          variant={record.gAccountRechargeStatus === "已充值" ? "default" : "outline"}
-                          className={
-                            record.gAccountRechargeStatus === "待充值"
-                              ? "border-amber-400 text-amber-700"
-                              : record.gAccountRechargeStatus === "无需充值"
-                                ? "border-muted-foreground/30 text-muted-foreground"
-                                : ""
-                          }
-                        >
-                          {record.gAccountRechargeStatus}
-                        </Badge>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1 text-sm">
+                            <span className="text-muted-foreground shrink-0">类型:</span>
+                            <span className="font-medium">{record.orderTypeLabel}</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-sm">
+                            <span className="text-muted-foreground shrink-0">科目:</span>
+                            <span className="font-medium">{record.subject}</span>
+                          </div>
+                        </div>
                       </TableCell>
-                      <TableCell
-                        className={cn(
-                          "font-semibold",
+                      
+                      {/* 课费标准 - 单独成列，重点显示 */}
+                      <TableCell>
+                        <div className="text-base font-bold text-primary bg-blue-50 px-2 py-1 rounded inline-block">
+                          {record.feeStandard}
+                        </div>
+                      </TableCell>
+                      
+                      {/* 总课时 - 突出显示 */}
+                      <TableCell>
+                        <div className="text-lg font-bold text-primary">
+                          {record.totalHours}
+                        </div>
+                      </TableCell>
+                      
+                      {/* 学生信息（整合：学生姓名、家长电话） */}
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1">
+                            <span className="text-muted-foreground shrink-0 text-sm">姓名:</span>
+                            <span className="font-semibold text-base text-slate-900">{record.studentName}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-muted-foreground shrink-0 text-sm">电话:</span>
+                            <span className="font-mono text-sm">{record.parentPhone}</span>
+                          </div>
+                        </div>
+                      </TableCell>
+                      
+                      {/* 校区与分公司（整合：校区名称、校区账号、分公司、专属客服） */}
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1">
+                            <span className="text-muted-foreground shrink-0 text-sm">校区:</span>
+                            <span className="text-sm">{record.campusName}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-muted-foreground shrink-0 text-sm">账号:</span>
+                            <span className="font-mono text-xs">{record.campusAccount}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-muted-foreground shrink-0 text-sm">分公司:</span>
+                            <span className="font-medium text-sm text-blue-700">{record.branchName}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-muted-foreground shrink-0 text-sm">客服:</span>
+                            <span className="font-medium text-sm text-blue-700">{record.branchCsName}</span>
+                          </div>
+                        </div>
+                      </TableCell>
+                      
+                      {/* G账号 - 单独成列，强化显示 */}
+                      <TableCell>
+                        <div className="bg-purple-50 border border-purple-200 rounded px-2 py-1.5 inline-block">
+                          <span className="text-xs text-purple-600 font-medium mb-0.5">G账号</span>
+                          <span className="font-mono text-sm font-bold text-purple-900">{record.studentAccount}</span>
+                        </div>
+                        <div className="text-xs">
+                          <span className="text-muted-foreground">充值状态:</span>
+                          <Badge
+                              variant={record.gAccountRechargeStatus === "已充值" ? "default" : "outline"}
+                              className={cn(
+                                  "ml-1 text-xs",
+                                  record.gAccountRechargeStatus === "待充值"
+                                      ? "border-amber-400 text-amber-700 bg-amber-50"
+                                      : "bg-green-500 text-white"
+                              )}
+                          >
+                            {record.gAccountRechargeStatus}
+                          </Badge>
+                        </div>
+                      </TableCell>
+                      
+                      {/* 金额 - 突出显示 */}
+                      <TableCell>
+                        <div className={cn(
+                          "text-xl font-bold",
                           record.amount > 0 ? "text-green-600" : "text-red-600"
-                        )}
-                      >
-                        {record.amount > 0 ? '+' : ''}
-                        {record.amount.toLocaleString()}
+                        )}>
+                          {record.amount > 0 ? '+' : ''}¥{record.amount.toLocaleString()}
+                        </div>
                       </TableCell>
-                      <TableCell>{record.salesPersonName || '-'}</TableCell>
-                      <TableCell>{record.salesPersonPhone || '-'}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {format(new Date(record.createdAt), 'yyyy-MM-dd HH:mm:ss', {
-                          locale: zhCN
-                        })}
+                      
+                      {/* 招生老师（整合：姓名、手机号） */}
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="font-medium text-sm">{record.salesPersonName || '-'}</div>
+                          <div className="font-mono text-muted-foreground text-sm">{record.salesPersonPhone || '-'}</div>
+                        </div>
                       </TableCell>
-                      <TableCell className="max-w-[200px] truncate">
-                        {record.remarks || '-'}
-                      </TableCell>
+                      
+                      {/* 操作区 - 包含G账号充值状态开关 */}
                       <TableCell className="text-right">
                         {(record.gAccountRechargeStatus === "待充值" ||
                           record.gAccountRechargeStatus === "已充值") && (
-                          <Button
-                            variant={record.gAccountRechargeStatus === "待充值" ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => toggleRechargeStatus(record.id, record.gAccountRechargeStatus)}
-                          >
-                            {record.gAccountRechargeStatus === "待充值" ? "已充值" : "取消充值"}
-                          </Button>
+                          <div className="flex flex-col items-end gap-2">
+                            {/* 开关按钮 */}
+                            <Button
+                              variant={record.gAccountRechargeStatus === "待充值" ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => toggleRechargeStatus(record.id, record.gAccountRechargeStatus)}
+                              className={cn(
+                                "transition-all duration-200 hover:shadow-md active:scale-95 text-xs",
+                                record.gAccountRechargeStatus === "待充值"
+                                  ? "bg-green-500 hover:bg-green-600 hover:shadow-green-200"
+                                  : "hover:border-green-500 hover:text-green-600"
+                              )}
+                            >
+                              {record.gAccountRechargeStatus === "待充值" ? "✓ 标记已充值" : "✕ 取消充值"}
+                            </Button>
+                          </div>
                         )}
+                      </TableCell>
+                      
+                      {/* 备注 */}
+                      <TableCell className="max-w-[200px] truncate text-xs text-muted-foreground">
+                        {record.remarks || '-'}
+                      </TableCell>
+                      
+                      {/* 交易时间 */}
+                      <TableCell className="text-xs text-muted-foreground">
+                        {format(new Date(record.createdAt), 'yyyy-MM-dd HH:mm', {
+                          locale: zhCN
+                        })}
                       </TableCell>
                     </TableRow>
                   ))
