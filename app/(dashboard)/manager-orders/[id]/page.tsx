@@ -22,6 +22,8 @@ import {
   Check,
   Clock,
   CreditCard,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -310,6 +312,10 @@ export default function ManagerOrderDetailsPage() {
   const [adjustedHours, setAdjustedHours] = React.useState<number | string>("")
   const [financeVouchers, setFinanceVouchers] = React.useState<string[]>([])
   const [financeRemark, setFinanceRemark] = React.useState("")
+
+  // 相关订单分页状态
+  const [relatedOrdersPage, setRelatedOrdersPage] = React.useState(1)
+  const RELATED_ORDERS_PER_PAGE = 5
 
   const student = React.useMemo(
     () => (order ? mockStudents.find((s) => s.id === order.studentId) : null),
@@ -1148,6 +1154,144 @@ export default function ManagerOrderDetailsPage() {
             </CardContent>
           </Card>
 
+          {/* 相关订单 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <BookOpen className="h-5 w-5" /> 相关订单
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                // 获取当前学生的所有订单
+                const allOrders = getStoredOrders()
+                const studentOrders = allOrders
+                  .filter(o => {
+                    const orderStudent = mockStudents.find(s => s.id === o.studentId)
+                    return orderStudent?.name === student?.name && o.id !== order.id
+                  })
+                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+                if (studentOrders.length === 0) {
+                  return (
+                    <div className="text-center py-8 text-muted-foreground text-sm">
+                      该学生暂无其他订单
+                    </div>
+                  )
+                }
+
+                // 计算分页
+                const totalPages = Math.ceil(studentOrders.length / RELATED_ORDERS_PER_PAGE)
+                const startIndex = (relatedOrdersPage - 1) * RELATED_ORDERS_PER_PAGE
+                const endIndex = startIndex + RELATED_ORDERS_PER_PAGE
+                const pageOrders = studentOrders.slice(startIndex, endIndex)
+
+                return (
+                  <div className="space-y-4">
+                    {/* 订单列表 */}
+                    <div className="border rounded-md">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>订单号</TableHead>
+                            <TableHead>类型</TableHead>
+                            <TableHead>科目</TableHead>
+                            <TableHead>年级</TableHead>
+                            <TableHead>金额</TableHead>
+                            <TableHead>状态</TableHead>
+                            <TableHead>创建时间</TableHead>
+                            <TableHead className="text-right">操作</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {pageOrders.map((relatedOrder) => {
+                            const relatedSalesPerson = mockUsers.find(u => u.id === relatedOrder.salesPersonId)
+                            return (
+                              <TableRow key={relatedOrder.id}>
+                                <TableCell className="font-mono text-xs">
+                                  {relatedOrder.id}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" className="text-xs">
+                                    {relatedOrder.type === OrderType.TRIAL ? '试课' : '正课'}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>{relatedOrder.subject}</TableCell>
+                                <TableCell>{relatedOrder.grade}</TableCell>
+                                <TableCell className="font-medium">
+                                  ¥{relatedOrder.price.toLocaleString()}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={ORDER_STATUS_COLOR_MAP[relatedOrder.status]} className="text-xs">
+                                    {ORDER_STATUS_MAP[relatedOrder.status]}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-xs text-muted-foreground">
+                                  {format(new Date(relatedOrder.createdAt), "yyyy-MM-dd", { locale: zhCN })}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => router.push(`/manager-orders/${relatedOrder.id}`)}
+                                  >
+                                    查看
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            )
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    {/* 分页控件 */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-between pt-2">
+                        <div className="text-xs text-muted-foreground">
+                          共 {studentOrders.length} 条记录，第 {relatedOrdersPage}/{totalPages} 页
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={relatedOrdersPage === 1}
+                            onClick={() => setRelatedOrdersPage(p => p - 1)}
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                            上一页
+                          </Button>
+                          <div className="flex items-center gap-1">
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                              <Button
+                                key={page}
+                                size="sm"
+                                variant={relatedOrdersPage === page ? "default" : "outline"}
+                                className="h-8 w-8 p-0"
+                                onClick={() => setRelatedOrdersPage(page)}
+                              >
+                                {page}
+                              </Button>
+                            ))}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={relatedOrdersPage === totalPages}
+                            onClick={() => setRelatedOrdersPage(p => p + 1)}
+                          >
+                            下一页
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+            </CardContent>
+          </Card>
+
           <div className="pt-2">
             <Button
               type="button"
@@ -1976,9 +2120,9 @@ export default function ManagerOrderDetailsPage() {
             <div>
               <h4 className="text-sm font-medium mb-2">上传审核凭证（可选）</h4>
               <VoucherUpload
-                value={financeVouchers}
-                onChange={setFinanceVouchers}
-                maxCount={5}
+                vouchers={financeVouchers}
+                onUpload={(base64) => setFinanceVouchers(prev => [...prev, base64])}
+                onRemove={(index) => setFinanceVouchers(prev => prev.filter((_, i) => i !== index))}
               />
             </div>
 
