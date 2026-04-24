@@ -154,6 +154,12 @@ const navItems: NavItem[] = [
     roles: [Role.OPERATOR]
   },
   {
+    title: "操作日志",
+    href: "/operation-logs",
+    icon: FileText,
+    roles: [Role.OPERATOR, Role.ADMIN]
+  },
+  {
     title: "伴学教练收入",
     href: "/tutor-income",
     icon: BadgeDollarSign,

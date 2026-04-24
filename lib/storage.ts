@@ -13,6 +13,8 @@ import { OrderStatus as OrderStatusEnum } from '@/types'
 import { mockRefundApplications } from './mock-data/refund-applications'
 import { mockRefundOperationLogs } from './mock-data/refund-logs'
 import { mockBranchCompanies } from './mock-data/branch-companies'
+import { mockOperationLogs } from './mock-data/operation-logs'
+import type { OperationLog } from '@/types/operation-log'
 
 export const STORAGE_KEYS = {
   USERS: 'eduflow:users',
@@ -28,6 +30,7 @@ export const STORAGE_KEYS = {
   REFUND_APPLICATIONS: 'eduflow:refund-applications',
   REFUND_OPERATION_LOGS: 'eduflow:refund-operation-logs',
   BRANCH_COMPANIES: 'eduflow:branch-companies',
+  OPERATION_LOGS: 'eduflow:operation-logs',
 }
 
 const isBrowser = typeof window !== 'undefined'
@@ -104,6 +107,31 @@ export const getStoredBranchCompanies = () =>
 
 export const saveStoredBranchCompanies = (data: typeof mockBranchCompanies) =>
   saveMockData(STORAGE_KEYS.BRANCH_COMPANIES, data)
+
+// === 新增：操作日志相关工具函数 ===
+
+export const getStoredOperationLogs = (): OperationLog[] =>
+  getMockData(STORAGE_KEYS.OPERATION_LOGS, mockOperationLogs)
+
+export const saveStoredOperationLogs = (data: OperationLog[]) =>
+  saveMockData(STORAGE_KEYS.OPERATION_LOGS, data)
+
+/**
+ * 添加操作日志
+ */
+export const addOperationLog = (log: Omit<OperationLog, 'id' | 'createdAt'>): OperationLog => {
+  const logs = getStoredOperationLogs()
+  const newLog: OperationLog = {
+    ...log,
+    id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    createdAt: new Date(),
+  }
+  logs.unshift(newLog) // 最新的在前面
+  // 保留最近1000条日志
+  const trimmedLogs = logs.slice(0, 1000)
+  saveStoredOperationLogs(trimmedLogs)
+  return newLog
+}
 
 // === 新增：草稿订单相关工具函数 ===
 
@@ -210,4 +238,5 @@ export const initializeMockData = () => {
   if (!localStorage.getItem(STORAGE_KEYS.REFUND_APPLICATIONS)) saveMockData(STORAGE_KEYS.REFUND_APPLICATIONS, mockRefundApplications)
   if (!localStorage.getItem(STORAGE_KEYS.REFUND_OPERATION_LOGS)) saveMockData(STORAGE_KEYS.REFUND_OPERATION_LOGS, mockRefundOperationLogs)
   if (!localStorage.getItem(STORAGE_KEYS.BRANCH_COMPANIES)) saveMockData(STORAGE_KEYS.BRANCH_COMPANIES, mockBranchCompanies)
+  if (!localStorage.getItem(STORAGE_KEYS.OPERATION_LOGS)) saveMockData(STORAGE_KEYS.OPERATION_LOGS, mockOperationLogs)
 }

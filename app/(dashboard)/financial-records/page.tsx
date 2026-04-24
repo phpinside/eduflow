@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import Link from "next/link"
 import { format, startOfDay, endOfDay, subDays } from "date-fns"
 import { zhCN } from "date-fns/locale"
@@ -35,12 +35,28 @@ import {
   TrendingDown, 
   RefreshCw,
   CalendarIcon,
-  Search
+  Search,
+  Upload,
+  X,
+  Image as ImageIcon
 } from "lucide-react"
 import { toast } from "sonner"
 import { FinancialRecord, Order, BranchCompany } from "@/types"
-import { getStoredFinancialRecords, getStoredOrders, getStoredStudents, getStoredBranchCompanies, getStoredUsers } from "@/lib/storage"
+import { getStoredFinancialRecords, getStoredOrders, getStoredStudents, getStoredBranchCompanies, getStoredUsers, saveStoredOrders } from "@/lib/storage"
 import { cn } from "@/lib/utils"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { useAuth } from "@/contexts/AuthContext"
+import { logFinanceOperation } from "@/lib/operation-log-helper"
+import { OperationAction } from "@/types/operation-log"
 
 const ITEMS_PER_PAGE = 30
 const FINANCIAL_FILTERS_SESSION_KEY = "eduflow:financial-records:filters:v1"
@@ -100,10 +116,18 @@ const buildDefaultFilters = (): FinancialFilters => ({
 })
 
 export default function FinancialRecordsPage() {
+  const { user } = useAuth()
   const [records, setRecords] = useState<FinancialRecord[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [rechargeStatusMap, setRechargeStatusMap] = useState<Record<string, "待充值" | "已充值">>({})
   const [filters, setFilters] = useState<FinancialFilters>(buildDefaultFilters())
+  
+  // 对话框相关状态
+  const [isRechargeDialogOpen, setIsRechargeDialogOpen] = useState(false)
+  const [selectedRecord, setSelectedRecord] = useState<EnrichedFinancialRecord | null>(null)
+  const [uploadedImages, setUploadedImages] = useState<string[]>([])
+  const [rechargeRemark, setRechargeRemark] = useState("")
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 加载数据 + 恢复会话筛选
   useEffect(() => {
@@ -194,6 +218,97 @@ export default function FinancialRecordsPage() {
     const next = current === "待充值" ? "已充值" : "待充值"
     setRechargeStatusMap((prev) => ({ ...prev, [recordId]: next }))
     toast.success(`G账号充值状态已更新为：${next}`)
+  }
+  
+  // 打开充值对话框
+  const openRechargeDialog = (record: EnrichedFinancialRecord) => {
+    setSelectedRecord(record)
+    setUploadedImages([])
+    setRechargeRemark("")
+    setIsRechargeDialogOpen(true)
+  }
+  
+  // 关闭充值对话框
+  const closeRechargeDialog = () => {
+    setIsRechargeDialogOpen(false)
+    setSelectedRecord(null)
+    setUploadedImages([])
+    setRechargeRemark("")
+  }
+  
+  // 处理图片上传
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    
+    Array.from(files).forEach(file => {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`文件 ${file.name} 超过5MB限制`)
+        return
+      }
+      
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setUploadedImages(prev => [...prev, reader.result as string])
+      }
+      reader.readAsDataURL(file)
+    })
+    
+    // 清空input，允许重复选择同一文件
+    e.target.value = ""
+  }
+  
+  // 删除图片
+  const removeImage = (index: number) => {
+    setUploadedImages(prev => prev.filter((_, i) => i !== index))
+  }
+  
+  // 提交充值
+  const handleSubmitRecharge = () => {
+    if (!selectedRecord) return
+    
+    // 更新充值状态
+    const oldStatus = selectedRecord.gAccountRechargeStatus
+    toggleRechargeStatus(selectedRecord.id, selectedRecord.gAccountRechargeStatus)
+    const newStatus = oldStatus === "待充值" ? "已充值" : "待充值"
+    
+    // 记录操作日志
+    if (user) {
+      logFinanceOperation({
+        action: OperationAction.RECHARGE_STATUS_CHANGE,
+        operator: user,
+        recordId: selectedRecord.id,
+        orderId: selectedRecord.orderId,
+        beforeState: { gAccountRechargeStatus: oldStatus },
+        afterState: { gAccountRechargeStatus: newStatus },
+        remark: rechargeRemark.trim() || `G账号充值状态从${oldStatus}变更为${newStatus}`,
+      })
+    }
+    
+    // 保存图片和备注到订单
+    if (selectedRecord.order && (uploadedImages.length > 0 || rechargeRemark.trim())) {
+      const orders = getStoredOrders()
+      const updatedOrders = orders.map(order => {
+        if (order.id === selectedRecord.orderId) {
+          return {
+            ...order,
+            // 保存充值凭证图片
+            rechargeVouchers: uploadedImages.length > 0 
+              ? [...(order.rechargeVouchers || []), ...uploadedImages]
+              : order.rechargeVouchers,
+            // 保存充值备注
+            rechargeRemark: rechargeRemark.trim() 
+              ? `${order.rechargeRemark || ''}\n[${format(new Date(), 'yyyy-MM-dd HH:mm')}] ${rechargeRemark}`.trim()
+              : order.rechargeRemark,
+          }
+        }
+        return order
+      })
+      saveStoredOrders(updatedOrders)
+    }
+    
+    toast.success("充值状态已更新，凭证已保存")
+    closeRechargeDialog()
   }
 
   // 筛选逻辑
@@ -724,7 +839,7 @@ export default function FinancialRecordsPage() {
                       {/* G账号 - 单独成列，强化显示 */}
                       <TableCell>
                         <div className="bg-purple-50 border border-purple-200 rounded px-2 py-1.5 inline-block">
-                          <span className="text-xs text-purple-600 font-medium mb-0.5">G账号</span>
+                          <span className="text-xs text-purple-600 font-medium mb-0.5">G账号：</span>
                           <span className="font-mono text-sm font-bold text-purple-900">{record.studentAccount}</span>
                         </div>
                         <div className="text-xs">
@@ -770,7 +885,7 @@ export default function FinancialRecordsPage() {
                             <Button
                               variant={record.gAccountRechargeStatus === "待充值" ? "default" : "outline"}
                               size="sm"
-                              onClick={() => toggleRechargeStatus(record.id, record.gAccountRechargeStatus)}
+                              onClick={() => openRechargeDialog(record)}
                               className={cn(
                                 "transition-all duration-200 hover:shadow-md active:scale-95 text-xs",
                                 record.gAccountRechargeStatus === "待充值"
@@ -830,6 +945,146 @@ export default function FinancialRecordsPage() {
           )}
         </CardContent>
       </Card>
+      
+      {/* 充值确认对话框 */}
+      <Dialog open={isRechargeDialogOpen} onOpenChange={setIsRechargeDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>G账号充值确认</DialogTitle>
+            <DialogDescription>
+              请确认以下信息并上传充值凭证
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedRecord && (
+            <div className="space-y-6 py-4">
+              {/* 订单信息展示 */}
+              <div className="grid grid-cols-2 gap-4 bg-muted/30 p-4 rounded-lg">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">课程类型:</span>
+                    <span className="font-medium">{selectedRecord.orderTypeLabel}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">科目:</span>
+                    <span className="font-medium">{selectedRecord.subject}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">课费标准:</span>
+                    <span className="font-semibold text-primary">{selectedRecord.feeStandard}</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">学生姓名:</span>
+                    <span className="font-semibold text-base">{selectedRecord.studentName}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">充值课时数:</span>
+                    <span className="font-bold text-lg text-primary">{selectedRecord.totalHours}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">G账号:</span>
+                    <span className="font-mono font-bold text-purple-700">{selectedRecord.studentAccount}</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* G账号当前状态 */}
+              <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded">
+                <span className="text-sm font-medium">当前充值状态:</span>
+                <Badge
+                  variant={selectedRecord.gAccountRechargeStatus === "已充值" ? "default" : "outline"}
+                  className={cn(
+                    selectedRecord.gAccountRechargeStatus === "待充值"
+                      ? "border-amber-400 text-amber-700 bg-amber-100"
+                      : "bg-green-500 text-white"
+                  )}
+                >
+                  {selectedRecord.gAccountRechargeStatus}
+                </Badge>
+              </div>
+              
+              {/* 图片上传区域 */}
+              <div className="space-y-3">
+                <Label>上传充值凭证（支持多张图片）</Label>
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full"
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    选择图片
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  支持JPG、PNG格式，单张图片不超过5MB
+                </p>
+                
+                {/* 图片缩略图展示 */}
+                {uploadedImages.length > 0 && (
+                  <div className="grid grid-cols-4 gap-3 mt-3">
+                    {uploadedImages.map((image, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={image}
+                          alt={`凭证 ${index + 1}`}
+                          className="w-full h-24 object-cover rounded border hover:shadow-lg transition-shadow cursor-pointer"
+                        />
+                        <button
+                          onClick={() => removeImage(index)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                        {/* 放大查看 */}
+                        <div className="fixed inset-0 bg-black/80 hidden group-hover:flex items-center justify-center z-50">
+                          <img
+                            src={image}
+                            alt={`放大查看 ${index + 1}`}
+                            className="max-w-[90vw] max-h-[90vh] object-contain"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {/* 备注输入 */}
+              <div className="space-y-2">
+                <Label>备注信息（可选）</Label>
+                <Textarea
+                  placeholder="请输入充值备注信息..."
+                  value={rechargeRemark}
+                  onChange={(e) => setRechargeRemark(e.target.value)}
+                  rows={3}
+                  className="resize-none"
+                />
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={closeRechargeDialog}>
+              取消
+            </Button>
+            <Button onClick={handleSubmitRecharge} className="bg-green-500 hover:bg-green-600">
+              确认提交
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

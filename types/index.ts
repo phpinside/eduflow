@@ -129,6 +129,12 @@ export interface Order {
   
   /** 试课订单支付方式：ONLINE(在线) / OFFLINE(线下)，默认 OFFLINE */
   trialPaymentMethod?: 'ONLINE' | 'OFFLINE'
+  
+  /** G账号充值凭证图片（Base64数组，存储在localStorage） */
+  rechargeVouchers?: string[]
+  
+  /** G账号充值备注 */
+  rechargeRemark?: string
 }
 
 /** 退费申请类型：试课 / 正课(含续课) / 仅转正红包 */
