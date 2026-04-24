@@ -660,7 +660,150 @@ export default function ManagerOrdersPage() {
               </div>
             </div>
 
-            {/* 第五行：订单状态（多选标签） */}
+            {/* 第五行：分公司、负责人、专属客服（紧凑布局） */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* 分公司多选下拉框 */}
+              {filterOptions.branches.length > 0 && (
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">分公司</label>
+                    <Popover open={isBranchOpen} onOpenChange={setIsBranchOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={isBranchOpen}
+                            className="w-full justify-between"
+                        >
+                          {selectedBranches.length > 0
+                              ? `已选择 ${selectedBranches.length} 项`
+                              : "选择分公司..."}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="搜索分公司..." />
+                          <CommandList>
+                            <CommandEmpty>未找到分公司</CommandEmpty>
+                            <CommandGroup>
+                              {filterOptions.branches.map((branch) => (
+                                  <CommandItem
+                                      key={branch}
+                                      onSelect={() => {
+                                        toggleBranch(branch)
+                                      }}
+                                  >
+                                    <Check
+                                        className={cn(
+                                            "mr-2 h-4 w-4",
+                                            selectedBranches.includes(branch) ? "opacity-100" : "opacity-0"
+                                        )}
+                                    />
+                                    {branch}
+                                  </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+              )}
+
+              {/* 负责人多选下拉框 */}
+              {filterOptions.managers.length > 0 && (
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">负责人</label>
+                    <Popover open={isManagerOpen} onOpenChange={setIsManagerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={isManagerOpen}
+                            className="w-full justify-between"
+                        >
+                          {selectedManagers.length > 0
+                              ? `已选择 ${selectedManagers.length} 项`
+                              : "选择负责人..."}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="搜索负责人..." />
+                          <CommandList>
+                            <CommandEmpty>未找到负责人</CommandEmpty>
+                            <CommandGroup>
+                              {filterOptions.managers.map((manager) => (
+                                  <CommandItem
+                                      key={manager}
+                                      onSelect={() => {
+                                        toggleManager(manager)
+                                      }}
+                                  >
+                                    <Check
+                                        className={cn(
+                                            "mr-2 h-4 w-4",
+                                            selectedManagers.includes(manager) ? "opacity-100" : "opacity-0"
+                                        )}
+                                    />
+                                    {manager}
+                                  </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+              )}
+
+              {/* 专属客服多选下拉框 */}
+              {filterOptions.csNames.length > 0 && (
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">专属客服</label>
+                    <Popover open={isCsOpen} onOpenChange={setIsCsOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={isCsOpen}
+                            className="w-full justify-between"
+                        >
+                          {selectedCsNames.length > 0
+                              ? `已选择 ${selectedCsNames.length} 项`
+                              : "选择专属客服..."}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="搜索专属客服..." />
+                          <CommandList>
+                            <CommandEmpty>未找到专属客服</CommandEmpty>
+                            <CommandGroup>
+                              {filterOptions.csNames.map((csName) => (
+                                  <CommandItem
+                                      key={csName}
+                                      onSelect={() => {
+                                        toggleCsName(csName)
+                                      }}
+                                  >
+                                    <Check
+                                        className={cn(
+                                            "mr-2 h-4 w-4",
+                                            selectedCsNames.includes(csName) ? "opacity-100" : "opacity-0"
+                                        )}
+                                    />
+                                    {csName}
+                                  </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+              )}
+            </div>
+            {/* 第六行：订单状态（多选标签） */}
             <div>
               <label className="text-sm font-medium mb-2 block">订单状态（可多选）</label>
               <div className="flex flex-wrap gap-2">
@@ -689,149 +832,7 @@ export default function ManagerOrdersPage() {
               </div>
             </div>
             
-            {/* 第六行：分公司、负责人、专属客服（紧凑布局） */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* 分公司多选下拉框 */}
-              {filterOptions.branches.length > 0 && (
-                <div>
-                  <label className="text-sm font-medium mb-2 block">分公司</label>
-                  <Popover open={isBranchOpen} onOpenChange={setIsBranchOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={isBranchOpen}
-                        className="w-full justify-between"
-                      >
-                        {selectedBranches.length > 0
-                          ? `已选择 ${selectedBranches.length} 项`
-                          : "选择分公司..."}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0" align="start">
-                      <Command>
-                        <CommandInput placeholder="搜索分公司..." />
-                        <CommandList>
-                          <CommandEmpty>未找到分公司</CommandEmpty>
-                          <CommandGroup>
-                            {filterOptions.branches.map((branch) => (
-                              <CommandItem
-                                key={branch}
-                                onSelect={() => {
-                                  toggleBranch(branch)
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    selectedBranches.includes(branch) ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {branch}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              )}
-              
-              {/* 负责人多选下拉框 */}
-              {filterOptions.managers.length > 0 && (
-                <div>
-                  <label className="text-sm font-medium mb-2 block">负责人</label>
-                  <Popover open={isManagerOpen} onOpenChange={setIsManagerOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={isManagerOpen}
-                        className="w-full justify-between"
-                      >
-                        {selectedManagers.length > 0
-                          ? `已选择 ${selectedManagers.length} 项`
-                          : "选择负责人..."}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0" align="start">
-                      <Command>
-                        <CommandInput placeholder="搜索负责人..." />
-                        <CommandList>
-                          <CommandEmpty>未找到负责人</CommandEmpty>
-                          <CommandGroup>
-                            {filterOptions.managers.map((manager) => (
-                              <CommandItem
-                                key={manager}
-                                onSelect={() => {
-                                  toggleManager(manager)
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    selectedManagers.includes(manager) ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {manager}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              )}
-              
-              {/* 专属客服多选下拉框 */}
-              {filterOptions.csNames.length > 0 && (
-                <div>
-                  <label className="text-sm font-medium mb-2 block">专属客服</label>
-                  <Popover open={isCsOpen} onOpenChange={setIsCsOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={isCsOpen}
-                        className="w-full justify-between"
-                      >
-                        {selectedCsNames.length > 0
-                          ? `已选择 ${selectedCsNames.length} 项`
-                          : "选择专属客服..."}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0" align="start">
-                      <Command>
-                        <CommandInput placeholder="搜索专属客服..." />
-                        <CommandList>
-                          <CommandEmpty>未找到专属客服</CommandEmpty>
-                          <CommandGroup>
-                            {filterOptions.csNames.map((csName) => (
-                              <CommandItem
-                                key={csName}
-                                onSelect={() => {
-                                  toggleCsName(csName)
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    selectedCsNames.includes(csName) ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {csName}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              )}
-            </div>
+
 
             {/* 筛选结果统计 */}
             <div className="text-sm text-muted-foreground">

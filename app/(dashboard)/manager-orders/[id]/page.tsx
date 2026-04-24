@@ -20,6 +20,8 @@ import {
   UserPlus,
   X,
   Check,
+  Clock,
+  CreditCard,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -35,6 +37,14 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { zhCN } from "date-fns/locale"
@@ -46,6 +56,9 @@ import { OrderStatus, OrderType, Role } from "@/types"
 import { ORDER_STATUS_MAP, ORDER_STATUS_COLOR_MAP, SCHEDULING_TIMEOUT_HOURS } from "@/lib/order-constants"
 import { SchedulingCountdown, VoucherUpload } from "@/components/order/order-review-components"
 import { Upload } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
+import { logOrderOperation } from "@/lib/operation-log-helper"
+import { OperationAction } from "@/types/operation-log"
 
 function loadOrderFromStorage(orderId: string): Order | undefined {
   return getStoredOrders().find((o) => o.id === orderId)
@@ -263,6 +276,7 @@ export default function ManagerOrderDetailsPage() {
   const params = useParams()
   const router = useRouter()
   const { id } = params
+  const { user } = useAuth()
 
   const [order, setOrder] = React.useState<Order | undefined>(undefined)
   const [storageReady, setStorageReady] = React.useState(false)
@@ -291,6 +305,11 @@ export default function ManagerOrderDetailsPage() {
   const [isFinanceReviewOpen, setIsFinanceReviewOpen] = React.useState(false)
   const [reviewNote, setReviewNote] = React.useState("")
   const [vouchers, setVouchers] = React.useState<string[]>([])
+  
+  // 财务审核课时调整相关状态
+  const [adjustedHours, setAdjustedHours] = React.useState<number | string>("")
+  const [financeVouchers, setFinanceVouchers] = React.useState<string[]>([])
+  const [financeRemark, setFinanceRemark] = React.useState("")
 
   const student = React.useMemo(
     () => (order ? mockStudents.find((s) => s.id === order.studentId) : null),
@@ -547,18 +566,82 @@ export default function ManagerOrderDetailsPage() {
   // === 新增：财务审核处理函数 ===
   const handleFinanceApprove = () => {
     if (!order) return
+    
+    // 验证课时数调整（如果填写了）
+    let newTotalHours = order.totalHours
+    if (adjustedHours !== "" && adjustedHours !== null) {
+      const hours = Number(adjustedHours)
+      if (isNaN(hours) || hours < 0 || hours > 999) {
+        toast.error("课时数必须在0-999之间")
+        return
+      }
+      newTotalHours = hours
+    }
+    
+    const oldHours = order.totalHours
+    const hasHoursChanged = newTotalHours !== oldHours
+    
     const updated = {
       ...order,
       status: OrderStatus.SCHEDULING,
+      totalHours: newTotalHours,
       financeReviewNote: reviewNote || "财务审核通过",
       schedulingStartTime: new Date(),
       updatedAt: new Date()
     }
+    
     persistOrder(updated)
     setOrder(updated)
+    
+    // 记录操作日志
+    if (user) {
+      const logData: any = {
+        action: OperationAction.FINANCE_REVIEW_APPROVE,
+        operator: user,
+        orderId: order.id,
+        beforeState: { 
+          status: order.status,
+          totalHours: oldHours,
+        },
+        afterState: { 
+          status: OrderStatus.SCHEDULING,
+          totalHours: newTotalHours,
+        },
+        remark: financeRemark.trim() || reviewNote.trim() || "财务审核通过",
+      }
+      
+      // 如果有课时调整，添加详细信息
+      if (hasHoursChanged) {
+        logData.beforeState.adjustedHours = oldHours
+        logData.afterState.adjustedHours = newTotalHours
+        logData.remark = `课时数从 ${oldHours} 调整为 ${newTotalHours}${financeRemark ? '；' + financeRemark : ''}`
+      }
+      
+      // 保存上传的凭证到订单
+      if (financeVouchers.length > 0) {
+        const orders = getStoredOrders()
+        const updatedOrders = orders.map(o => {
+          if (o.id === order.id) {
+            return {
+              ...o,
+              financeVouchers: [...(o.financeVouchers || []), ...financeVouchers],
+            }
+          }
+          return o
+        })
+        saveStoredOrders(updatedOrders)
+        logData.afterState.financeVouchers = financeVouchers.length
+      }
+      
+      logOrderOperation(logData)
+    }
+    
     setIsFinanceReviewOpen(false)
     setReviewNote("")
-    toast.success('财务审核通过，已进入排单流程')
+    setAdjustedHours("")
+    setFinanceVouchers([])
+    setFinanceRemark("")
+    toast.success(hasHoursChanged ? `财务审核通过，课时数已调整为${newTotalHours}` : '财务审核通过，已进入排单流程')
   }
 
   const handleFinanceReject = () => {
@@ -575,6 +658,25 @@ export default function ManagerOrderDetailsPage() {
     }
     persistOrder(updated)
     setOrder(updated)
+    
+    // 记录操作日志
+    if (user) {
+      logOrderOperation({
+        action: OperationAction.FINANCE_REVIEW_REJECT,
+        operator: user,
+        orderId: order.id,
+        beforeState: { 
+          status: order.status,
+          totalHours: order.totalHours,
+        },
+        afterState: { 
+          status: OrderStatus.PENDING_CS_REVIEW,
+          totalHours: order.totalHours,
+        },
+        remark: reviewNote.trim(),
+      })
+    }
+    
     setIsFinanceReviewOpen(false)
     setReviewNote("")
     toast.success('已驳回到客服审核')
@@ -944,6 +1046,105 @@ export default function ManagerOrderDetailsPage() {
                   暂无老师申请
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* 订单及支付信息 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <CreditCard className="h-5 w-5" /> 订单及支付信息
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {order.transactions && order.transactions.length > 0 ? (
+                  <div>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                      支付记录
+                    </h4>
+                    <div className="border rounded-md">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>说明</TableHead>
+                            <TableHead>支付金额</TableHead>
+                            <TableHead>增加课时</TableHead>
+                            <TableHead className="text-right">时间</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {order.transactions.map((tx) => (
+                            <TableRow key={tx.id}>
+                              <TableCell className="font-medium">
+                                {tx.type === "INITIAL"
+                                  ? "首次下单"
+                                  : tx.type === "RENEWAL"
+                                    ? "续费"
+                                    : tx.type === "REWARD"
+                                      ? "转正红包"
+                                      : tx.type === "REFUND"
+                                        ? "退款"
+                                        : tx.type}
+                              </TableCell>
+                              <TableCell>¥{tx.amount.toLocaleString()}</TableCell>
+                              <TableCell>{tx.hours} 课时</TableCell>
+                              <TableCell className="text-right text-muted-foreground">
+                                {format(new Date(tx.createdAt), "yyyy-MM-dd HH:mm", {
+                                  locale: zhCN,
+                                })}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-6 text-sm">
+                    <div className="space-y-1">
+                      <span className="text-muted-foreground">订单金额</span>
+                      <div className="text-xl font-bold text-primary">
+                        ¥{order.price.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-muted-foreground">说明</span>
+                      <div className="font-medium">首次下单</div>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-muted-foreground">下单时间</span>
+                      <div className="font-medium flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {format(new Date(order.createdAt), "yyyy-MM-dd HH:mm", {
+                          locale: zhCN,
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {order.transactions && (
+                  <div className="grid grid-cols-2 gap-6 text-sm pt-4 border-t">
+                    <div className="space-y-1">
+                      <span className="text-muted-foreground">累计总金额</span>
+                      <div className="text-xl font-bold text-primary">
+                        ¥
+                        {order.transactions
+                          .reduce((sum, t) => sum + t.amount, 0)
+                          .toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-muted-foreground">累计总课时</span>
+                      <div className="font-medium">
+                        {order.transactions.reduce((sum, t) => sum + t.hours, 0)}{" "}
+                        课时
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
 
@@ -1678,19 +1879,69 @@ export default function ManagerOrderDetailsPage() {
       </Dialog>
 
       {/* === 新增：财务审核对话框 === */}
-      <Dialog open={isFinanceReviewOpen} onOpenChange={setIsFinanceReviewOpen}>
-        <DialogContent className="max-w-xl">
+      <Dialog open={isFinanceReviewOpen} onOpenChange={(open) => {
+        setIsFinanceReviewOpen(open)
+        if (!open) {
+          // 关闭时重置状态
+          setAdjustedHours("")
+          setFinanceVouchers([])
+          setFinanceRemark("")
+        }
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>财务审核</DialogTitle>
+            <p className="text-sm text-muted-foreground mt-1">请核实支付信息，并可调整课时数</p>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
+          <div className="space-y-5 py-4">
             {/* 订单信息摘要 */}
             <div className="bg-muted p-3 rounded-lg">
-              <p className="text-sm font-medium">订单信息</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                订单号：{order?.id} | {order?.subject} | {order?.grade} | ¥{order?.price.toLocaleString()}
-              </p>
+              <p className="text-sm font-medium mb-2">订单信息</p>
+              <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                <div>订单号：<span className="font-mono">{order?.id}</span></div>
+                <div>{order?.subject} | {order?.grade}</div>
+                <div>金额：¥{order?.price.toLocaleString()}</div>
+                <div>当前课时：<span className="font-semibold text-primary">{order?.totalHours}</span></div>
+              </div>
+            </div>
+
+            {/* 课时数调整 */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                <Pencil className="h-4 w-4" />
+                课时数调整（可选）
+              </h4>
+              <div className="flex items-start gap-3">
+                <div className="flex-1">
+                  <Label htmlFor="adjustedHours" className="text-xs text-blue-700 mb-1.5 block">
+                    调整后课时数（0-999）
+                  </Label>
+                  <Input
+                    id="adjustedHours"
+                    type="number"
+                    min={0}
+                    max={999}
+                    placeholder={`当前：${order?.totalHours || '未设置'}`}
+                    value={adjustedHours}
+                    onChange={(e) => setAdjustedHours(e.target.value)}
+                    className="bg-white"
+                  />
+                  <p className="text-xs text-blue-600 mt-1.5">
+                    💡 留空则保持原课时数 {order?.totalHours}
+                  </p>
+                </div>
+                {adjustedHours !== "" && adjustedHours !== null && Number(adjustedHours) !== order?.totalHours && (
+                  <div className="shrink-0 bg-amber-100 border border-amber-300 rounded px-3 py-2 text-xs">
+                    <div className="text-amber-800 font-medium mb-1">调整预览</div>
+                    <div className="text-amber-700">
+                      <span className="line-through">{order?.totalHours}</span>
+                      <span className="mx-1">→</span>
+                      <span className="font-bold text-amber-900">{adjustedHours}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* 支付凭证展示 */}
@@ -1703,7 +1954,7 @@ export default function ManagerOrderDetailsPage() {
                       key={index}
                       src={voucher}
                       alt={`凭证${index + 1}`}
-                      className="w-20 h-20 object-cover rounded border cursor-pointer hover:opacity-80"
+                      className="w-20 h-20 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
                       onClick={() => window.open(voucher, '_blank')}
                     />
                   ))}
@@ -1721,6 +1972,16 @@ export default function ManagerOrderDetailsPage() {
               </div>
             )}
 
+            {/* 上传财务审核凭证 */}
+            <div>
+              <h4 className="text-sm font-medium mb-2">上传审核凭证（可选）</h4>
+              <VoucherUpload
+                value={financeVouchers}
+                onChange={setFinanceVouchers}
+                maxCount={5}
+              />
+            </div>
+
             {/* 财务审核意见 */}
             <div>
               <h4 className="text-sm font-medium mb-2">财务审核意见（必填）</h4>
@@ -1729,6 +1990,17 @@ export default function ManagerOrderDetailsPage() {
                 value={reviewNote}
                 onChange={(e) => setReviewNote(e.target.value)}
                 rows={3}
+              />
+            </div>
+            
+            {/* 调整备注 */}
+            <div>
+              <h4 className="text-sm font-medium mb-2">调整备注（可选）</h4>
+              <Textarea
+                placeholder="如有课时调整或其他特殊情况，请在此说明..."
+                value={financeRemark}
+                onChange={(e) => setFinanceRemark(e.target.value)}
+                rows={2}
               />
             </div>
           </div>
@@ -1741,7 +2013,7 @@ export default function ManagerOrderDetailsPage() {
               <X className="mr-2 h-4 w-4" />
               驳回
             </Button>
-            <Button onClick={handleFinanceApprove}>
+            <Button onClick={handleFinanceApprove} className="bg-indigo-600 hover:bg-indigo-700">
               <Check className="mr-2 h-4 w-4" />
               通过
             </Button>

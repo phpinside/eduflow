@@ -135,6 +135,9 @@ export interface Order {
   
   /** G账号充值备注 */
   rechargeRemark?: string
+  
+  /** 财务审核凭证图片（Base64数组，存储在localStorage） */
+  financeVouchers?: string[]
 }
 
 /** 退费申请类型：试课 / 正课(含续课) / 仅转正红包 */

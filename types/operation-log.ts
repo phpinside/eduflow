@@ -43,6 +43,8 @@ export enum OperationAction {
   // 财务相关
   RECHARGE_STATUS_CHANGE = 'RECHARGE_STATUS_CHANGE',  // 充值状态变更
   UPLOAD_VOUCHER = 'UPLOAD_VOUCHER',     // 上传凭证
+  FINANCE_REVIEW_APPROVE = 'FINANCE_REVIEW_APPROVE',   // 财务审核通过（含课时调整）
+  FINANCE_REVIEW_REJECT = 'FINANCE_REVIEW_REJECT',     // 财务审核驳回
 }
 
 /** 操作日志记录 */
