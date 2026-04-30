@@ -45,6 +45,9 @@ export enum OperationAction {
   UPLOAD_VOUCHER = 'UPLOAD_VOUCHER',     // 上传凭证
   FINANCE_REVIEW_APPROVE = 'FINANCE_REVIEW_APPROVE',   // 财务审核通过（含课时调整）
   FINANCE_REVIEW_REJECT = 'FINANCE_REVIEW_REJECT',     // 财务审核驳回
+  
+  // 学生管理相关
+  STUDENT_HOURS_ADJUST = 'STUDENT_HOURS_ADJUST',       // 学生课时调整
 }
 
 /** 操作日志记录 */

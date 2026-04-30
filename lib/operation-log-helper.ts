@@ -112,3 +112,39 @@ export function logFinanceOperation(params: {
     remark: params.remark,
   })
 }
+
+/**
+ * 记录学生课时调整操作日志
+ */
+export function logStudentHoursAdjustment(params: {
+  action: OperationAction
+  operator: Pick<User, 'id' | 'name' | 'roles'>
+  studentId: string
+  studentName: string
+  parentPhone: string
+  beforeHours: number
+  afterHours: number
+  adjustAmount: number
+  remark: string
+}) {
+  return addOperationLog({
+    type: OperationLogType.SYSTEM,
+    action: params.action,
+    operatorId: params.operator.id,
+    operatorName: params.operator.name,
+    operatorRole: params.operator.roles[0] || '',
+    targetId: params.studentId,
+    targetType: 'Student',
+    targetInfo: {
+      studentName: params.studentName,
+      parentPhone: params.parentPhone,
+    },
+    beforeState: {
+      hours: params.beforeHours,
+    },
+    afterState: {
+      hours: params.afterHours,
+    },
+    remark: params.remark || `课时调整：${params.adjustAmount > 0 ? '+' : ''}${params.adjustAmount}课时`,
+  })
+}

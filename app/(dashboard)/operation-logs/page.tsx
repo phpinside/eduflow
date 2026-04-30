@@ -86,6 +86,9 @@ const OPERATION_ACTION_MAP: Record<OperationAction, string> = {
   [OperationAction.UPLOAD_VOUCHER]: "上传凭证",
   [OperationAction.FINANCE_REVIEW_APPROVE]: "财务审核通过",
   [OperationAction.FINANCE_REVIEW_REJECT]: "财务审核驳回",
+  
+  // 学生管理相关
+  [OperationAction.STUDENT_HOURS_ADJUST]: "学生课时调整",
 }
 
 // 操作类型颜色映射

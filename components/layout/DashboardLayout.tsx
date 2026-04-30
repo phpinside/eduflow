@@ -35,6 +35,7 @@ import {
   Tag,
   Sliders,
   MessageSquareText,
+  Clock,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -193,6 +194,12 @@ const navItems: NavItem[] = [
     title: "全局配置",
     href: "/global-settings",
     icon: Sliders,
+    roles: [Role.ADMIN]
+  },
+  {
+    title: "学生课时调整",
+    href: "/student-hours-adjustment",
+    icon: Clock,
     roles: [Role.ADMIN]
   },
   {
