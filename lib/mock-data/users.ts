@@ -1,6 +1,16 @@
 import { User, Role, UserStatus } from '@/types'
 
-const createTutor = (id: number, name: string, phoneSuffix: string, seed: string, managerId?: string, managerName?: string): User => ({
+interface TutorExtras {
+  managerId?: string
+  managerName?: string
+  tutorLevel?: 'A' | 'B' | 'C' | 'D' | 'E'
+  tutorSubjects?: string[]
+  tutorGrades?: string[]
+  creditScore?: number
+  createdAt?: Date
+}
+
+const createTutor = (id: number, name: string, phoneSuffix: string, seed: string, extras: TutorExtras = {}): User => ({
   id: `user-tutor-${id}`,
   phone: `1380000${phoneSuffix}`,
   name,
@@ -8,9 +18,13 @@ const createTutor = (id: number, name: string, phoneSuffix: string, seed: string
   status: UserStatus.APPROVED,
   avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`,
   wechatQrCode: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=wxid_${seed}`,
-  managerId,
-  managerName,
-  createdAt: new Date('2023-01-01'),
+  managerId: extras.managerId,
+  managerName: extras.managerName,
+  tutorLevel: extras.tutorLevel,
+  tutorSubjects: extras.tutorSubjects,
+  tutorGrades: extras.tutorGrades,
+  creditScore: extras.creditScore,
+  createdAt: extras.createdAt ?? new Date('2023-01-01'),
   updatedAt: new Date('2023-01-01')
 })
 
@@ -89,29 +103,29 @@ export const mockUsers: User[] = [
     updatedAt: new Date('2023-01-01')
   },
   // Existing Tutors (referenced in orders) - 分配给不同的学管
-  createTutor(1, '李伴学', '2001', 'tutor1', 'user-manager-1', '王学管'),
-  createTutor(2, '王金牌', '2002', 'tutor2', 'user-manager-1', '王学管'),
-  createTutor(3, '刘资深', '2003', 'tutor3', 'user-manager-1', '王学管'),
-  
+  createTutor(1, '李伴学', '2001', 'tutor1', { managerId: 'user-manager-1', managerName: '王学管', tutorLevel: 'A', tutorSubjects: ['数学', '物理'], tutorGrades: ['高一', '高二', '高三'], creditScore: 12, createdAt: new Date('2022-09-01') }),
+  createTutor(2, '王金牌', '2002', 'tutor2', { managerId: 'user-manager-1', managerName: '王学管', tutorLevel: 'A', tutorSubjects: ['数学', '化学'], tutorGrades: ['七年级', '八年级', '九年级', '高一'], creditScore: 11, createdAt: new Date('2022-11-15') }),
+  createTutor(3, '刘资深', '2003', 'tutor3', { managerId: 'user-manager-1', managerName: '王学管', tutorLevel: 'B', tutorSubjects: ['数学'], tutorGrades: ['一年级', '二年级', '三年级', '四年级', '五年级', '六年级'], creditScore: 10, createdAt: new Date('2023-01-10') }),
+
   // New Tutors to reach 20 - 分配给不同的学管
-  createTutor(4, '陈老师', '2004', 'tutor4', 'user-manager-1', '王学管'),
-  createTutor(5, '杨老师', '2005', 'tutor5', 'user-manager-1', '王学管'),
-  createTutor(6, '黄老师', '2006', 'tutor6', 'user-manager-1', '王学管'),
-  createTutor(7, '赵老师', '2007', 'tutor7', 'user-manager-2', '李学管'),
-  createTutor(8, '周老师', '2008', 'tutor8', 'user-manager-2', '李学管'),
-  createTutor(9, '吴老师', '2009', 'tutor9', 'user-manager-2', '李学管'),
-  createTutor(10, '徐老师', '2010', 'tutor10', 'user-manager-2', '李学管'),
-  createTutor(11, '孙老师', '2011', 'tutor11', 'user-manager-2', '李学管'),
-  createTutor(12, '马老师', '2012', 'tutor12', 'user-manager-2', '李学管'),
-  createTutor(13, '朱老师', '2013', 'tutor13', 'user-manager-3', '张学管'),
-  createTutor(14, '胡老师', '2014', 'tutor14', 'user-manager-3', '张学管'),
-  createTutor(15, '郭老师', '2015', 'tutor15', 'user-manager-3', '张学管'),
-  createTutor(16, '何老师', '2016', 'tutor16', 'user-manager-3', '张学管'),
-  createTutor(17, '高老师', '2017', 'tutor17', 'user-manager-3', '张学管'),
-  createTutor(18, '林老师', '2018', 'tutor18', 'user-manager-3', '张学管'),
+  createTutor(4, '陈老师', '2004', 'tutor4', { managerId: 'user-manager-1', managerName: '王学管', tutorLevel: 'B', tutorSubjects: ['物理', '化学'], tutorGrades: ['高一', '高二', '高三'], creditScore: 10, createdAt: new Date('2023-02-20') }),
+  createTutor(5, '杨老师', '2005', 'tutor5', { managerId: 'user-manager-1', managerName: '王学管', tutorLevel: 'B', tutorSubjects: ['数学', '物理', '化学'], tutorGrades: ['七年级', '八年级', '九年级'], creditScore: 9, createdAt: new Date('2023-03-05') }),
+  createTutor(6, '黄老师', '2006', 'tutor6', { managerId: 'user-manager-1', managerName: '王学管', tutorLevel: 'C', tutorSubjects: ['数学'], tutorGrades: ['四年级', '五年级', '六年级', '七年级'], creditScore: 8, createdAt: new Date('2023-04-18') }),
+  createTutor(7, '赵老师', '2007', 'tutor7', { managerId: 'user-manager-2', managerName: '李学管', tutorLevel: 'A', tutorSubjects: ['物理'], tutorGrades: ['高一', '高二', '高三'], creditScore: 12, createdAt: new Date('2022-08-01') }),
+  createTutor(8, '周老师', '2008', 'tutor8', { managerId: 'user-manager-2', managerName: '李学管', tutorLevel: 'B', tutorSubjects: ['化学'], tutorGrades: ['高二', '高三'], creditScore: 9, createdAt: new Date('2023-01-22') }),
+  createTutor(9, '吴老师', '2009', 'tutor9', { managerId: 'user-manager-2', managerName: '李学管', tutorLevel: 'C', tutorSubjects: ['数学', '物理'], tutorGrades: ['八年级', '九年级', '高一'], creditScore: 7, createdAt: new Date('2023-05-30') }),
+  createTutor(10, '徐老师', '2010', 'tutor10', { managerId: 'user-manager-2', managerName: '李学管', tutorLevel: 'C', tutorSubjects: ['数学'], tutorGrades: ['一年级', '二年级', '三年级'], creditScore: 6, createdAt: new Date('2023-06-14') }),
+  createTutor(11, '孙老师', '2011', 'tutor11', { managerId: 'user-manager-2', managerName: '李学管', tutorLevel: 'D', tutorSubjects: ['化学'], tutorGrades: ['高一', '高二'], creditScore: 4, createdAt: new Date('2023-07-08') }),
+  createTutor(12, '马老师', '2012', 'tutor12', { managerId: 'user-manager-2', managerName: '李学管', tutorLevel: 'B', tutorSubjects: ['数学', '化学'], tutorGrades: ['五年级', '六年级', '七年级', '八年级'], creditScore: 10, createdAt: new Date('2023-02-01') }),
+  createTutor(13, '朱老师', '2013', 'tutor13', { managerId: 'user-manager-3', managerName: '张学管', tutorLevel: 'A', tutorSubjects: ['数学', '物理', '化学'], tutorGrades: ['高一', '高二', '高三'], creditScore: 11, createdAt: new Date('2022-10-10') }),
+  createTutor(14, '胡老师', '2014', 'tutor14', { managerId: 'user-manager-3', managerName: '张学管', tutorLevel: 'B', tutorSubjects: ['物理'], tutorGrades: ['七年级', '八年级', '九年级'], creditScore: 9, createdAt: new Date('2023-03-25') }),
+  createTutor(15, '郭老师', '2015', 'tutor15', { managerId: 'user-manager-3', managerName: '张学管', tutorLevel: 'C', tutorSubjects: ['数学'], tutorGrades: ['二年级', '三年级', '四年级', '五年级'], creditScore: 7, createdAt: new Date('2023-08-01') }),
+  createTutor(16, '何老师', '2016', 'tutor16', { managerId: 'user-manager-3', managerName: '张学管', tutorLevel: 'D', tutorSubjects: ['化学', '物理'], tutorGrades: ['高二', '高三'], creditScore: 3, createdAt: new Date('2023-09-12') }),
+  createTutor(17, '高老师', '2017', 'tutor17', { managerId: 'user-manager-3', managerName: '张学管', tutorLevel: 'E', tutorSubjects: ['数学'], tutorGrades: ['一年级', '二年级'], creditScore: 1, createdAt: new Date('2023-10-05') }),
+  createTutor(18, '林老师', '2018', 'tutor18', { managerId: 'user-manager-3', managerName: '张学管', tutorLevel: 'B', tutorSubjects: ['数学', '物理'], tutorGrades: ['六年级', '七年级', '八年级'], creditScore: 8, createdAt: new Date('2023-04-01') }),
   // 有些教练没有分配学管
-  createTutor(19, '郑老师', '2019', 'tutor19'),
-  createTutor(20, '谢老师', '2020', 'tutor20'),
+  createTutor(19, '郑老师', '2019', 'tutor19', { tutorLevel: 'C', tutorSubjects: ['化学'], tutorGrades: ['高一', '高二'], creditScore: 6, createdAt: new Date('2023-11-20') }),
+  createTutor(20, '谢老师', '2020', 'tutor20', { tutorLevel: 'B', tutorSubjects: ['数学', '化学'], tutorGrades: ['三年级', '四年级', '五年级', '六年级'], creditScore: 9, createdAt: new Date('2023-12-01') }),
 
   {
     id: 'user-manager-1',

@@ -36,6 +36,11 @@ import {
   Sliders,
   MessageSquareText,
   Clock,
+  Network,
+  ChevronDown,
+  Search,
+  FileSearch,
+  ClipboardCheck,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -58,9 +63,13 @@ import {
 
 interface NavItem {
   title: string
-  href: string
+  /** Required for leaf items; omit when `children` is set (parent row is expand-only). */
+  href?: string
+  /** When `children` exist, used to expand/highlight when pathname matches deeper routes (e.g. `/students-center/[orderId]`). */
+  matchPrefix?: string
   icon: React.ComponentType<{ className?: string }>
   roles: Role[]
+  children?: NavItem[]
 }
 
 const navItems: NavItem[] = [
@@ -89,16 +98,95 @@ const navItems: NavItem[] = [
     roles: [Role.TUTOR , Role.MANAGER, ]
   },
   {
-    title: "我的学员",
-    href: "/my-students",
-    icon: BookUser,
-    roles: [Role.TUTOR, Role.MANAGER]
+    title: "学员中心",
+    matchPrefix: "/students-center",
+    icon: GraduationCap,
+    roles: [Role.TUTOR, Role.MANAGER],
+    children: [
+      {
+        title: "我的学员",
+        href: "/my-students",
+        icon: BookUser,
+        roles: [Role.TUTOR, Role.MANAGER],
+      },
+      {
+        title: "团队学员",
+        href: "/team-students",
+        icon: UsersRound,
+        roles: [Role.TUTOR, Role.MANAGER],
+      },
+    ],
+  },
+  {
+    title: "教学与反馈",
+    matchPrefix: "/teaching-feedback",
+    icon: MessageSquareText,
+    roles: [Role.TUTOR, Role.MANAGER],
+    children: [
+      {
+        title: "课后反馈检索",
+        href: "/teaching-feedback/feedback-search",
+        icon: Search,
+        roles: [Role.TUTOR, Role.MANAGER],
+      },
+      {
+        title: "阶段性测评检索",
+        href: "/teaching-feedback/assessment-search",
+        icon: ClipboardCheck,
+        roles: [Role.TUTOR, Role.MANAGER],
+      },
+      {
+        title: "学习规划书检索",
+        href: "/teaching-feedback/plan-search",
+        icon: FileSearch,
+        roles: [Role.TUTOR, Role.MANAGER],
+      },
+    ],
+  },
+  {
+    title: "团队管理",
+    matchPrefix: "/team-management",
+    icon: Network,
+    roles: [Role.TUTOR, Role.MANAGER],
+    children: [
+      {
+        title: "伴学教练检索",
+        href: "/team-management/tutor-search",
+        icon: UserSearch,
+        roles: [Role.TUTOR, Role.MANAGER],
+      },
+      {
+        title: "管理团队检索",
+        href: "/team-management/manager-search",
+        icon: UsersRound,
+        roles: [Role.TUTOR, Role.MANAGER],
+      },
+    ],
   },
   {
     title: "我的日历",
     href: "/calendar",
     icon: Calendar,
     roles: [Role.TUTOR, Role.MANAGER]
+  },
+  {
+    title: "收入与统计",
+    icon: Wallet,
+    roles: [Role.TUTOR, Role.MANAGER],
+    children: [
+      {
+        title: "课时收入",
+        href: "/my-income",
+        icon: Wallet,
+        roles: [Role.TUTOR, Role.MANAGER],
+      },
+      {
+        title: "管理收入",
+        href: "/management-income",
+        icon: UsersRound,
+        roles: [Role.MANAGER],
+      },
+    ],
   },
   {
     title: "我的收入",
@@ -111,18 +199,6 @@ const navItems: NavItem[] = [
     href: "/teachers",
     icon: UsersRound,
     roles: [Role.MANAGER]
-  },
-  {
-    title: "学习规划书管理",
-    href: "/study-plan",
-    icon: FileText,
-    roles: [Role.MANAGER]
-  },
-  {
-    title: "接单设置",
-    href: "/order-settings",
-    icon: Settings,
-    roles: [Role.TUTOR, Role.MANAGER]
   },
   {
     title: "订单管理",
@@ -197,9 +273,9 @@ const navItems: NavItem[] = [
     roles: [Role.ADMIN]
   },
   {
-    title: "学生课时调整",
-    href: "/student-hours-adjustment",
-    icon: Clock,
+    title: "信用分规则配置",
+    href: "/tutor-credit-rule-settings",
+    icon: BadgeDollarSign,
     roles: [Role.ADMIN]
   },
   {
@@ -209,6 +285,80 @@ const navItems: NavItem[] = [
     roles: [Role.SALES, Role.TUTOR, Role.MANAGER, Role.OPERATOR, Role.ADMIN]
   }
 ]
+
+function NavItemLink({ item, pathname }: { item: NavItem; pathname: string }) {
+  const hasChildren = Boolean(item.children && item.children.length > 0)
+  const matchesGroup =
+    hasChildren &&
+    (item.children!.some(c => pathname.startsWith(c.href!)) ||
+      (item.matchPrefix ? pathname.startsWith(item.matchPrefix) : false))
+
+  const [open, setOpen] = React.useState(() =>
+    hasChildren ? Boolean(matchesGroup) : false
+  )
+
+  const Icon = item.icon
+  const isActive = Boolean(item.href && pathname === item.href)
+  const isChildActive = Boolean(matchesGroup)
+
+  if (!hasChildren) {
+    const href = item.href!
+    return (
+      <Link
+        href={href}
+        className={cn(
+          "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
+          isActive
+            ? "bg-gray-100 text-primary dark:bg-gray-800"
+            : "text-muted-foreground hover:bg-gray-100 dark:hover:bg-gray-800"
+        )}
+      >
+        <Icon className="h-4 w-4" />
+        {item.title}
+      </Link>
+    )
+  }
+
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(prev => !prev)}
+        className={cn(
+          "flex w-full items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
+          isActive || isChildActive
+            ? "bg-gray-100 text-primary dark:bg-gray-800"
+            : "text-muted-foreground hover:bg-gray-100 dark:hover:bg-gray-800"
+        )}
+      >
+        <Icon className="h-4 w-4" />
+        <span className="flex-1 text-left">{item.title}</span>
+        <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />
+      </button>
+      {open && (
+        <div className="ml-4 mt-0.5 grid gap-0.5 border-l border-gray-200 pl-2 dark:border-gray-700">
+          {item.children!.map((child, idx) => {
+            const ChildIcon = child.icon
+            return (
+              <Link
+                key={idx}
+                href={child.href!}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-1.5 text-[13px] transition-all hover:text-primary",
+                  pathname.startsWith(child.href!)
+                    ? "bg-gray-100 text-primary dark:bg-gray-800"
+                    : "text-muted-foreground hover:bg-gray-100 dark:hover:bg-gray-800"
+                )}
+              >
+                <ChildIcon className="h-3.5 w-3.5" />
+                {child.title}
+              </Link>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function DashboardSidebar() {
   const { currentRole } = useAuth()
@@ -228,24 +378,9 @@ export function DashboardSidebar() {
       </div>
       <div className="flex-1 overflow-auto py-4">
         <nav className="grid items-start px-4 text-sm font-medium">
-          {filteredNavItems.map((item, index) => {
-            const Icon = item.icon
-            return (
-              <Link
-                key={index}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
-                  pathname === item.href
-                    ? "bg-gray-100 text-primary dark:bg-gray-800"
-                    : "text-muted-foreground hover:bg-gray-100 dark:hover:bg-gray-800"
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {item.title}
-              </Link>
-            )
-          })}
+          {filteredNavItems.map((item, index) => (
+            <NavItemLink key={index} item={item} pathname={pathname} />
+          ))}
         </nav>
       </div>
     </div>

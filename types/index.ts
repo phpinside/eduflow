@@ -29,6 +29,12 @@ export interface User {
   /** 最小起充课时数（招生老师）；未设置时默认 10；最小 0.5，须为 0.5 的倍数 */
   minRechargeHours?: number
   recommendedForTrial?: boolean // 系统推荐试课
+  tutorLevel?: 'A' | 'B' | 'C' | 'D' | 'E'  // 教练等级（伴学教练专用）
+  tutorSubjects?: string[]    // 可授科目（伴学教练专用）
+  tutorGrades?: string[]      // 可授年级（伴学教练专用）
+  creditScore?: number        // 信用分 1-12（伴学教练专用）
+  tutorId?: string            // 伴学师ID（业务侧展示ID）
+  managerPhone?: string       // 学管手机号（伴学教练注册填写）
   managerId?: string         // 归属的学管ID（伴学教练专用）
   managerName?: string       // 归属的学管姓名（冗余字段，便于展示）
   branchCompanyId?: string   // 所属分公司ID（招生老师专用）
@@ -491,6 +497,54 @@ export interface Subject {
   enabled: boolean                   // 是否启用
   createdAt: Date
   updatedAt: Date
+}
+
+// ========== 伴学信用分规则 ==========
+
+export enum TutorCreditRuleCategory {
+  MINOR = 'MINOR',       // 轻微违规
+  GENERAL = 'GENERAL',   // 一般违规
+  SEVERE = 'SEVERE',     // 严重违规
+  REDLINE = 'REDLINE',   // 红线行为
+}
+
+export interface TutorCreditRule {
+  id: string
+  category: TutorCreditRuleCategory
+  title: string
+  description: string
+  /** 分值变化：负数为扣分；红线类别固定为 -12（扣 12 分 + 立即清退） */
+  scoreDelta: number
+  isEnabled: boolean
+  sortOrder: number
+  createdAt: Date
+  updatedAt: Date
+}
+
+// ========== 伴学信用分变动记录 ==========
+
+export enum TutorCreditChangeType {
+  INITIAL_REGISTRATION = 'INITIAL_REGISTRATION', // 初始注册
+  RESET                = 'RESET',                // 重置为12分
+  MINOR_VIOLATION      = 'MINOR_VIOLATION',       // 轻微违规
+  GENERAL_VIOLATION    = 'GENERAL_VIOLATION',     // 一般违规
+  SEVERE_VIOLATION     = 'SEVERE_VIOLATION',      // 严重违规
+  REDLINE_VIOLATION    = 'REDLINE_VIOLATION',     // 红线行为
+}
+
+export interface TutorCreditLog {
+  id: string
+  tutorId: string
+  changeType: TutorCreditChangeType
+  ruleId?: string
+  ruleName?: string
+  scoreDelta: number
+  scoreAfter: number
+  changedAt: Date
+  submittedById: string
+  submittedByName: string
+  note?: string
+  evidenceImages?: string[]
 }
 
 // ========== 分公司管理 ==========

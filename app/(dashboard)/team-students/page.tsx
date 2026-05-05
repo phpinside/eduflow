@@ -58,7 +58,7 @@ interface StudentCenterRow {
     orderId?: string
 }
 
-export default function MyStudentsPage() {
+export default function TeamStudentsPage() {
     const { user, currentRole } = useAuth()
 
     const [orders, setOrders] = React.useState<Order[]>([])
@@ -93,13 +93,7 @@ export default function MyStudentsPage() {
     const allRows = React.useMemo((): StudentCenterRow[] => {
         if (!user) return []
 
-        let filtered = orders.filter(o => VALID_STATUSES.includes(o.status))
-
-        if (currentRole === Role.TUTOR) {
-            filtered = filtered.filter(o => o.assignedTeacherId === user.id)
-        } else if (currentRole === Role.MANAGER) {
-            filtered = filtered.filter(o => o.managerId === user.id)
-        }
+        const filtered = orders.filter(o => VALID_STATUSES.includes(o.status))
 
         return filtered.map(order => {
             const student = mockStudents.find(s => s.id === order.studentId)
@@ -121,7 +115,7 @@ export default function MyStudentsPage() {
                 orderId: order.id,
             }
         })
-    }, [user, currentRole, orders, userMap])
+    }, [user, orders, userMap])
 
     const filteredRows = React.useMemo(() => {
         let rows = allRows
@@ -211,7 +205,7 @@ export default function MyStudentsPage() {
     return (
         <div className="space-y-6">
             <div className="flex flex-col gap-1">
-                <h1 className="text-2xl font-bold tracking-tight">我的学员</h1>
+                <h1 className="text-2xl font-bold tracking-tight">团队学员</h1>
                 <p className="text-sm text-muted-foreground">
                     共找到 <span className="font-semibold text-foreground">{filteredRows.length}</span> 条学员记录
                 </p>
@@ -230,7 +224,7 @@ export default function MyStudentsPage() {
                         onClick={() => setFiltersExpanded((e) => !e)}
                         className="flex min-w-0 flex-1 items-center gap-2 rounded-md py-0.5 pr-1 text-left outline-none ring-offset-background hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         aria-expanded={filtersExpanded}
-                        aria-controls="my-students-filters-panel"
+                        aria-controls="team-students-filters-panel"
                     >
                         <ChevronDown
                             className={cn(
@@ -240,7 +234,7 @@ export default function MyStudentsPage() {
                             aria-hidden
                         />
                         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
-                            <span id="my-students-filters-heading" className="text-sm font-semibold leading-none">
+                            <span id="team-students-filters-heading" className="text-sm font-semibold leading-none">
                                 筛选条件
                             </span>
                             {!filtersExpanded && hasActiveFilters ? (
@@ -268,9 +262,9 @@ export default function MyStudentsPage() {
                 </div>
 
                 <div
-                    id="my-students-filters-panel"
+                    id="team-students-filters-panel"
                     role="region"
-                    aria-labelledby="my-students-filters-heading"
+                    aria-labelledby="team-students-filters-heading"
                     hidden={!filtersExpanded}
                 >
                     <div className="p-5 space-y-5">
@@ -371,7 +365,28 @@ export default function MyStudentsPage() {
                         </div>
                     </div>
 
-                   
+                    <div className="space-y-3">
+                        <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                            <UserCog className="h-3 w-3" />
+                            伴学教练
+                        </p>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            <Input
+                                placeholder="教练姓名"
+                                value={tutorNameFilter}
+                                onChange={e => setTutorNameFilter(e.target.value)}
+                                className="bg-background"
+                                autoComplete="off"
+                            />
+                            <Input
+                                placeholder="学管姓名"
+                                value={managerNameFilter}
+                                onChange={e => setManagerNameFilter(e.target.value)}
+                                className="bg-background"
+                                autoComplete="off"
+                            />
+                        </div>
+                    </div>
                     </div>
                 </div>
             </div>
