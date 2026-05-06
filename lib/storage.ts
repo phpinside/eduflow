@@ -18,7 +18,8 @@ import type { OperationLog } from '@/types/operation-log'
 import { mockAssessments, type MockAssessmentRecord } from './mock-data/assessments'
 import { mockTutorCreditRules } from './mock-data/tutor-credit-rules'
 import { mockTutorCreditLogs } from './mock-data/tutor-credit-logs'
-import type { TutorCreditRule, TutorCreditLog } from '@/types'
+import { mockManagementIncomeDetails } from './mock-data/management-income'
+import type { TutorCreditRule, TutorCreditLog, ManagementIncomeDetail } from '@/types'
 
 export const STORAGE_KEYS = {
   USERS: 'eduflow:users',
@@ -38,6 +39,7 @@ export const STORAGE_KEYS = {
   ASSESSMENTS: 'eduflow:assessments',
   TUTOR_CREDIT_RULES: 'eduflow:tutor-credit-rules',
   TUTOR_CREDIT_LOGS: 'eduflow:tutor-credit-logs',
+  MANAGEMENT_INCOME: 'eduflow:management-income',
 }
 
 const isBrowser = typeof window !== 'undefined'
@@ -254,6 +256,7 @@ export const initializeMockData = () => {
   if (!localStorage.getItem(STORAGE_KEYS.OPERATION_LOGS)) saveMockData(STORAGE_KEYS.OPERATION_LOGS, mockOperationLogs)
   if (!localStorage.getItem(STORAGE_KEYS.TUTOR_CREDIT_RULES)) saveMockData(STORAGE_KEYS.TUTOR_CREDIT_RULES, mockTutorCreditRules)
   if (!localStorage.getItem(STORAGE_KEYS.TUTOR_CREDIT_LOGS)) saveMockData(STORAGE_KEYS.TUTOR_CREDIT_LOGS, mockTutorCreditLogs)
+  if (!localStorage.getItem(STORAGE_KEYS.MANAGEMENT_INCOME)) saveMockData(STORAGE_KEYS.MANAGEMENT_INCOME, mockManagementIncomeDetails)
 }
 
 // === 伴学信用分规则 ===
@@ -271,3 +274,8 @@ export const getStoredTutorCreditLogs = (): TutorCreditLog[] =>
 
 export const saveStoredTutorCreditLogs = (data: TutorCreditLog[]) =>
   saveMockData(STORAGE_KEYS.TUTOR_CREDIT_LOGS, data)
+
+// === 管理收入明细 ===
+
+export const getStoredManagementIncomeDetails = (): ManagementIncomeDetail[] =>
+  getMockData(STORAGE_KEYS.MANAGEMENT_INCOME, mockManagementIncomeDetails)

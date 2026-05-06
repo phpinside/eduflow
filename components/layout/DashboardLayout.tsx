@@ -156,18 +156,12 @@ const navItems: NavItem[] = [
         roles: [Role.TUTOR, Role.MANAGER],
       },
       {
-        title: "管理团队检索",
+        title: "伴学团队检索",
         href: "/team-management/manager-search",
         icon: UsersRound,
         roles: [Role.TUTOR, Role.MANAGER],
       },
     ],
-  },
-  {
-    title: "我的日历",
-    href: "/calendar",
-    icon: Calendar,
-    roles: [Role.TUTOR, Role.MANAGER]
   },
   {
     title: "收入与统计",
@@ -176,7 +170,7 @@ const navItems: NavItem[] = [
     children: [
       {
         title: "课时收入",
-        href: "/my-income",
+        href: "/lesson-income",
         icon: Wallet,
         roles: [Role.TUTOR, Role.MANAGER],
       },
@@ -189,16 +183,10 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    title: "我的收入",
-    href: "/my-income",
-    icon: Wallet,
+    title: "我的日历",
+    href: "/calendar",
+    icon: Calendar,
     roles: [Role.TUTOR, Role.MANAGER]
-  },
-  {
-    title: "伴学教练管理",
-    href: "/teachers",
-    icon: UsersRound,
-    roles: [Role.MANAGER]
   },
   {
     title: "订单管理",

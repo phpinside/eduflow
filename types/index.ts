@@ -37,6 +37,10 @@ export interface User {
   managerPhone?: string       // 学管手机号（伴学教练注册填写）
   managerId?: string         // 归属的学管ID（伴学教练专用）
   managerName?: string       // 归属的学管姓名（冗余字段，便于展示）
+  managerRank?: '见习学管' | '正式学管' | '总监'  // 学管职级
+  managerRankEffectiveDate?: Date                  // 职级生效时间
+  superiorId?: string        // 上级学管ID（学管专用）
+  superiorName?: string      // 上级学管姓名（冗余字段）
   branchCompanyId?: string   // 所属分公司ID（招生老师专用）
   branchCompanyName?: string // 所属分公司名称（冗余字段）
   createdAt: Date
@@ -394,6 +398,27 @@ export interface IncomeRecord {
   settledAt?: Date                   // 结算时间
   createdAt: Date
   updatedAt: Date
+}
+
+// ========== 管理收入子类型 ==========
+
+export enum ManagementIncomeSubType {
+  TUTOR_MGMT_FEE = 'TUTOR_MGMT_FEE',       // 教练管理费
+  MANAGER_MGMT_FEE = 'MANAGER_MGMT_FEE',     // 学管管理费
+  DIRECTOR_TRAIN_FEE = 'DIRECTOR_TRAIN_FEE',  // 总监培养费
+}
+
+export interface ManagementIncomeDetail {
+  id: string
+  teamLeaderId: string
+  teamLeaderName: string
+  teamLeaderPhone: string
+  teamLeaderRank: string
+  regularLessonCount: number
+  subType: ManagementIncomeSubType
+  amount: number
+  occurredAt: Date
+  createdAt: Date
 }
 
 // ========== 伴学教练收入汇总 ==========
