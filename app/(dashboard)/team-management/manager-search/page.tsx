@@ -192,7 +192,7 @@ export default function ManagerSearchPage() {
   if (loading) return <div className="p-8 text-center text-muted-foreground">加载中...</div>
 
   return (
-    <div className="container mx-auto py-8 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">伴学团队检索</h1>
@@ -312,7 +312,7 @@ export default function ManagerSearchPage() {
           </span>
         </div>
 
-        <div className="rounded-md border bg-white dark:bg-gray-950">
+        <div className="border rounded-md bg-white dark:bg-gray-950 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

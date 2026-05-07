@@ -1787,3 +1787,561 @@ _**Agent (composer-2)**_
 
 - 根容器由 `container max-w-2xl py-10 mx-auto` 改为 **`space-y-6`**，与当前其它 dashboard 页一致，占满 `main` 可用宽度。
 - 页头外层去掉 **`mb-8`**，改用根级的 **`space-y-6`** 分隔「返回 + 标题」与下方表单。
+
+---
+
+_**User**_
+
+/manager-orders 订单管理 
+/team-management/tutor-search 伴学教练检索
+/team-management/manager-search  伴学团队检索
+
+要求这些 页面也要采用之前的宽度策略
+
+
+---
+
+_**Agent (composer-2)**_
+
+Invalid arguments:
+glob_pattern: Required
+
+<tool-use data-tool-type="search" data-tool-name="glob_file_search"><details>
+<summary>Tool use: **glob_file_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2)**_
+
+Invalid arguments:
+glob_pattern: Required
+
+<tool-use data-tool-type="search" data-tool-name="glob_file_search"><details>
+<summary>Tool use: **glob_file_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2)**_
+
+<tool-use data-tool-type="search" data-tool-name="glob_file_search">
+<details>
+<summary>Tool use: **glob_file_search** • Searched codebase "" • **2** results in **1** directory</summary>
+
+Directory: **d:\codeBase\eduflow-project\eduflow-rp\app** (2 files)
+
+| File |
+|------|
+| `../app/(dashboard)/manager-orders/page.tsx` |
+| `../app/(dashboard)/manager-orders/[id]/page.tsx` |
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="search" data-tool-name="glob_file_search"><details>
+<summary>Tool use: **glob_file_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2)**_
+
+<tool-use data-tool-type="search" data-tool-name="glob_file_search">
+<details>
+<summary>Tool use: **glob_file_search** • Searched codebase "" • **4** results in **1** directory</summary>
+
+Directory: **d:\codeBase\eduflow-project\eduflow-rp\app** (4 files)
+
+| File |
+|------|
+| `../app/(dashboard)/team-management/tutor-search/page.tsx` |
+| `../app/(dashboard)/team-management/manager-search/page.tsx` |
+| `../app/(dashboard)/team-management/manager-detail/[managerId]/page.tsx` |
+| `../app/(dashboard)/team-management/[tutorId]/page.tsx` |
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="search" data-tool-name="glob_file_search"><details>
+<summary>Tool use: **glob_file_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "path": "d:\\codeBase\\eduflow-project\\eduflow-rp\\app\\(dashboard)\\manager-orders\\page.tsx",
+  "pattern": "container|max-w-|mx-auto|pb-10"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "d:\\codeBase\\eduflow-project\\eduflow-rp\\app\\(dashboard)\\manager-orders\\page.tsx",
+  "pattern": "container|max-w-|mx-auto|pb-10",
+  "topFiles": [
+    {
+      "matchCount": 2,
+      "uri": "app\\(dashboard)\\manager-orders\\page.tsx"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 2
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "path": "d:\\codeBase\\eduflow-project\\eduflow-rp\\app\\(dashboard)\\team-management\\tutor-search\\page.tsx",
+  "pattern": "container|max-w-|mx-auto|pb-10"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "d:\\codeBase\\eduflow-project\\eduflow-rp\\app\\(dashboard)\\team-management\\tutor-search\\page.tsx",
+  "pattern": "container|max-w-|mx-auto|pb-10",
+  "topFiles": [
+    {
+      "matchCount": 2,
+      "uri": "app\\(dashboard)\\team-management\\tutor-search\\page.tsx"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 2
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "path": "d:\\codeBase\\eduflow-project\\eduflow-rp\\app\\(dashboard)\\team-management\\manager-search\\page.tsx",
+  "pattern": "container|max-w-|mx-auto|pb-10"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "d:\\codeBase\\eduflow-project\\eduflow-rp\\app\\(dashboard)\\team-management\\manager-search\\page.tsx",
+  "pattern": "container|max-w-|mx-auto|pb-10",
+  "topFiles": [
+    {
+      "matchCount": 1,
+      "uri": "app\\(dashboard)\\team-management\\manager-search\\page.tsx"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 1
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2)**_
+
+<think><details><summary>Thought Process</summary>
+1. In `manager-orders/page.tsx`, replace `space-y-6 container mx-auto pb-10` with `space-y-6`.
+
+2.</details></think>
+
+_**Agent (composer-2)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: d:\codeBase\eduflow-project\eduflow-rp\app\(dashboard)\manager-orders\page.tsx</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: d:\codeBase\eduflow-project\eduflow-rp\app\(dashboard)\team-management\tutor-search\page.tsx</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2">
+<details><summary>Tool use: **read_file_v2** • Read file: d:\codeBase\eduflow-project\eduflow-rp\app\(dashboard)\team-management\manager-search\page.tsx</summary>
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "path": "d:\\codeBase\\eduflow-project\\eduflow-rp\\app\\(dashboard)\\manager-orders\\page.tsx",
+  "pattern": "\u003cTable|rounded-md border|overflow"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "d:\\codeBase\\eduflow-project\\eduflow-rp\\app\\(dashboard)\\manager-orders\\page.tsx",
+  "pattern": "\u003cTable|rounded-md border|overflow",
+  "topFiles": [
+    {
+      "matchCount": 31,
+      "uri": "app\\(dashboard)\\manager-orders\\page.tsx"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 31
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "path": "d:\\codeBase\\eduflow-project\\eduflow-rp\\app\\(dashboard)\\team-management\\tutor-search\\page.tsx",
+  "pattern": "\u003cTable|rounded-md border|overflow"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "d:\\codeBase\\eduflow-project\\eduflow-rp\\app\\(dashboard)\\team-management\\tutor-search\\page.tsx",
+  "pattern": "\u003cTable|rounded-md border|overflow",
+  "topFiles": [
+    {
+      "matchCount": 24,
+      "uri": "app\\(dashboard)\\team-management\\tutor-search\\page.tsx"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 24
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search">
+<details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "path": "d:\\codeBase\\eduflow-project\\eduflow-rp\\app\\(dashboard)\\team-management\\manager-search\\page.tsx",
+  "pattern": "\u003cTable|rounded-md border|overflow"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "d:\\codeBase\\eduflow-project\\eduflow-rp\\app\\(dashboard)\\team-management\\manager-search\\page.tsx",
+  "pattern": "\u003cTable|rounded-md border|overflow",
+  "topFiles": [
+    {
+      "matchCount": 26,
+      "uri": "app\\(dashboard)\\team-management\\manager-search\\page.tsx"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 26
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2)**_
+
+正在将三页的根容器改为 `space-y-6`，并为宽表格添加与 `team-students` 一致的 `overflow-x-auto` 包裹层。
+
+
+
+_**Agent (composer-2)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: d:\codeBase\eduflow-project\eduflow-rp\app\(dashboard)\manager-orders\page.tsx</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: d:\codeBase\eduflow-project\eduflow-rp\app\(dashboard)\team-management\tutor-search\page.tsx</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: d:\codeBase\eduflow-project\eduflow-rp\app\(dashboard)\team-management\manager-search\page.tsx</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: d:\codeBase\eduflow-project\eduflow-rp\app\(dashboard)\manager-orders\page.tsx</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: d:\codeBase\eduflow-project\eduflow-rp\app\(dashboard)\team-management\tutor-search\page.tsx</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2">
+
+<details><summary>Tool use: **edit_file_v2** • Edit file: d:\codeBase\eduflow-project\eduflow-rp\app\(dashboard)\team-management\manager-search\page.tsx</summary>
+
+</details>
+
+</tool-use>
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2)**_
+
+<think><details><summary>Thought Process</summary>
+Check for duplicate table openings in tutor-search; the replacement might have failed if two similar blocks existed.</details></think>
+
+_**Agent (composer-2)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="read_lints">
+<details>
+<summary>Tool use: **read_lints**</summary>
+
+
+Parameters:
+
+```json
+{
+  "paths": [
+    "d:\\codeBase\\eduflow-project\\eduflow-rp\\app\\(dashboard)\\manager-orders\\page.tsx",
+    "d:\\codeBase\\eduflow-project\\eduflow-rp\\app\\(dashboard)\\team-management\\tutor-search\\page.tsx",
+    "d:\\codeBase\\eduflow-project\\eduflow-rp\\app\\(dashboard)\\team-management\\manager-search\\page.tsx"
+  ]
+}
+```
+Result:
+
+```json
+{
+  "linterErrorsByFile": [
+    {
+      "relativeWorkspacePath": "d:\\codeBase\\eduflow-project\\eduflow-rp\\app\\(dashboard)\\manager-orders\\page.tsx"
+    },
+    {
+      "relativeWorkspacePath": "d:\\codeBase\\eduflow-project\\eduflow-rp\\app\\(dashboard)\\team-management\\tutor-search\\page.tsx"
+    },
+    {
+      "relativeWorkspacePath": "d:\\codeBase\\eduflow-project\\eduflow-rp\\app\\(dashboard)\\team-management\\manager-search\\page.tsx"
+    }
+  ]
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+<tool-use data-tool-type="unknown" data-tool-name="read_lints"><details>
+<summary>Tool use: **read_lints**</summary>
+
+</details></tool-use>
+
+_**Agent (composer-2)**_
+
+已按与团队学员/教学反馈检索相同的方式，改完这三个页面。
+
+### 1. `app/(dashboard)/manager-orders/page.tsx`（`/manager-orders`）
+- 根节点：`space-y-6 container mx-auto pb-10` → **`space-y-6`**
+- 订单表格外层：`rounded-md border` → **`border rounded-md bg-white dark:bg-gray-950 overflow-x-auto`**（宽表可横向滚动）
+
+### 2. `app/(dashboard)/team-management/tutor-search/page.tsx`（`/team-management/tutor-search`）
+- 根节点：`container mx-auto py-8 space-y-6` → **`space-y-6`**
+- 表格外层：在原有 `border + 背景` 上增加 **`overflow-x-auto`**，类名顺序与项目里其它列表页一致
+
+### 3. `app/(dashboard)/team-management/manager-search/page.tsx`（`/team-management/manager-search`）
+- 根节点：同上 → **`space-y-6`**
+- 表格外层：同上 → **`overflow-x-auto`**
+
+筛选区里局部的 `max-w-sm` 等未动，只影响单个控件宽度。

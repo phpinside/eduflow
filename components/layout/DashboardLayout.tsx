@@ -41,6 +41,7 @@ import {
   Search,
   FileSearch,
   ClipboardCheck,
+  PanelLeft,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -383,7 +384,7 @@ function NavItemLink({ item, pathname }: { item: NavItem; pathname: string }) {
   )
 }
 
-export function DashboardSidebar() {
+export function DashboardSidebar({ desktopHidden = false }: { desktopHidden?: boolean }) {
   const { currentRole } = useAuth()
   const pathname = usePathname()
 
@@ -392,34 +393,60 @@ export function DashboardSidebar() {
   const filteredNavItems = navItems.filter(item => item.roles.includes(currentRole))
 
   return (
-    <div className="hidden border-r bg-gray-50/40 dark:bg-gray-800/40 md:block w-64 min-h-screen flex-col">
-      <div className="flex h-16 items-center border-b px-6">
-        <Link className="flex items-center gap-2 font-bold text-xl text-primary" href="/">
-          <LayoutDashboard className="h-6 w-6" />
-          <span>EduFlow</span>
-        </Link>
-      </div>
-      <div className="flex-1 overflow-auto py-4">
-        <nav className="grid items-start px-4 text-sm font-medium">
-          {filteredNavItems.map((item, index) => (
-            <NavItemLink key={index} item={item} pathname={pathname} />
-          ))}
-        </nav>
+    <div
+      className={cn(
+        "hidden shrink-0 overflow-hidden border-r bg-gray-50/40 transition-[width] duration-200 ease-in-out dark:bg-gray-800/40 md:flex md:flex-col",
+        desktopHidden ? "md:w-0 md:border-transparent md:pointer-events-none" : "md:w-64"
+      )}
+    >
+      <div className="flex min-h-screen w-64 flex-col">
+        <div className="flex h-16 shrink-0 items-center border-b px-6">
+          <Link className="flex items-center gap-2 text-xl font-bold text-primary" href="/">
+            <LayoutDashboard className="h-6 w-6" />
+            <span>EduFlow</span>
+          </Link>
+        </div>
+        <div className="flex-1 overflow-auto py-4">
+          <nav className="grid items-start px-4 text-sm font-medium">
+            {filteredNavItems.map((item, index) => (
+              <NavItemLink key={index} item={item} pathname={pathname} />
+            ))}
+          </nav>
+        </div>
       </div>
     </div>
   )
 }
 
-export function DashboardHeader({ setSidebarOpen }: { setSidebarOpen: (open: boolean) => void }) {
+export function DashboardHeader({
+  setSidebarOpen,
+  desktopSidebarHidden,
+  setDesktopSidebarHidden,
+}: {
+  setSidebarOpen: (open: boolean) => void
+  desktopSidebarHidden: boolean
+  setDesktopSidebarHidden: React.Dispatch<React.SetStateAction<boolean>>
+}) {
   const { user, logout, currentRole, switchRole } = useAuth()
-  
+
   if (!user) return null
 
   return (
-    <header className="flex h-16 items-center gap-4 border-b bg-white dark:bg-gray-950 px-6 w-full">
+    <header className="flex h-16 w-full items-center gap-2 border-b bg-white px-6 dark:bg-gray-950">
       <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setSidebarOpen(true)}>
         <Menu className="h-6 w-6" />
-        <span className="sr-only">Toggle menu</span>
+        <span className="sr-only">打开菜单</span>
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="hidden shrink-0 md:inline-flex"
+        title={desktopSidebarHidden ? "展开左侧菜单" : "隐藏左侧菜单"}
+        aria-expanded={!desktopSidebarHidden}
+        onClick={() => setDesktopSidebarHidden(prev => !prev)}
+      >
+        <PanelLeft className="h-5 w-5" />
+        <span className="sr-only">{desktopSidebarHidden ? "展开左侧菜单" : "隐藏左侧菜单"}</span>
       </Button>
       <div className="w-full flex-1">
         <div className="md:hidden font-bold text-lg">EduFlow</div>

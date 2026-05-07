@@ -392,7 +392,7 @@ export default function ManagerOrdersPage() {
   }
 
   return (
-    <div className="space-y-6 container mx-auto pb-10">
+    <div className="space-y-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">订单管理</h1>
         <p className="text-muted-foreground">管理所有订单，分配老师，查看申请情况。</p>
@@ -841,7 +841,7 @@ export default function ManagerOrdersPage() {
           </div>
 
           {/* 订单表格 */}
-          <div className="rounded-md border">
+          <div className="border rounded-md bg-white dark:bg-gray-950 overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>

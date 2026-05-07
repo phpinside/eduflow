@@ -6,10 +6,34 @@ import { useRouter } from "next/navigation"
 import { DashboardHeader, DashboardSidebar } from "@/components/layout/DashboardLayout"
 import { Loader2 } from "lucide-react"
 
+const SIDEBAR_HIDDEN_KEY = "eduflow:dashboard-sidebar-hidden"
+
+function readSidebarHidden(): boolean {
+  if (typeof window === "undefined") return false
+  try {
+    return localStorage.getItem(SIDEBAR_HIDDEN_KEY) === "true"
+  } catch {
+    return false
+  }
+}
+
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [desktopSidebarHidden, setDesktopSidebarHidden] = useState(false)
+
+  useEffect(() => {
+    setDesktopSidebarHidden(readSidebarHidden())
+  }, [])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SIDEBAR_HIDDEN_KEY, desktopSidebarHidden ? "true" : "false")
+    } catch {
+      /* ignore */
+    }
+  }, [desktopSidebarHidden])
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -29,7 +53,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
-      <DashboardSidebar />
+      <DashboardSidebar desktopHidden={desktopSidebarHidden} />
       {/* Mobile Sidebar Overlay - simplified */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden">
@@ -50,7 +74,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       )}
       
       <div className="flex flex-1 flex-col overflow-hidden">
-        <DashboardHeader setSidebarOpen={setSidebarOpen} />
+        <DashboardHeader
+          setSidebarOpen={setSidebarOpen}
+          desktopSidebarHidden={desktopSidebarHidden}
+          setDesktopSidebarHidden={setDesktopSidebarHidden}
+        />
         <main className="flex-1 overflow-y-auto p-6">
           {children}
         </main>
