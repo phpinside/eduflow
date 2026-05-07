@@ -39,9 +39,10 @@ export default function SelectTrialPage() {
       campusName: order.campusName || "",
       campusAccount: order.campusAccount || "",
       studentAccount: order.studentAccount || "",
+      fromTrialConversion: "true",
     }).toString()
     
-    router.push(`/regular-course/deal-payment?${params}`)
+    router.push(`/regular-course/create?${params}`)
   }
 
   // 直接创建新正课单

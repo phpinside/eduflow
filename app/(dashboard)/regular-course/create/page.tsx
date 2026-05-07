@@ -142,6 +142,7 @@ function CreateRegularCourseForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const fromTrialConversion = searchParams.get("fromTrialConversion") === "true"
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema) as any,
@@ -355,7 +356,7 @@ function CreateRegularCourseForm() {
     toast.success("正课单创建成功！即将跳转...")
     
     // Construct query params for demo purposes (in real app, post to API)
-    const queryParams = new URLSearchParams({
+    const queryParamsObj: Record<string, string> = {
         type: "regular",
         studentName: data.studentName,
         subject: data.subject,
@@ -363,7 +364,9 @@ function CreateRegularCourseForm() {
         totalHours: totalHours.toString(),
         price: payableAmount.toString(),
         needsDingbanxueRecharge: String(needsDingbanxueRecharge),
-    }).toString()
+    }
+    if (fromTrialConversion) queryParamsObj.fromTrialConversion = "true"
+    const queryParams = new URLSearchParams(queryParamsObj).toString()
     
     router.push(`/regular-course/payment?${queryParams}`)
     setIsSubmitting(false)

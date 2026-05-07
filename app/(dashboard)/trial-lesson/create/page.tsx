@@ -150,6 +150,7 @@ const studentInfoSchema = z.object({
   // Campus
   campusName: z.string().optional(),
   campusAccount: z.string().optional(),
+  studentAccount: z.string().optional(),
 
   // Remarks
   remarks: z.string().optional(),
@@ -297,6 +298,7 @@ function ByTeacherForm() {
         tutoringHistory: "",
         campusName: "",
         campusAccount: "",
+        studentAccount: "",
         remarks: "",
     },
     mode: "onChange"
@@ -519,6 +521,7 @@ function ByStudentForm() {
         tutoringHistory: "",
         campusName: "",
         campusAccount: "",
+        studentAccount: "",
         remarks: "",
         subject: undefined,
         grade: undefined,
@@ -1000,6 +1003,19 @@ function StudentInfoFields({ form, showSubjectGrade = false, onStudentSelect }: 
                             <FormLabel>校区账号</FormLabel>
                             <FormControl>
                                 <Input placeholder="9800校区账号" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="studentAccount"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>学生G账号</FormLabel>
+                            <FormControl>
+                                <Input placeholder="可选填写" {...field} />
                             </FormControl>
                             <FormMessage />
                             </FormItem>

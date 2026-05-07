@@ -7,7 +7,6 @@ export const SCHEDULING_TIMEOUT_HOURS = 3
 
 // 状态映射（中文显示）
 export const ORDER_STATUS_MAP: Record<string, string> = {
-  DRAFT: '草稿订单',
   PENDING_PAYMENT: '待支付',
   PENDING_CS_REVIEW: '待客服审核',
   PENDING_FINANCE_REVIEW: '待财务审核',
@@ -23,7 +22,6 @@ export const ORDER_STATUS_MAP: Record<string, string> = {
 
 // 状态颜色映射（用于 Badge 组件）
 export const ORDER_STATUS_COLOR_MAP: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  DRAFT: "secondary",
   PENDING_PAYMENT: "secondary",
   PENDING_CS_REVIEW: "default",
   PENDING_FINANCE_REVIEW: "default",

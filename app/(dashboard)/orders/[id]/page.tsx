@@ -140,18 +140,21 @@ export default function OrderDetailsPage() {
   const [isRenewOpen, setIsRenewOpen] = React.useState(false)
   const [renewHours, setRenewHours] = React.useState(40)
   const [renewGrade, setRenewGrade] = React.useState("初一")
+  const [renewNeedsDingbanxueRecharge, setRenewNeedsDingbanxueRecharge] = React.useState(true)
 
   const handleRenewOrder = () => {
     if (!order) return
     const pricePerHour = getLatestUnitPriceByGrade(renewGrade)
     const totalCost = pricePerHour * renewHours
+    const payable = Math.max(0, totalCost - (renewNeedsDingbanxueRecharge ? 0 : 20 * renewHours))
     const queryParams = new URLSearchParams({
       type: "renew",
       studentName: student?.name || "未知学生",
       subject: order.subject,
       grade: renewGrade,
       totalHours: renewHours.toString(),
-      price: totalCost.toString(),
+      price: payable.toString(),
+      needsDingbanxueRecharge: String(renewNeedsDingbanxueRecharge),
     }).toString()
     setIsRenewOpen(false)
     router.push(`/regular-course/payment?${queryParams}`)
@@ -219,43 +222,6 @@ export default function OrderDetailsPage() {
     toast.success('支付成功！订单已进入客服审核流程')
   }
 
-  // === 新增：提交草稿订单 ===
-  const handleSubmitDraft = () => {
-    if (!order) return
-    
-    const confirmed = confirm('确认提交此草稿订单？提交后将进入待支付状态。')
-    if (!confirmed) return
-    
-    const now = new Date()
-    const updatedOrder = {
-      ...order,
-      status: OrderStatus.PENDING_PAYMENT,
-      isPaid: false,
-      updatedAt: now
-    }
-    
-    const nextOrders = orders.map(o => o.id === order.id ? updatedOrder : o)
-    saveStoredOrders(nextOrders)
-    setOrders(nextOrders)
-    setOrder(updatedOrder)
-    
-    toast.success('订单已提交，等待支付')
-  }
-
-  // === 新增：删除草稿订单 ===
-  const handleDeleteDraft = () => {
-    if (!order) return
-    
-    const confirmed = confirm('确认删除此草稿订单？此操作不可恢复。')
-    if (!confirmed) return
-    
-    const nextOrders = orders.filter(o => o.id !== order.id)
-    saveStoredOrders(nextOrders)
-    
-    toast.success('草稿订单已删除')
-    router.push('/orders')
-  }
-
   if (!order) {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh] space-y-4">
@@ -295,33 +261,6 @@ export default function OrderDetailsPage() {
         </div>
 
         <div className="flex gap-2 shrink-0">
-          {/* 草稿状态：显示保存、提交、删除按钮 */}
-          {order.status === OrderStatus.DRAFT && (
-            <>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => toast.info('草稿自动保存功能待实现')}
-              >
-                保存草稿
-              </Button>
-              <Button
-                size="sm"
-                className="bg-green-600 hover:bg-green-700 text-white"
-                onClick={handleSubmitDraft}
-              >
-                提交订单
-              </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={handleDeleteDraft}
-              >
-                删除
-              </Button>
-            </>
-          )}
-          
           {/* 待支付状态：显示去支付按钮 */}
           {order.status === OrderStatus.PENDING_PAYMENT && (
             <Button
@@ -342,8 +281,12 @@ export default function OrderDetailsPage() {
                   studentName: student?.name || "未知学生",
                   subject: order.subject,
                   grade: order.grade,
+                  fromTrialConversion: "true",
+                  campusName: order.campusName || "",
+                  campusAccount: order.campusAccount || "",
+                  studentAccount: order.studentAccount || "",
                 }).toString()
-                router.push(`/trial-lesson/deal-payment?${p}`)
+                router.push(`/regular-course/create?${p}`)
               }}
             >
               <ArrowRight className="mr-2 h-4 w-4" />
@@ -719,10 +662,28 @@ export default function OrderDetailsPage() {
                 onChange={(e) => setRenewHours(parseInt(e.target.value) || 0)}
               />
             </div>
+            <div className="flex items-start gap-2 rounded-md border bg-muted/30 p-3 text-sm">
+              <input
+                type="checkbox"
+                checked={renewNeedsDingbanxueRecharge}
+                onChange={(e) => setRenewNeedsDingbanxueRecharge(e.target.checked)}
+                className="mt-1"
+              />
+              <div className="flex-1">
+                <div className="font-medium">代收鼎伴学费用（20元/课时）</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  默认课时单价包含该费用；如取消勾选，将在应付金额中扣除 \(20×课时\)。
+                </div>
+              </div>
+            </div>
             <div className="flex justify-between items-center bg-muted/50 p-3 rounded-md">
               <span className="text-sm text-muted-foreground">预计费用</span>
               <span className="font-bold text-lg">
-                ¥{(getLatestUnitPriceByGrade(renewGrade) * renewHours).toLocaleString()}
+                ¥{Math.max(
+                  0,
+                  getLatestUnitPriceByGrade(renewGrade) * renewHours -
+                    (renewNeedsDingbanxueRecharge ? 0 : 20 * renewHours)
+                ).toLocaleString()}
               </span>
             </div>
           </div>

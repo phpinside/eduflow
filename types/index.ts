@@ -44,7 +44,6 @@ export enum OrderType {
 
 export enum OrderStatus {
   // 新增状态（仅适用于正课订单 + 在线支付试课订单）
-  DRAFT = 'DRAFT',                           // 草稿订单
   PENDING_PAYMENT = 'PENDING_PAYMENT',       // 待支付
   PENDING_CS_REVIEW = 'PENDING_CS_REVIEW',   // 待客服专员审核
   PENDING_FINANCE_REVIEW = 'PENDING_FINANCE_REVIEW', // 待财务审核
@@ -109,6 +108,16 @@ export interface Order {
 
   /** 是否需要代充鼎伴学费用（正课下单场景） */
   needsDingbanxueRecharge?: boolean
+
+  /** 试课转正红包金额（用于运营审核展示）；金额本身来自价格配置 trialReward */
+  conversionRewardFee?: number
+  /** 转正红包支付方式：OFFLINE(线下已付) / BUNDLED(与正课费用合并支付) */
+  conversionRewardPaidMode?: 'OFFLINE' | 'BUNDLED'
+  /** 鼎伴学代收费用是否并入本次支付：默认视为 true（与 needsDingbanxueRecharge 搭配使用） */
+  includeDingbanxueFeeInPayment?: boolean
+
+  /** 教练端上传的鼎伴学小程序截图（Base64 数组，存储在 localStorage） */
+  dingbanxueAccountScreenshots?: string[]
   
   // === 新增字段：订单审核与支付流程 ===
   
@@ -124,7 +133,7 @@ export interface Order {
   /** 排单中开始时间（用于计算3小时倒计时） */
   schedulingStartTime?: Date
   
-  /** 订单是否已支付（用于判断从 DRAFT 提交后的流向） */
+  /** 订单是否已支付（用于判断支付后是否进入审核流程） */
   isPaid?: boolean
   
   /** 试课订单支付方式：ONLINE(在线) / OFFLINE(线下)，默认 OFFLINE */

@@ -5,9 +5,9 @@ import { useParams, useRouter } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "@/components/ui/button"
-import { mockOrders } from "@/lib/mock-data/orders"
 import { mockStudents } from "@/lib/mock-data/students"
 import { FeedbackForm } from "@/components/feedback/feedback-form"
+import { getStoredOrders } from "@/lib/storage"
 
 export default function CreateFeedbackPage() {
     const params = useParams()
@@ -15,7 +15,7 @@ export default function CreateFeedbackPage() {
     const orderId = params.orderId as string
 
     // Data Fetching
-    const order = React.useMemo(() => mockOrders.find(o => o.id === orderId), [orderId])
+    const order = React.useMemo(() => getStoredOrders().find(o => o.id === orderId), [orderId])
     const student = React.useMemo(() => order ? mockStudents.find(s => s.id === order.studentId) : null, [order])
 
     if (!order || !student) {

@@ -61,6 +61,8 @@ import { Upload } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { logOrderOperation } from "@/lib/operation-log-helper"
 import { OperationAction } from "@/types/operation-log"
+import { computePricingBreakdown, resolveTrialRewardFromRules } from "@/lib/order-pricing"
+import { getStoredPriceRules } from "@/lib/storage"
 
 function loadOrderFromStorage(orderId: string): Order | undefined {
   return getStoredOrders().find((o) => o.id === orderId)
@@ -307,6 +309,9 @@ export default function ManagerOrderDetailsPage() {
   const [isFinanceReviewOpen, setIsFinanceReviewOpen] = React.useState(false)
   const [reviewNote, setReviewNote] = React.useState("")
   const [vouchers, setVouchers] = React.useState<string[]>([])
+  const [csCampusName, setCsCampusName] = React.useState("")
+  const [csCampusAccount, setCsCampusAccount] = React.useState("")
+  const [csStudentAccount, setCsStudentAccount] = React.useState("")
   
   // 财务审核课时调整相关状态
   const [adjustedHours, setAdjustedHours] = React.useState<number | string>("")
@@ -534,11 +539,18 @@ export default function ManagerOrderDetailsPage() {
   // === 新增：客服审核处理函数 ===
   const handleCsApprove = () => {
     if (!order) return
+    if (!csCampusName.trim() || !csCampusAccount.trim() || !csStudentAccount.trim()) {
+      toast.error("请先填写校区名称、校区账号、学生G账号（三项必填）")
+      return
+    }
     const updated = {
       ...order,
       status: OrderStatus.PENDING_FINANCE_REVIEW,
       csReviewNote: reviewNote || "客服审核通过",
       paymentVouchers: vouchers.length > 0 ? vouchers : order.paymentVouchers,
+      campusName: csCampusName.trim(),
+      campusAccount: csCampusAccount.trim(),
+      studentAccount: csStudentAccount.trim(),
       updatedAt: new Date()
     }
     persistOrder(updated)
@@ -546,6 +558,9 @@ export default function ManagerOrderDetailsPage() {
     setIsCsReviewOpen(false)
     setReviewNote("")
     setVouchers([])
+    setCsCampusName("")
+    setCsCampusAccount("")
+    setCsStudentAccount("")
     toast.success('客服审核通过，已转入财务审核')
   }
 
@@ -566,6 +581,9 @@ export default function ManagerOrderDetailsPage() {
     setIsCsReviewOpen(false)
     setReviewNote("")
     setVouchers([])
+    setCsCampusName("")
+    setCsCampusAccount("")
+    setCsStudentAccount("")
     toast.success('已驳回，返回待支付状态')
   }
 
@@ -711,6 +729,9 @@ export default function ManagerOrderDetailsPage() {
               onClick={() => {
                 setReviewNote(order.csReviewNote || "")
                 setVouchers(order.paymentVouchers || [])
+                setCsCampusName(order.campusName || "")
+                setCsCampusAccount(order.campusAccount || "")
+                setCsStudentAccount(order.studentAccount || "")
                 setIsCsReviewOpen(true)
               }}
               className="bg-purple-600 hover:bg-purple-700"
@@ -1973,6 +1994,13 @@ export default function ManagerOrderDetailsPage() {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <div className="font-medium">强提示</div>
+              <div className="mt-1 text-xs leading-relaxed text-amber-800">
+                请先在鼎伴学网站校验「校区账号」与「学生G账号」的正确性后再提交；若信息不匹配将被驳回。
+              </div>
+            </div>
+
             {/* 订单信息摘要 */}
             <div className="bg-muted p-3 rounded-lg">
               <p className="text-sm font-medium">订单信息</p>
@@ -1982,6 +2010,83 @@ export default function ManagerOrderDetailsPage() {
               <p className="text-xs text-muted-foreground">
                 学生：{student?.name} | 家长：{student?.parentPhone}
               </p>
+            </div>
+
+            {/* 费用明细 */}
+            {(() => {
+              const rules = getStoredPriceRules()
+              const reward = resolveTrialRewardFromRules(rules, order?.subject, order?.grade)
+              const includeReward = (order?.conversionRewardPaidMode ?? "OFFLINE") === "BUNDLED"
+              const dingApplicable = order?.needsDingbanxueRecharge !== false
+              const includeDing = dingApplicable && (order?.includeDingbanxueFeeInPayment ?? true)
+              const b = computePricingBreakdown({
+                subject: order?.subject,
+                grade: order?.grade,
+                totalHours: Number(order?.totalHours ?? 0),
+                courseFee: Number(order?.price ?? 0),
+                fromTrialConversion: reward > 0,
+                conversionRewardFee: reward,
+                includeConversionRewardInPayment: includeReward,
+                dingbanxueFeeApplicable: dingApplicable,
+                includeDingbanxueFeeInPayment: includeDing,
+              })
+              return (
+                <div className="bg-muted/40 p-3 rounded-lg">
+                  <p className="text-sm font-medium mb-2">订单费用计算明细</p>
+                  <div className="space-y-1 text-xs text-muted-foreground">
+                    <div className="flex justify-between">
+                      <span>课时费用</span>
+                      <span className="font-medium text-foreground">¥{b.courseFee}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>转正红包费用（{includeReward ? "合并支付" : "线下支付"}）</span>
+                      <span className="font-medium text-foreground">¥{includeReward ? b.conversionRewardFee : 0}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>代收鼎伴学费用（{includeDing ? "合并支付" : "不合并"}）</span>
+                      <span className="font-medium text-foreground">¥{includeDing ? b.dingbanxueFee : 0}</span>
+                    </div>
+                    <div className="flex justify-between pt-1 border-t">
+                      <span className="text-foreground font-medium">本次应付总计</span>
+                      <span className="font-semibold text-foreground">¥{b.totalPayable}</span>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* 必填：鼎伴学信息 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">
+                  校区名称<span className="text-destructive"> *</span>
+                </Label>
+                <Input
+                  value={csCampusName}
+                  onChange={(e) => setCsCampusName(e.target.value)}
+                  placeholder="例如：上海浦东校区"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">
+                  校区账号<span className="text-destructive"> *</span>
+                </Label>
+                <Input
+                  value={csCampusAccount}
+                  onChange={(e) => setCsCampusAccount(e.target.value)}
+                  placeholder="例如：pd002"
+                />
+              </div>
+              <div className="space-y-1.5 md:col-span-2">
+                <Label className="text-xs">
+                  学生G账号<span className="text-destructive"> *</span>
+                </Label>
+                <Input
+                  value={csStudentAccount}
+                  onChange={(e) => setCsStudentAccount(e.target.value)}
+                  placeholder="例如：G2026xxxx"
+                />
+              </div>
             </div>
 
             {/* 支付凭证上传 */}
@@ -2049,6 +2154,49 @@ export default function ManagerOrderDetailsPage() {
                 <div>当前课时：<span className="font-semibold text-primary">{order?.totalHours}</span></div>
               </div>
             </div>
+
+            {/* 费用明细 */}
+            {(() => {
+              const rules = getStoredPriceRules()
+              const reward = resolveTrialRewardFromRules(rules, order?.subject, order?.grade)
+              const includeReward = (order?.conversionRewardPaidMode ?? "OFFLINE") === "BUNDLED"
+              const dingApplicable = order?.needsDingbanxueRecharge !== false
+              const includeDing = dingApplicable && (order?.includeDingbanxueFeeInPayment ?? true)
+              const b = computePricingBreakdown({
+                subject: order?.subject,
+                grade: order?.grade,
+                totalHours: Number(order?.totalHours ?? 0),
+                courseFee: Number(order?.price ?? 0),
+                fromTrialConversion: reward > 0,
+                conversionRewardFee: reward,
+                includeConversionRewardInPayment: includeReward,
+                dingbanxueFeeApplicable: dingApplicable,
+                includeDingbanxueFeeInPayment: includeDing,
+              })
+              return (
+                <div className="bg-muted/40 p-3 rounded-lg">
+                  <p className="text-sm font-medium mb-2">订单费用计算明细</p>
+                  <div className="space-y-1 text-xs text-muted-foreground">
+                    <div className="flex justify-between">
+                      <span>课时费用</span>
+                      <span className="font-medium text-foreground">¥{b.courseFee}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>转正红包费用（{includeReward ? "合并支付" : "线下支付"}）</span>
+                      <span className="font-medium text-foreground">¥{includeReward ? b.conversionRewardFee : 0}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>代收鼎伴学费用（{includeDing ? "合并支付" : "不合并"}）</span>
+                      <span className="font-medium text-foreground">¥{includeDing ? b.dingbanxueFee : 0}</span>
+                    </div>
+                    <div className="flex justify-between pt-1 border-t">
+                      <span className="text-foreground font-medium">本次应付总计</span>
+                      <span className="font-semibold text-foreground">¥{b.totalPayable}</span>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* 课时数调整 */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">

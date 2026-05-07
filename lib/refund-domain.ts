@@ -93,7 +93,12 @@ export function getCompletedHours(order: Order, applications: RefundApplication[
 
 export function sumHistoricalRefundedAmount(orderId: string, applications: RefundApplication[]): number {
   return applications
-    .filter((a) => a.orderId === orderId && a.status === RefundApplicationStatus.REFUND_SUCCESS)
+    .filter(
+      (a) =>
+        a.orderId === orderId &&
+        a.status === RefundApplicationStatus.REFUND_SUCCESS &&
+        a.refundKind !== 'RED_PACKET'
+    )
     .reduce((s, a) => s + Math.max(0, a.finalRefundAmount ?? a.requestedAmount ?? 0), 0)
 }
 
@@ -102,6 +107,7 @@ export function sumPendingFrozenAmount(orderId: string, applications: RefundAppl
     .filter(
       (a) =>
         a.orderId === orderId &&
+        a.refundKind !== 'RED_PACKET' &&
         (a.status === RefundApplicationStatus.PENDING_FIRST_REVIEW ||
           a.status === RefundApplicationStatus.PENDING_SECOND_REVIEW)
     )
@@ -129,7 +135,8 @@ export function getRegularRefundBreakdownWithApplications(
   order: Order,
   applications: RefundApplication[]
 ): RegularRefundBreakdown {
-  const totalFee = getOrderTotalPaid(order)
+  // 正课/续课退款：默认不退转正红包（REWARD/RED_PACKET），可退上限以“非红包实缴”作为计算口径。
+  const totalFee = getRegularCoursePaidExcludingReward(order)
   const regularCourseFee = getRegularCoursePaidExcludingReward(order)
   const totalHours = getPaidCourseHours(order)
   const frozenHours = sumPendingFrozenHours(order.id, applications)
@@ -152,7 +159,7 @@ export function getRegularRefundBreakdownWithApplications(
   return {
     totalFee,
     regularPaidAmount: regularCourseFee,
-    redPacketAmount: Math.max(0, totalFee - regularCourseFee),
+    redPacketAmount: Math.max(0, getRedPacketTotalPaid(order)),
     totalHours,
     consumedHours,
     remainingHours,

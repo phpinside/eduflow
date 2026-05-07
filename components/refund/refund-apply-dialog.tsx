@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
@@ -55,8 +54,6 @@ function SupportQrPlaceholder() {
   )
 }
 
-type RefundTarget = "ORDER" | "RED_PACKET"
-
 export function RefundApplyDialog(props: {
   open: boolean
   onOpenChange: (v: boolean) => void
@@ -67,14 +64,12 @@ export function RefundApplyDialog(props: {
 }) {
   const { open, onOpenChange, order, user, orders, onCommitted } = props
   const [reason, setReason] = React.useState("")
-  const [target, setTarget] = React.useState<RefundTarget>("ORDER")
   const [requestedAmount, setRequestedAmount] = React.useState("")
   const [requestedHours, setRequestedHours] = React.useState("")
   const [submitting, setSubmitting] = React.useState(false)
 
-  const hasPacket = order ? orderHasRedPacket(order) : false
   const kind = order
-    ? resolveRefundKind(order, target === "RED_PACKET" ? "RED_PACKET" : "ORDER")
+    ? resolveRefundKind(order, "ORDER")
     : "REGULAR"
   const apps = React.useMemo(() => getStoredRefundApplications(), [open])
   const { max, breakdown } = order ? getComputedMaxForKind(order, kind, apps) : { max: 0 }
@@ -84,16 +79,7 @@ export function RefundApplyDialog(props: {
     if (!maxHours) return 0
     return Math.round((max / maxHours) * 100) / 100
   }, [breakdown, maxHours, max])
-  const isRegularByHours = target === "ORDER" && kind !== "TRIAL"
-  const redPacketAlreadyRefunded = React.useMemo(() => {
-    if (!order) return false
-    return apps.some(
-      (a) =>
-        a.orderId === order.id &&
-        a.refundKind === "RED_PACKET" &&
-        a.status === RefundApplicationStatus.REFUND_SUCCESS
-    )
-  }, [apps, order])
+  const isRegularByHours = kind !== "TRIAL"
   const currentApplyHours = Math.floor(Number(requestedHours))
   const currentUnitPrice =
     isRegularByHours && Number.isFinite(currentApplyHours) && currentApplyHours > 0
@@ -103,20 +89,19 @@ export function RefundApplyDialog(props: {
   React.useEffect(() => {
     if (!open || !order) return
     setReason("")
-    setTarget("ORDER")
   }, [open, order])
 
   React.useEffect(() => {
     if (!open || !order) return
-    const k = resolveRefundKind(order, target === "RED_PACKET" ? "RED_PACKET" : "ORDER")
+    const k = resolveRefundKind(order, "ORDER")
     const { max: m, breakdown: b } = getComputedMaxForKind(order, k, apps)
     setRequestedAmount(String(m > 0 ? m : ""))
-    if (k !== "TRIAL" && target === "ORDER") {
+    if (k !== "TRIAL") {
       setRequestedHours(String(b?.maxRefundableHours ?? ""))
     } else {
       setRequestedHours("")
     }
-  }, [open, order, target, apps])
+  }, [open, order, apps])
 
   React.useEffect(() => {
     if (!isRegularByHours) return
@@ -133,14 +118,6 @@ export function RefundApplyDialog(props: {
   const handleSubmit = async () => {
     if (!order) return
     if (!user) return
-    if (target === "RED_PACKET" && !hasPacket) {
-      toast.error("该订单无转正红包记录")
-      return
-    }
-    if (target === "RED_PACKET" && redPacketAlreadyRefunded) {
-      toast.error("该订单转正红包已退款，不可再次申请")
-      return
-    }
     const amt = Math.round(Number(requestedAmount) * 100) / 100
     const hrs = Math.floor(Number(requestedHours))
     if (isRegularByHours) {
@@ -243,44 +220,12 @@ export function RefundApplyDialog(props: {
           <div className="rounded-md border bg-muted/30 p-3 space-y-1 text-muted-foreground">
             <p>· 审核完成预计 2–3 个工作日；通过后原路退回预计 3–5 个工作日到账。</p>
             <p>· 一审处理前，您可撤销申请；撤销后课时将恢复可用。</p>
+            <p className="text-foreground/90">
+              · 默认仅支持按订单规则退费（课时可退部分）；转正红包与鼎伴学代收费用不在可退范围内。
+            </p>
           </div>
 
-          {hasPacket && (
-            <div className="space-y-2">
-              <Label>退费范围</Label>
-              <RadioGroup
-                value={target}
-                onValueChange={(v) => setTarget(v as RefundTarget)}
-                className="flex flex-col gap-2"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="ORDER" id="rt-order" />
-                  <Label htmlFor="rt-order" className="font-normal cursor-pointer">
-                    按订单规则退费（试课/正课/续课）
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem
-                    value="RED_PACKET"
-                    id="rt-packet"
-                    disabled={redPacketAlreadyRefunded}
-                  />
-                  <Label
-                    htmlFor="rt-packet"
-                    className={cn(
-                      "font-normal cursor-pointer",
-                      redPacketAlreadyRefunded && "cursor-not-allowed text-muted-foreground"
-                    )}
-                  >
-                    仅退转正红包（全额可退，以实际支付为准）
-                    {redPacketAlreadyRefunded && "（已退款，不可重复申请）"}
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
-          )}
-
-          {breakdown && target === "ORDER" && (
+          {breakdown && (
             <div className="rounded-md border p-3 space-y-2">
               <div className="font-medium text-foreground">可退金额明细</div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
@@ -300,7 +245,7 @@ export function RefundApplyDialog(props: {
                 <span>¥{breakdown.totalFee.toLocaleString()}</span>
                 <span className="text-muted-foreground">正课实缴</span>
                 <span>¥{(breakdown.regularPaidAmount ?? breakdown.totalFee).toLocaleString()}</span>
-                <span className="text-muted-foreground">转正红包</span>
+                <span className="text-muted-foreground">转正红包（不可退）</span>
                 <span>¥{(breakdown.redPacketAmount ?? 0).toLocaleString()}</span>
                 <span className="text-muted-foreground">不可退费部分</span>
                 <span>
@@ -320,7 +265,7 @@ export function RefundApplyDialog(props: {
             </div>
           )}
 
-          {target === "ORDER" && !breakdown && (
+          {!breakdown && (
             <div className="rounded-md border p-3 space-y-1">
               <div className="font-medium">试课订单</div>
               <p className="text-xs text-muted-foreground">
@@ -329,17 +274,6 @@ export function RefundApplyDialog(props: {
               <p className="text-sm">
                 原支付金额：<span className="font-semibold">¥{max.toLocaleString()}</span>
               </p>
-            </div>
-          )}
-
-          {target === "RED_PACKET" && (
-            <div className="rounded-md border p-3 text-sm">
-              <div>
-                转正红包已缴合计 <span className="font-semibold">¥{max.toLocaleString()}</span>，可申请全额退还（人工审核）。
-              </div>
-              <div className="mt-1 text-xs text-muted-foreground">
-                红包退费与正课退费分开处理；选择“仅退转正红包”时不影响正课实缴部分。
-              </div>
             </div>
           )}
 

@@ -56,7 +56,7 @@ import {
   mockPriceRules, 
   GRADES 
 } from "@/lib/mock-data/price-settings"
-import { getStoredSubjects } from "@/lib/storage"
+import { getStoredPriceRules, getStoredSubjects, saveStoredPriceRules } from "@/lib/storage"
 import { Subject } from "@/types"
 
   const formSchema = z.object({
@@ -70,7 +70,7 @@ import { Subject } from "@/types"
 })
 
 export default function PriceSettingsPage() {
-  const [rules, setRules] = React.useState<PriceRule[]>(mockPriceRules)
+  const [rules, setRules] = React.useState<PriceRule[]>([])
   const [dialogOpen, setDialogOpen] = React.useState(false)
   const [editingRule, setEditingRule] = React.useState<PriceRule | null>(null)
   const [subjectFilter, setSubjectFilter] = React.useState<string>("ALL")
@@ -80,6 +80,7 @@ export default function PriceSettingsPage() {
   React.useEffect(() => {
     const storedSubjects = getStoredSubjects()
     setSubjects(storedSubjects)
+    setRules(getStoredPriceRules())
   }, [])
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -131,15 +132,16 @@ export default function PriceSettingsPage() {
   }, [rules, subjectFilter])
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    // Persist to localStorage so other pages can read trialReward.
     if (editingRule) {
       // Edit existing rule
-      setRules((prev) =>
-        prev.map((r) =>
-          r.id === editingRule.id
-            ? { ...values, id: editingRule.id }
-            : r
+      setRules((prev) => {
+        const next = prev.map((r) =>
+          r.id === editingRule.id ? { ...values, id: editingRule.id } : r
         )
-      )
+        saveStoredPriceRules(next)
+        return next
+      })
       toast.success("规则更新成功")
     } else {
       // Check for duplicate rule
@@ -156,7 +158,11 @@ export default function PriceSettingsPage() {
         id: Math.random().toString(36).substr(2, 9),
         ...values,
       }
-      setRules((prev) => [...prev, newRule])
+      setRules((prev) => {
+        const next = [...prev, newRule]
+        saveStoredPriceRules(next)
+        return next
+      })
       toast.success("规则创建成功")
     }
     setDialogOpen(false)
@@ -165,7 +171,11 @@ export default function PriceSettingsPage() {
 
   const handleDelete = (id: string) => {
     if (confirm("确定要删除这条规则吗？")) {
-      setRules((prev) => prev.filter((r) => r.id !== id))
+      setRules((prev) => {
+        const next = prev.filter((r) => r.id !== id)
+        saveStoredPriceRules(next)
+        return next
+      })
       toast.success("规则已删除")
     }
   }
@@ -181,13 +191,13 @@ export default function PriceSettingsPage() {
   }
 
   const toggleEnabled = (id: string, currentStatus: boolean) => {
-    setRules((prev) =>
-        prev.map((r) =>
-          r.id === id
-            ? { ...r, isEnabled: !currentStatus }
-            : r
-        )
+    setRules((prev) => {
+      const next = prev.map((r) =>
+        r.id === id ? { ...r, isEnabled: !currentStatus } : r
       )
+      saveStoredPriceRules(next)
+      return next
+    })
   }
 
   return (

@@ -104,6 +104,7 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null)
   const [renewHours, setRenewHours] = React.useState(40)
   const [renewGrade, setRenewGrade] = React.useState("初一")
+  const [renewNeedsDingbanxueRecharge, setRenewNeedsDingbanxueRecharge] = React.useState(true)
 
   const [refundDialogOpen, setRefundDialogOpen] = React.useState(false)
 
@@ -248,6 +249,7 @@ export default function OrdersPage() {
 
     const pricePerHour = getLatestUnitPriceByGrade(renewGrade)
     const totalCost = pricePerHour * renewHours
+    const payable = Math.max(0, totalCost - (renewNeedsDingbanxueRecharge ? 0 : 20 * renewHours))
     
     const queryParams = new URLSearchParams({
         type: "renew", // Indicate renewal
@@ -255,7 +257,8 @@ export default function OrdersPage() {
         subject: selectedOrder.subject,
         grade: renewGrade,
         totalHours: renewHours.toString(),
-        price: totalCost.toString(),
+        price: payable.toString(),
+        needsDingbanxueRecharge: String(renewNeedsDingbanxueRecharge),
     }).toString()
     
     setIsRenewOpen(false)
@@ -657,8 +660,12 @@ export default function OrdersPage() {
                               studentName: getStudentName(order.studentId),
                               subject: order.subject,
                               grade: order.grade,
+                              fromTrialConversion: "true",
+                              campusName: order.campusName || "",
+                              campusAccount: order.campusAccount || "",
+                              studentAccount: order.studentAccount || "",
                             }).toString()
-                            router.push(`/trial-lesson/deal-payment?${params}`)
+                            router.push(`/regular-course/create?${params}`)
                           }}
                         >
                           <ArrowRight className="mr-1 h-3 w-3" />
@@ -788,11 +795,18 @@ export default function OrdersPage() {
                 </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-            <label>
-                <input type="checkbox" checked />
-                课程默认单价已包含代充鼎伴学费用：20元/课时（代收费用，一经支付，此费用即支付给鼎伴学，交付中心不负责退款，如需退款，请自行联系鼎伴学）。
-                如您已有鼎伴学G账号，则您可取消本选项，直接使用该G账号课时上课（注意：请确保该G账号课时充足/需自行充值，否则将无法上课）。
-            </label>
+              <label className="flex items-start gap-2 rounded-md border bg-muted/30 p-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={renewNeedsDingbanxueRecharge}
+                  onChange={(e) => setRenewNeedsDingbanxueRecharge(e.target.checked)}
+                  className="mt-1"
+                />
+                <span className="leading-relaxed">
+                  课程默认单价已包含代收鼎伴学费用：20元/课时（代收费用，一经支付，此费用即支付给鼎伴学，交付中心不负责退款，如需退款，请自行联系鼎伴学）。
+                  如您已有鼎伴学G账号，则您可取消本选项，直接使用该G账号课时上课（注意：请确保该G账号课时充足/需自行充值，否则将无法上课）。
+                </span>
+              </label>
                 <div className="grid gap-2">
                     <Label htmlFor="hours">续费课时数</Label>
                     <Input 
@@ -806,10 +820,12 @@ export default function OrdersPage() {
                 <div className="flex justify-between items-center bg-muted/50 p-3 rounded-md">
                     <span className="text-sm text-muted-foreground">预计费用</span>
                     <span className="font-bold text-lg">
-                        ¥{(getLatestUnitPriceByGrade(renewGrade) * renewHours).toLocaleString()}
+                        ¥{Math.max(
+                          0,
+                          getLatestUnitPriceByGrade(renewGrade) * renewHours -
+                            (renewNeedsDingbanxueRecharge ? 0 : 20 * renewHours)
+                        ).toLocaleString()}
                     </span>
-                    <label>招生老师已缴鼎伴学费用: 0  </label>
-                    <label>实际应支付费用：¥{(getLatestUnitPriceByGrade(renewGrade) * renewHours).toLocaleString()}</label>
                 </div>
             </div>
             <DialogFooter>

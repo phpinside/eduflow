@@ -15,6 +15,8 @@ import { mockRefundOperationLogs } from './mock-data/refund-logs'
 import { mockBranchCompanies } from './mock-data/branch-companies'
 import { mockOperationLogs } from './mock-data/operation-logs'
 import type { OperationLog } from '@/types/operation-log'
+import { mockPriceRules } from './mock-data/price-settings'
+import type { PriceRule } from './mock-data/price-settings'
 
 export const STORAGE_KEYS = {
   USERS: 'eduflow:users',
@@ -24,6 +26,7 @@ export const STORAGE_KEYS = {
   INCOME_RECORDS: 'eduflow:income-records',
   TUTOR_INCOME_SUMMARY: 'eduflow:tutor-income-summary',
   SUBJECTS: 'eduflow:subjects',
+  PRICE_RULES: 'eduflow:price-rules',
   ORDER_ACCORD_RECORDS: 'eduflow:order-accord-records',
   TEACHER_ACCORD_RECORDS: 'eduflow:teacher-accord-records',
   FINANCIAL_RECORDS: 'eduflow:financial-records',
@@ -74,6 +77,10 @@ export const getStoredLessons = () => getMockData(STORAGE_KEYS.LESSONS, mockLess
 export const getStoredIncomeRecords = () => getMockData(STORAGE_KEYS.INCOME_RECORDS, mockIncomeRecords)
 export const getStoredTutorIncomeSummary = () => getMockData(STORAGE_KEYS.TUTOR_INCOME_SUMMARY, mockTutorIncomeSummary)
 export const getStoredSubjects = () => getMockData(STORAGE_KEYS.SUBJECTS, mockSubjects)
+export const getStoredPriceRules = (): PriceRule[] =>
+  getMockData(STORAGE_KEYS.PRICE_RULES, mockPriceRules)
+export const saveStoredPriceRules = (rules: PriceRule[]) =>
+  saveMockData(STORAGE_KEYS.PRICE_RULES, rules)
 export const getStoredOrderAccordRecords = () => getMockData(STORAGE_KEYS.ORDER_ACCORD_RECORDS, mockOrderAccordRecords)
 export const saveOrderAccordRecords = (data: typeof mockOrderAccordRecords) => saveMockData(STORAGE_KEYS.ORDER_ACCORD_RECORDS, data)
 export const getStoredTeacherAccordRecords = () => getMockData(STORAGE_KEYS.TEACHER_ACCORD_RECORDS, mockTeacherAccordRecords)
@@ -131,34 +138,6 @@ export const addOperationLog = (log: Omit<OperationLog, 'id' | 'createdAt'>): Op
   const trimmedLogs = logs.slice(0, 1000)
   saveStoredOperationLogs(trimmedLogs)
   return newLog
-}
-
-// === 新增：草稿订单相关工具函数 ===
-
-/**
- * 获取草稿订单的唯一性键值
- * 使用 studentId + subject + grade 作为唯一标识
- */
-export function getDraftKey(order: Partial<Order>): string {
-  return `${order.studentId || ''}_${order.subject || ''}_${order.grade || ''}`
-}
-
-/**
- * 检查是否存在冲突的草稿订单
- * @returns 返回冲突的草稿订单，如果不存在则返回 undefined
- */
-export function findConflictingDraft(order: Partial<Order>, excludeOrderId?: string): Order | undefined {
-  if (!order.studentId || !order.subject || !order.grade) {
-    return undefined
-  }
-  
-  const key = getDraftKey(order)
-  const drafts = getStoredOrders().filter(o => o.status === OrderStatusEnum.DRAFT)
-  
-  return drafts.find(o => 
-    o.id !== excludeOrderId && // 排除当前编辑的订单
-    getDraftKey(o) === key
-  )
 }
 
 /**
@@ -232,6 +211,7 @@ export const initializeMockData = () => {
   if (!localStorage.getItem(STORAGE_KEYS.INCOME_RECORDS)) saveMockData(STORAGE_KEYS.INCOME_RECORDS, mockIncomeRecords)
   if (!localStorage.getItem(STORAGE_KEYS.TUTOR_INCOME_SUMMARY)) saveMockData(STORAGE_KEYS.TUTOR_INCOME_SUMMARY, mockTutorIncomeSummary)
   if (!localStorage.getItem(STORAGE_KEYS.SUBJECTS)) saveMockData(STORAGE_KEYS.SUBJECTS, mockSubjects)
+  if (!localStorage.getItem(STORAGE_KEYS.PRICE_RULES)) saveMockData(STORAGE_KEYS.PRICE_RULES, mockPriceRules)
   if (!localStorage.getItem(STORAGE_KEYS.ORDER_ACCORD_RECORDS)) saveMockData(STORAGE_KEYS.ORDER_ACCORD_RECORDS, mockOrderAccordRecords)
   if (!localStorage.getItem(STORAGE_KEYS.TEACHER_ACCORD_RECORDS)) saveMockData(STORAGE_KEYS.TEACHER_ACCORD_RECORDS, mockTeacherAccordRecords)
   if (!localStorage.getItem(STORAGE_KEYS.FINANCIAL_RECORDS)) saveMockData(STORAGE_KEYS.FINANCIAL_RECORDS, mockFinancialRecords)

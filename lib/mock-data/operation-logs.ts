@@ -25,31 +25,15 @@ export const mockOperationLogs: OperationLog[] = [
       type: 'REGULAR'
     },
     afterState: {
-      status: 'DRAFT',
+      status: 'PENDING_PAYMENT',
       price: 3600,
       totalHours: 20
     },
-    remark: '创建正课订单草稿',
+    remark: '创建订单（待支付）',
     createdAt: new Date('2024-01-15T09:30:00'),
   },
 
-  // 2. 订单提交
-  {
-    id: 'log-order-submit-001',
-    type: OperationLogType.ORDER,
-    action: OperationAction.UPDATE,
-    operatorId: 'user-sales-001',
-    operatorName: '张老师',
-    operatorRole: 'SALES',
-    targetId: 'order-20240115-001',
-    targetType: 'Order',
-    beforeState: { status: 'DRAFT' },
-    afterState: { status: 'PENDING_PAYMENT' },
-    remark: '提交订单，等待支付',
-    createdAt: new Date('2024-01-15T09:35:00'),
-  },
-
-  // 3. 模拟支付
+  // 2. 模拟支付
   {
     id: 'log-order-payment-001',
     type: OperationLogType.ORDER,
@@ -71,7 +55,7 @@ export const mockOperationLogs: OperationLog[] = [
     createdAt: new Date('2024-01-15T09:40:00'),
   },
 
-  // 4. 客服审核通过
+  // 3. 客服审核通过
   {
     id: 'log-cs-approve-001',
     type: OperationLogType.ORDER,
@@ -87,7 +71,7 @@ export const mockOperationLogs: OperationLog[] = [
     createdAt: new Date('2024-01-15T10:15:00'),
   },
 
-  // 5. 财务审核通过
+  // 4. 财务审核通过
   {
     id: 'log-finance-approve-001',
     type: OperationLogType.ORDER,
@@ -106,7 +90,7 @@ export const mockOperationLogs: OperationLog[] = [
     createdAt: new Date('2024-01-15T10:30:00'),
   },
 
-  // 6. 分配老师
+  // 5. 分配老师
   {
     id: 'log-order-assign-001',
     type: OperationLogType.ORDER,
@@ -166,8 +150,8 @@ export const mockOperationLogs: OperationLog[] = [
       subject: '英语',
       grade: '初三'
     },
-    beforeState: { status: 'DRAFT' },
-    remark: '删除无效草稿订单',
+    beforeState: { status: 'PENDING_PAYMENT' },
+    remark: '删除无效订单（待支付）',
     createdAt: new Date('2024-01-16T11:30:00'),
   },
 

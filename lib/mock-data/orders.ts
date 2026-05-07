@@ -1694,11 +1694,11 @@ export const mockOrders: Order[] = [
   
   // === 新增：新状态示例订单 ===
   
-  // 草稿订单示例
+  // 待支付订单示例（去掉 DRAFT 后，创建即进入待支付）
   {
     id: 'ord-draft-1',
     type: OrderType.REGULAR,
-    status: OrderStatus.DRAFT,
+    status: OrderStatus.PENDING_PAYMENT,
     studentId: 'stu-1',
     salesPersonId: 'user-sales-1',
     subject: '数学',
@@ -1706,12 +1706,13 @@ export const mockOrders: Order[] = [
     totalHours: 20,
     remainingHours: 20,
     price: 4000,
+    isPaid: false,
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
     updatedAt: new Date(Date.now() - 30 * 60 * 1000),
     lastExamScore: "85",
     examMaxScore: "100",
     textbookVersion: "人教版",
-    remarks: "草稿订单示例，待补充完整信息"
+    remarks: "待支付订单示例，等待家长支付"
   },
   
   // 待支付订单示例
@@ -1847,11 +1848,11 @@ export const mockOrders: Order[] = [
   
   // === 更多测试数据：完整状态流转示例 ===
   
-  // 草稿订单 - 数学正课（刚创建）
+  // 待支付订单 - 数学正课（原：草稿刚创建）
   {
     id: 'ord-draft-math-1',
     type: OrderType.REGULAR,
-    status: OrderStatus.DRAFT,
+    status: OrderStatus.PENDING_PAYMENT,
     studentId: 'stu-1',
     salesPersonId: 'user-sales-1',
     subject: '数学',
@@ -1859,6 +1860,7 @@ export const mockOrders: Order[] = [
     totalHours: 24,
     remainingHours: 24,
     price: 4800,
+    isPaid: false,
     createdAt: new Date(Date.now() - 15 * 60 * 1000), // 15分钟前
     updatedAt: new Date(Date.now() - 15 * 60 * 1000),
     lastExamScore: "92",
@@ -1866,14 +1868,14 @@ export const mockOrders: Order[] = [
     textbookVersion: "北师大版",
     campusName: "北京朝阳校区",
     campusAccount: "cy001",
-    remarks: "家长咨询中，等待确认课时和价格"
+    remarks: "待支付（原草稿）：家长咨询中，等待支付"
   },
   
-  // 草稿订单 - 英语正课（信息较完整）
+  // 待支付订单 - 英语正课（原：草稿信息较完整）
   {
     id: 'ord-draft-eng-1',
     type: OrderType.REGULAR,
-    status: OrderStatus.DRAFT,
+    status: OrderStatus.PENDING_PAYMENT,
     studentId: 'stu-2',
     salesPersonId: 'user-sales-2',
     subject: '英语',
@@ -1881,6 +1883,7 @@ export const mockOrders: Order[] = [
     totalHours: 36,
     remainingHours: 36,
     price: 7200,
+    isPaid: false,
     createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3小时前
     updatedAt: new Date(Date.now() - 10 * 60 * 1000), // 10分钟前更新
     lastExamScore: "88",
@@ -1892,7 +1895,7 @@ export const mockOrders: Order[] = [
     campusName: "上海浦东校区",
     campusAccount: "pd002",
     studentAccount: "student_eng_001",
-    remarks: "家长已确认，等待提交订单"
+    remarks: "待支付（原草稿）：家长已确认，等待支付"
   },
   
   // 待支付订单 - 物理正课（刚提交）

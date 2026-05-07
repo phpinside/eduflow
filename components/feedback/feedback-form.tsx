@@ -21,7 +21,10 @@ import {
 import { mockOrders } from "@/lib/mock-data/orders"
 import { mockStudents } from "@/lib/mock-data/students"
 import { mockFeedbacks } from "@/lib/mock-data/feedbacks"
-import { LessonFeedbackRecord } from "@/types"
+import { LessonFeedbackRecord, OrderType } from "@/types"
+import { toast } from "sonner"
+import { getStoredOrders, saveStoredOrders } from "@/lib/storage"
+import { VoucherUpload } from "@/components/order/order-review-components"
 
 /** 课费标准：一年级～九年级，高一～高三 */
 const FEE_STANDARD_GRADES = [
@@ -122,6 +125,18 @@ export function FeedbackForm({ studentId, studentName, orderId, initialData, mod
     // 如果提供了orderId，尝试获取订单信息（用于显示科目等）
     const order = React.useMemo(() => orderId ? mockOrders.find(o => o.id === orderId) : null, [orderId])
 
+    const [campusName, setCampusName] = React.useState(order?.campusName || "")
+    const [campusAccount, setCampusAccount] = React.useState(order?.campusAccount || "")
+    const [studentAccount, setStudentAccount] = React.useState(order?.studentAccount || "")
+    const [gAccountScreenshots, setGAccountScreenshots] = React.useState<string[]>(order?.dingbanxueAccountScreenshots || [])
+
+    React.useEffect(() => {
+        setCampusName(order?.campusName || "")
+        setCampusAccount(order?.campusAccount || "")
+        setStudentAccount(order?.studentAccount || "")
+        setGAccountScreenshots(order?.dingbanxueAccountScreenshots || [])
+    }, [orderId])
+
     // Form State
     const [date, setDate] = React.useState(initialData?.date || format(new Date(), "yyyy-MM-dd"))
     const [startTime, setStartTime] = React.useState(initialData?.startTime || "20:00")
@@ -161,7 +176,7 @@ export function FeedbackForm({ studentId, studentName, orderId, initialData, mod
         setTimeout(() => {
             const text = `家长您好，今天的${order?.subject || '课程'}课堂反馈来啦！
 学员名字：${student?.name || '学员'}
-学生账号：${order?.studentAccount || '未设置'}
+学生G账号：${studentAccount || order?.studentAccount || '未设置'}
 上课时间：${format(new Date(date), "MM月dd日")} ${startTime}–${endTime}
 ${order?.subject || '科目'}教练：${user?.name || '老师'}
 
@@ -201,6 +216,18 @@ ${homework || '- 请按时完成课后作业\n- 及时复习今日所学内容'}
     }
 
     const handleSubmit = () => {
+        // Trial feedback: require Dingbanxue identifiers + screenshots.
+        if (order?.type === OrderType.TRIAL) {
+            if (!campusName.trim() || !campusAccount.trim() || !studentAccount.trim()) {
+                toast.error("请填写校区名称、校区账号、学生G账号（三项必填）")
+                return
+            }
+            if (gAccountScreenshots.length < 1) {
+                toast.error("请至少上传1张鼎伴学小程序截图（最多5张）")
+                return
+            }
+        }
+
         // Mock submission logic
         if (mode === 'create') {
             const newFeedback: LessonFeedbackRecord = {
@@ -227,10 +254,28 @@ ${homework || '- 请按时完成课后作业\n- 及时复习今日所学内容'}
             // In a real app, we would push this to the backend
             // For mock, we can push to array but it resets on reload without context
             mockFeedbacks.push(newFeedback)
-            alert("反馈已创建")
+            toast.success("反馈已创建")
         } else {
              // Mock update
-             alert("反馈已更新")
+             toast.success("反馈已更新")
+        }
+
+        // Persist Dingbanxue identifiers and screenshots onto the TRIAL order.
+        if (orderId && order?.type === OrderType.TRIAL) {
+            const all = getStoredOrders()
+            const next = all.map((o) =>
+                o.id === orderId
+                    ? {
+                          ...o,
+                          campusName: campusName.trim(),
+                          campusAccount: campusAccount.trim(),
+                          studentAccount: studentAccount.trim(),
+                          dingbanxueAccountScreenshots: gAccountScreenshots,
+                          updatedAt: new Date(),
+                      }
+                    : o
+            )
+            saveStoredOrders(next)
         }
         
         // 返回到我的学员页面的课后反馈列表Tab
@@ -250,6 +295,43 @@ ${homework || '- 请按时完成课后作业\n- 及时复习今日所学内容'}
                     <CardDescription>{mode === 'create' ? '填写本节课的详细情况，用于生成反馈报告。' : '修改已保存的反馈内容。'}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                    {order?.type === OrderType.TRIAL && (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                            <div className="font-medium">必填信息（试课）</div>
+                            <div className="mt-1 text-xs leading-relaxed text-amber-800">
+                                请从鼎伴学小程序核对校区账号与学生G账号，并上传学生名下全部G账号截图（1-5张）。未填写将无法提交反馈。
+                            </div>
+                        </div>
+                    )}
+
+                    {order?.type === OrderType.TRIAL && (
+                        <div className="space-y-4 rounded-lg border p-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>校区名称<span className="text-destructive"> *</span></Label>
+                                    <Input value={campusName} onChange={(e) => setCampusName(e.target.value)} placeholder="例如：上海浦东校区" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>校区账号<span className="text-destructive"> *</span></Label>
+                                    <Input value={campusAccount} onChange={(e) => setCampusAccount(e.target.value)} placeholder="例如：pd002" />
+                                </div>
+                                <div className="space-y-2 sm:col-span-2">
+                                    <Label>学生G账号<span className="text-destructive"> *</span></Label>
+                                    <Input value={studentAccount} onChange={(e) => setStudentAccount(e.target.value)} placeholder="例如：G2026xxxx" />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>鼎伴学小程序截图（1-5张）<span className="text-destructive"> *</span></Label>
+                                <VoucherUpload
+                                    vouchers={gAccountScreenshots}
+                                    onUpload={(base64) => setGAccountScreenshots((prev) => [...prev, base64])}
+                                    onRemove={(index) => setGAccountScreenshots((prev) => prev.filter((_, i) => i !== index))}
+                                />
+                            </div>
+                        </div>
+                    )}
+
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="space-y-2">
                             <Label htmlFor="date">上课日期</Label>
