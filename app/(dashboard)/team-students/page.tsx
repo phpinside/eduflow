@@ -477,10 +477,10 @@ export default function TeamStudentsPage() {
                                                 asChild
                                             >
                                                 <Link
-                                                    href={`/my-students/study-plan/create?studentId=${row.studentId ?? ""}&studentName=${encodeURIComponent(row.studentName)}`}
+                                                    href={`/teaching-feedback/plan-search?studentName=${encodeURIComponent(row.studentName)}&studentAccount=${encodeURIComponent(row.studentAccount)}&subject=${encodeURIComponent(row.subject)}&grade=${encodeURIComponent(row.grade)}`}
                                                 >
                                                     <FileText className="h-3.5 w-3.5 mr-1" />
-                                                    规划书
+                                                    规划书检索
                                                 </Link>
                                             </Button>
                                             <Button
@@ -489,10 +489,10 @@ export default function TeamStudentsPage() {
                                                 asChild
                                             >
                                                 <Link
-                                                    href={`/my-students/feedback/create?studentId=${row.studentId ?? ""}&studentName=${encodeURIComponent(row.studentName)}`}
+                                                    href={`/teaching-feedback/feedback-search?studentName=${encodeURIComponent(row.studentName)}&studentAccount=${encodeURIComponent(row.studentAccount)}&subject=${encodeURIComponent(row.subject)}&grade=${encodeURIComponent(row.grade)}`}
                                                 >
                                                     <MessageSquare className="h-3.5 w-3.5 mr-1" />
-                                                    课后反馈
+                                                    课后反馈检索
                                                 </Link>
                                             </Button>
                                             <Button
@@ -501,10 +501,10 @@ export default function TeamStudentsPage() {
                                                 asChild
                                             >
                                                 <Link
-                                                    href={`/students-center/assessment/create?orderId=${row.orderId ?? ""}&studentName=${encodeURIComponent(row.studentName)}&studentAccount=${encodeURIComponent(row.studentAccount)}&subject=${encodeURIComponent(row.subject)}&grade=${encodeURIComponent(row.grade)}`}
+                                                    href={`/teaching-feedback/assessment-search?studentName=${encodeURIComponent(row.studentName)}&studentAccount=${encodeURIComponent(row.studentAccount)}&subject=${encodeURIComponent(row.subject)}&grade=${encodeURIComponent(row.grade)}`}
                                                 >
                                                     <ClipboardCheck className="h-3.5 w-3.5 mr-1" />
-                                                    阶段性测评
+                                                    阶段性测评检索
                                                 </Link>
                                             </Button>
                                         </div>

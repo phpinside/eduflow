@@ -137,7 +137,7 @@ export default function AssessmentCreatePage() {
     }
 
     return (
-        <div className="max-w-2xl mx-auto pb-20 space-y-6">
+        <div className="max-w-2xl mx-auto space-y-6">
 
             {/* ── 页头 ── */}
             <div className="flex items-center gap-3">
@@ -361,16 +361,16 @@ export default function AssessmentCreatePage() {
                         />
                     </div>
                 </div>
-            </div>
 
-            {/* ── 底部操作 ── */}
-            <div className="sticky bottom-0 z-10 flex justify-end gap-3 rounded-2xl border bg-card/95 backdrop-blur-sm px-5 py-3 shadow-sm">
-                <Button variant="outline" onClick={() => router.back()} disabled={submitting}>
-                    取消
-                </Button>
-                <Button onClick={handleSubmit} disabled={submitting} className="min-w-[96px]">
-                    {submitting ? "提交中…" : "提交测评"}
-                </Button>
+                {/* § 底部操作 */}
+                <div className="px-6 py-5 flex justify-end gap-3">
+                    <Button variant="outline" onClick={() => router.back()} disabled={submitting}>
+                        取消
+                    </Button>
+                    <Button onClick={handleSubmit} disabled={submitting} className="min-w-[96px]">
+                        {submitting ? "提交中…" : "提交测评"}
+                    </Button>
+                </div>
             </div>
         </div>
     )
