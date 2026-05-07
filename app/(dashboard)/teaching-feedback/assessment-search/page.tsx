@@ -8,7 +8,7 @@ import { ClipboardCheck, ImageIcon, Minus, Pencil, TrendingDown, TrendingUp } fr
 
 import { useAuth } from "@/contexts/AuthContext"
 import { cn } from "@/lib/utils"
-import { getStoredAssessments, getStoredOrders } from "@/lib/storage"
+import { getStoredAssessments, getStoredOrders, getStoredUsers } from "@/lib/storage"
 import { OrderType } from "@/types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -84,6 +84,7 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 
 export default function AssessmentSearchPage() {
   const { user } = useAuth()
+  const users = React.useMemo(() => getStoredUsers(), [])
 
   const [studentName, setStudentName] = React.useState("")
   const [studentAccount, setStudentAccount] = React.useState("")
@@ -93,6 +94,7 @@ export default function AssessmentSearchPage() {
   const [type, setType] = React.useState("ALL")
   const [conclusion, setConclusion] = React.useState("ALL")
   const [tutorName, setTutorName] = React.useState("")
+  const [tutorPhone, setTutorPhone] = React.useState("")
   const [managerName, setManagerName] = React.useState("")
   const [startDate, setStartDate] = React.useState("")
   const [endDate, setEndDate] = React.useState("")
@@ -104,13 +106,15 @@ export default function AssessmentSearchPage() {
     const orders = getStoredOrders()
     return list.map((row) => {
       const order = orders.find((o) => o.id === row.orderId)
+      const tutorUser = users.find((u) => u.id === row.teacherId)
       return {
         ...row,
         studentAccount: row.studentAccount ?? order?.studentAccount ?? "—",
         courseType: order?.type as OrderType | undefined,
+        teacherPhone: tutorUser?.phone ?? "—",
       }
     })
-  }, [])
+  }, [users])
 
   const subjects = React.useMemo(() => {
     const values = new Set<string>()
@@ -134,6 +138,7 @@ export default function AssessmentSearchPage() {
       if (type !== "ALL" && row.assessmentType !== type) return false
       if (conclusion !== "ALL" && row.conclusion !== conclusion) return false
       if (tutorName && !row.teacherName.toLowerCase().includes(tutorName.toLowerCase())) return false
+      if (tutorPhone.trim() && !row.teacherPhone.includes(tutorPhone.trim())) return false
       if (managerName && !row.managerName.toLowerCase().includes(managerName.toLowerCase())) return false
       if (startDate) {
         const rowDate = format(row.assessedAt, "yyyy-MM-dd")
@@ -145,9 +150,9 @@ export default function AssessmentSearchPage() {
       }
       return true
     })
-  }, [assessmentRows, studentName, studentAccount, courseType, subject, grade, type, conclusion, tutorName, managerName, startDate, endDate])
+  }, [assessmentRows, studentName, studentAccount, courseType, subject, grade, type, conclusion, tutorName, tutorPhone, managerName, startDate, endDate])
 
-  React.useEffect(() => { setPage(1) }, [studentName, studentAccount, courseType, subject, grade, type, conclusion, tutorName, managerName, startDate, endDate])
+  React.useEffect(() => { setPage(1) }, [studentName, studentAccount, courseType, subject, grade, type, conclusion, tutorName, tutorPhone, managerName, startDate, endDate])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -157,7 +162,7 @@ export default function AssessmentSearchPage() {
   }
 
   return (
-    <div className="container mx-auto space-y-6 pb-10">
+    <div className="space-y-6">
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <ClipboardCheck className="h-7 w-7 text-primary" />
@@ -174,7 +179,7 @@ export default function AssessmentSearchPage() {
               variant="outline"
               onClick={() => {
                 setStudentName(""); setStudentAccount(""); setCourseType("ALL"); setSubject("ALL"); setGrade("ALL")
-                setType("ALL"); setConclusion("ALL"); setTutorName(""); setManagerName(""); setStartDate(""); setEndDate("")
+                setType("ALL"); setConclusion("ALL"); setTutorName(""); setTutorPhone(""); setManagerName(""); setStartDate(""); setEndDate("")
               }}
             >
               重置筛选
@@ -182,10 +187,11 @@ export default function AssessmentSearchPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
             <SearchInput label="学员姓名" value={studentName} onChange={setStudentName} placeholder="输入学员姓名..." />
             <SearchInput label="学员G账号" value={studentAccount} onChange={setStudentAccount} placeholder="输入G账号..." />
             <SearchInput label="伴学教练姓名" value={tutorName} onChange={setTutorName} placeholder="输入教练姓名..." />
+            <SearchInput label="伴学教练手机号" value={tutorPhone} onChange={setTutorPhone} placeholder="输入教练手机号..." />
             <SearchInput label="学管姓名" value={managerName} onChange={setManagerName} placeholder="输入学管姓名..." />
           </div>
 
@@ -231,10 +237,10 @@ export default function AssessmentSearchPage() {
             />
             <div>
               <label className="mb-2 block text-sm font-medium">测评时间区间</label>
-              <div className="flex items-center gap-1.5">
-                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="max-w-[150px]" />
-                <span className="text-muted-foreground">至</span>
-                <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="max-w-[150px]" />
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:max-w-md">
+                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-background w-full min-w-0 sm:max-w-[150px]" />
+                <span className="flex h-9 shrink-0 items-center justify-center px-2 text-sm text-muted-foreground sm:px-0">至</span>
+                <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-background w-full min-w-0 sm:max-w-[150px]" />
               </div>
             </div>
           </div>
@@ -243,7 +249,7 @@ export default function AssessmentSearchPage() {
             共找到 <span className="font-medium text-foreground">{filtered.length}</span> 条测评记录
           </div>
 
-          <div className="rounded-md border">
+          <div className="border rounded-md bg-white dark:bg-gray-950 overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>

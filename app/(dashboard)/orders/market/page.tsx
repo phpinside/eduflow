@@ -399,7 +399,7 @@ export default function OrderMarketPage() {
   }
 
   return (
-    <div className="space-y-6 container mx-auto pb-10 max-w-5xl">
+    <div className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">接单中心</h1>

@@ -195,8 +195,8 @@ export default function StudyPlanReviewPage() {
   if (!plan) return <div className="p-8 text-center">未找到规划书</div>
 
   return (
-    <div className="container mx-auto py-8 max-w-4xl">
-      <Button variant="ghost" className="mb-6 gap-2" onClick={() => router.back()}>
+    <div className="space-y-6">
+      <Button variant="ghost" className="gap-2" onClick={() => router.back()}>
         <ArrowLeft className="h-4 w-4" />
         返回列表
       </Button>

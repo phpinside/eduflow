@@ -62,7 +62,7 @@ export default function EditFeedbackPage() {
     }
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6 pb-20">
+        <div className="space-y-6">
             {/* Header：标题与删除同一行，删除靠右 */}
             <div className="flex items-start gap-4">
                 <Button variant="ghost" size="icon" className="shrink-0" onClick={() => router.back()}>

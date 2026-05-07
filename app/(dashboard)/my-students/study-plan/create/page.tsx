@@ -94,7 +94,7 @@ export default function CreateStudyPlanPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-10">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => router.back()}>

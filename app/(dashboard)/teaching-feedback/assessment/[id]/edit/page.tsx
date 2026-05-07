@@ -7,8 +7,6 @@ import { zhCN } from "date-fns/locale"
 import {
     ArrowLeft,
     CalendarIcon,
-    ChevronLeft,
-    ChevronRight,
     ClipboardCheck,
     ImagePlus,
     Minus,
@@ -98,16 +96,8 @@ export default function AssessmentEditPage() {
     const params = useParams()
     const id = typeof params?.id === "string" ? params.id : ""
 
-    const { record, recordIndex, prevId, nextId, totalRecords } = React.useMemo(() => {
-        const list = getStoredAssessments()
-        const idx = list.findIndex((r) => r.id === id)
-        return {
-            record: idx >= 0 ? list[idx] : undefined,
-            recordIndex: idx,
-            prevId: idx > 0 ? (list[idx - 1]?.id ?? null) : null,
-            nextId: idx >= 0 && idx < list.length - 1 ? (list[idx + 1]?.id ?? null) : null,
-            totalRecords: list.length,
-        }
+    const record = React.useMemo(() => {
+        return getStoredAssessments().find((r) => r.id === id)
     }, [id])
 
     const [assessmentType, setAssessmentType] = React.useState("phase")
@@ -196,14 +186,9 @@ export default function AssessmentEditPage() {
         }, 400)
     }
 
-    const goAdjacent = (targetId: string | null) => {
-        if (!targetId) return
-        router.push(`/teaching-feedback/assessment/${targetId}/edit`)
-    }
-
     if (!record) {
         return (
-            <div className="mx-auto max-w-2xl space-y-4 py-10">
+            <div className="space-y-4 py-10">
                 <Button variant="ghost" size="sm" onClick={() => router.back()} className="gap-1">
                     <ArrowLeft className="h-4 w-4" />
                     返回
@@ -217,7 +202,7 @@ export default function AssessmentEditPage() {
     const studentDisplayAccount = record.studentAccount ?? "—"
 
     return (
-        <div className="mx-auto max-w-2xl space-y-6 pb-24">
+        <div className="space-y-6">
             <div className="flex items-center gap-3">
                 <Button variant="ghost" size="icon" onClick={() => router.back()} className="-ml-2 shrink-0">
                     <ArrowLeft className="h-5 w-5" />
@@ -446,25 +431,8 @@ export default function AssessmentEditPage() {
                         />
                     </div>
                 </div>
-            </div>
 
-            <div className="sticky bottom-4 z-10 flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card/95 px-5 py-3 shadow-sm backdrop-blur-sm">
-                <div className="flex flex-wrap items-center gap-2">
-                    <Button variant="outline" size="sm" disabled={prevId === null || submitting} onClick={() => goAdjacent(prevId)}>
-                        <ChevronLeft className="mr-1 h-4 w-4" />
-                        上一条
-                    </Button>
-                    <Button variant="outline" size="sm" disabled={nextId === null || submitting} onClick={() => goAdjacent(nextId)}>
-                        下一条
-                        <ChevronRight className="ml-1 h-4 w-4" />
-                    </Button>
-                    {recordIndex >= 0 ? (
-                        <span className="text-sm text-muted-foreground">
-                            第 {recordIndex + 1} / {totalRecords} 条
-                        </span>
-                    ) : null}
-                </div>
-                <div className="flex gap-3">
+                <div className="px-6 py-5 flex justify-end gap-3">
                     <Button variant="outline" onClick={() => router.back()} disabled={submitting}>
                         取消
                     </Button>

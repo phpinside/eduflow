@@ -35,21 +35,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initializeMockData()
     
     // Check for existing session
+    const clearSession = () => {
+      localStorage.removeItem('eduflow:session_user')
+      localStorage.removeItem('eduflow:active_role')
+      document.cookie = `eduflow_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+      setUser(null)
+      setCurrentRole(null)
+    }
+
     const checkAuth = () => {
-      const storedUser = localStorage.getItem('eduflow:session_user')
-      if (storedUser) {
-        const parsedUser = JSON.parse(storedUser)
-        // Re-hydrate dates
-        parsedUser.createdAt = new Date(parsedUser.createdAt)
-        parsedUser.updatedAt = new Date(parsedUser.updatedAt)
-        
-        setUser(parsedUser)
-        // Get stored active role or default to first role
+      const storedUserJson = localStorage.getItem('eduflow:session_user')
+      if (storedUserJson) {
+        const parsedUser = JSON.parse(storedUserJson) as User
+        const users = getStoredUsers()
+        const fresh = users.find(u => u.id === parsedUser.id)
+
+        if (!fresh || fresh.accountDisabled) {
+          clearSession()
+          setIsLoading(false)
+          return
+        }
+
+        fresh.createdAt = new Date(fresh.createdAt)
+        fresh.updatedAt = new Date(fresh.updatedAt)
+        setUser(fresh)
+        localStorage.setItem('eduflow:session_user', JSON.stringify(fresh))
+
         const storedRole = localStorage.getItem('eduflow:active_role')
-        if (storedRole && parsedUser.roles.includes(storedRole as Role)) {
-            setCurrentRole(storedRole as Role)
+        if (storedRole && fresh.roles.includes(storedRole as Role)) {
+          setCurrentRole(storedRole as Role)
         } else {
-            setCurrentRole(parsedUser.roles[0])
+          setCurrentRole(fresh.roles[0])
         }
       }
       setIsLoading(false)
@@ -66,6 +82,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const foundUser = users.find(u => u.phone === phone)
 
     if (foundUser) {
+      if (foundUser.accountDisabled) {
+        throw new Error('该账号已被停用，无法登录。如需恢复请联系管理员。')
+      }
+
       // Check user status
       if (foundUser.status === UserStatus.PENDING) {
         throw new Error('您的账号正在审核中，请耐心等待管理员审核通过后再登录')

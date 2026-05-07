@@ -82,8 +82,8 @@ export default function OrderSettingsPage() {
   }
 
   return (
-    <div className="container max-w-2xl py-10 mx-auto">
-      <div className="mb-8 space-y-3">
+    <div className="space-y-6">
+      <div className="space-y-3">
         <Button
           type="button"
           variant="ghost"

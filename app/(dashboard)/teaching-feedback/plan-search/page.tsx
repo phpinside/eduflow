@@ -45,6 +45,7 @@ import {
 interface StudyPlanRow extends StudyPlan {
   studentName: string
   teacherName: string
+  teacherPhone: string
   managerName: string
   studentAccount: string
   subject: string
@@ -60,6 +61,7 @@ export default function PlanSearchPage() {
   const [studentName, setStudentName] = React.useState("")
   const [studentAccount, setStudentAccount] = React.useState("")
   const [tutorName, setTutorName] = React.useState("")
+  const [tutorPhone, setTutorPhone] = React.useState("")
   const [managerName, setManagerName] = React.useState("")
   const [courseType, setCourseType] = React.useState("ALL")
   const [subject, setSubject] = React.useState("ALL")
@@ -105,6 +107,7 @@ export default function PlanSearchPage() {
           ...plan,
           studentName: plan.studentName ?? student?.name ?? "未知学员",
           teacherName: teacher?.name ?? "未知教练",
+          teacherPhone: teacher?.phone ?? "—",
           managerName: manager?.name ?? teacher?.managerName ?? "—",
           studentAccount: order?.studentAccount ?? "—",
           subject: order?.subject ?? "-",
@@ -140,6 +143,7 @@ export default function PlanSearchPage() {
       if (studentName && !row.studentName.toLowerCase().includes(studentName.trim().toLowerCase())) return false
       if (studentAccount && !row.studentAccount.toLowerCase().includes(studentAccount.trim().toLowerCase())) return false
       if (tutorName && !row.teacherName.toLowerCase().includes(tutorName.trim().toLowerCase())) return false
+      if (tutorPhone.trim() && !row.teacherPhone.includes(tutorPhone.trim())) return false
       if (managerName && !row.managerName.toLowerCase().includes(managerName.trim().toLowerCase())) return false
       if (courseType !== "ALL" && row.courseType !== courseType) return false
       if (subject !== "ALL" && row.subject !== subject) return false
@@ -157,9 +161,9 @@ export default function PlanSearchPage() {
       }
       return true
     })
-  }, [roleFilteredPlans, studentName, studentAccount, tutorName, managerName, courseType, subject, grade, reviewStatus, submittedFrom, submittedTo])
+  }, [roleFilteredPlans, studentName, studentAccount, tutorName, tutorPhone, managerName, courseType, subject, grade, reviewStatus, submittedFrom, submittedTo])
 
-  React.useEffect(() => { setPage(1) }, [studentName, studentAccount, tutorName, managerName, courseType, subject, grade, reviewStatus, submittedFrom, submittedTo])
+  React.useEffect(() => { setPage(1) }, [studentName, studentAccount, tutorName, tutorPhone, managerName, courseType, subject, grade, reviewStatus, submittedFrom, submittedTo])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -168,6 +172,7 @@ export default function PlanSearchPage() {
     setStudentName("")
     setStudentAccount("")
     setTutorName("")
+    setTutorPhone("")
     setManagerName("")
     setCourseType("ALL")
     setSubject("ALL")
@@ -231,7 +236,7 @@ export default function PlanSearchPage() {
   }
 
   return (
-    <div className="container mx-auto space-y-6 pb-10">
+    <div className="space-y-6">
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <FileSearch className="h-7 w-7 text-primary" />
@@ -251,10 +256,11 @@ export default function PlanSearchPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Row 1: text search inputs */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
             <SearchInput label="学员姓名" value={studentName} onChange={setStudentName} placeholder="输入学员姓名..." />
             <SearchInput label="学员G账号" value={studentAccount} onChange={setStudentAccount} placeholder="输入G账号..." />
             <SearchInput label="伴学教练姓名" value={tutorName} onChange={setTutorName} placeholder="输入教练姓名..." />
+            <SearchInput label="伴学教练手机号" value={tutorPhone} onChange={setTutorPhone} placeholder="输入教练手机号..." />
             <SearchInput label="学管姓名" value={managerName} onChange={setManagerName} placeholder="输入学管姓名..." />
           </div>
 
@@ -315,7 +321,7 @@ export default function PlanSearchPage() {
             {currentRole === Role.TUTOR && <span>（当前为教练视角，仅显示本人）</span>}
           </div>
 
-          <div className="rounded-md border">
+          <div className="border rounded-md bg-white dark:bg-gray-950 overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>

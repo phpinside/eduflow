@@ -60,6 +60,7 @@ export default function FeedbackSearchPage() {
   const [reviewStatus, setReviewStatus] = React.useState("ALL")
   const [rating, setRating] = React.useState("ALL")
   const [tutorName, setTutorName] = React.useState("")
+  const [tutorPhone, setTutorPhone] = React.useState("")
   const [managerName, setManagerName] = React.useState("")
   const [startDate, setStartDate] = React.useState("")
   const [endDate, setEndDate] = React.useState("")
@@ -94,6 +95,7 @@ export default function FeedbackSearchPage() {
         grade: order?.grade ?? "—",
         courseType: order?.type,
         tutorName: tutor?.name ?? "—",
+        tutorPhone: tutor?.phone ?? "—",
         managerName: manager?.name ?? tutor?.managerName ?? "—",
         studentAttendance: feedback.studentAttendance ?? "—",
         homeworkCompletion: feedback.homeworkCompletion ?? "—",
@@ -139,14 +141,15 @@ export default function FeedbackSearchPage() {
       if (studentAttendance !== "ALL" && row.studentAttendance !== studentAttendance) return false
       if (homeworkCompletion !== "ALL" && row.homeworkCompletion !== homeworkCompletion) return false
       if (tutorName && !row.tutorName.toLowerCase().includes(tutorName.toLowerCase())) return false
+      if (tutorPhone.trim() && !row.tutorPhone.includes(tutorPhone.trim())) return false
       if (managerName && !row.managerName.toLowerCase().includes(managerName.toLowerCase())) return false
       if (startDate && row.date < startDate) return false
       if (endDate && row.date > endDate) return false
       return true
     })
-  }, [feedbackRows, studentName, studentAccount, courseType, subject, grade, reviewStatus, rating, studentAttendance, homeworkCompletion, tutorName, managerName, startDate, endDate])
+  }, [feedbackRows, studentName, studentAccount, courseType, subject, grade, reviewStatus, rating, studentAttendance, homeworkCompletion, tutorName, tutorPhone, managerName, startDate, endDate])
 
-  React.useEffect(() => { setPage(1) }, [studentName, studentAccount, courseType, subject, grade, reviewStatus, rating, studentAttendance, homeworkCompletion, tutorName, managerName, startDate, endDate])
+  React.useEffect(() => { setPage(1) }, [studentName, studentAccount, courseType, subject, grade, reviewStatus, rating, studentAttendance, homeworkCompletion, tutorName, tutorPhone, managerName, startDate, endDate])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -156,7 +159,7 @@ export default function FeedbackSearchPage() {
   }
 
   return (
-    <div className="container mx-auto space-y-6 pb-10">
+    <div className="space-y-6">
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <SearchIcon className="h-7 w-7 text-primary" />
@@ -174,7 +177,7 @@ export default function FeedbackSearchPage() {
               onClick={() => {
                 setStudentName(""); setStudentAccount(""); setCourseType("ALL"); setSubject("ALL"); setGrade("ALL")
                 setReviewStatus("ALL"); setRating("ALL"); setStudentAttendance("ALL"); setHomeworkCompletion("ALL")
-                setTutorName(""); setManagerName(""); setStartDate(""); setEndDate("")
+                setTutorName(""); setTutorPhone(""); setManagerName(""); setStartDate(""); setEndDate("")
               }}
             >
               重置筛选
@@ -182,10 +185,11 @@ export default function FeedbackSearchPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
             <SearchInput label="学员姓名" value={studentName} onChange={setStudentName} placeholder="输入学员姓名..." />
             <SearchInput label="学员G账号" value={studentAccount} onChange={setStudentAccount} placeholder="输入G账号..." />
             <SearchInput label="伴学教练姓名" value={tutorName} onChange={setTutorName} placeholder="输入教练姓名..." />
+            <SearchInput label="伴学教练手机号" value={tutorPhone} onChange={setTutorPhone} placeholder="输入教练手机号..." />
             <SearchInput label="学管姓名" value={managerName} onChange={setManagerName} placeholder="输入学管姓名..." />
           </div>
 
@@ -238,10 +242,10 @@ export default function FeedbackSearchPage() {
             />
             <div>
               <label className="mb-2 block text-sm font-medium">上课时间区间</label>
-              <div className="flex items-center gap-1.5">
-                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="max-w-[150px]" />
-                <span className="text-muted-foreground">至</span>
-                <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="max-w-[150px]" />
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:max-w-md">
+                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-background w-full min-w-0 sm:max-w-[150px]" />
+                <span className="flex h-9 shrink-0 items-center justify-center px-2 text-sm text-muted-foreground sm:px-0">至</span>
+                <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-background w-full min-w-0 sm:max-w-[150px]" />
               </div>
             </div>
           </div>
@@ -250,7 +254,7 @@ export default function FeedbackSearchPage() {
             共找到 <span className="font-medium text-foreground">{filtered.length}</span> 条反馈记录
           </div>
 
-          <div className="rounded-md border">
+          <div className="border rounded-md bg-white dark:bg-gray-950 overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>

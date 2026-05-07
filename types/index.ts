@@ -28,6 +28,8 @@ export interface User {
   formalPaymentEnabled?: boolean
   /** 最小起充课时数（招生老师）；未设置时默认 10；最小 0.5，须为 0.5 的倍数 */
   minRechargeHours?: number
+  /** 运营停用账号后为 true，停用后不可登录；未设置视为正常 */
+  accountDisabled?: boolean
   recommendedForTrial?: boolean // 系统推荐试课
   tutorLevel?: 'A' | 'B' | 'C' | 'D' | 'E'  // 教练等级（伴学教练专用）
   tutorSubjects?: string[]    // 可授科目（伴学教练专用）

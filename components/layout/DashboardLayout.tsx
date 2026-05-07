@@ -80,6 +80,63 @@ const navItems: NavItem[] = [
     roles: [Role.SALES, Role.TUTOR, Role.MANAGER, Role.OPERATOR, Role.ADMIN]
   },
   {
+    title: "订单中心",
+    matchPrefix: "/manager-orders",
+    icon: ShoppingCart,
+    roles: [Role.OPERATOR],
+    children: [
+      {
+        title: "订单管理",
+        href: "/manager-orders",
+        icon: ClipboardList,
+        roles: [Role.OPERATOR],
+      },
+      {
+        title: "订单补录",
+        href: "/order-accord",
+        icon: FilePlus,
+        roles: [Role.OPERATOR],
+      },
+    ],
+  },
+  {
+    title: "财务中心",
+    icon: Wallet,
+    roles: [Role.OPERATOR],
+    children: [
+      {
+        title: "财务记录",
+        href: "/financial-records",
+        icon: CircleDollarSign,
+        roles: [Role.OPERATOR],
+      },
+      {
+        title: "退款审核",
+        href: "/manager-refund",
+        icon: RefreshCcwDot,
+        roles: [Role.OPERATOR],
+      },
+      {
+        title: "伴学教练收入",
+        href: "/tutor-income",
+        icon: BadgeDollarSign,
+        roles: [Role.OPERATOR],
+      },
+      {
+        title: "伴学团队收入",
+        href: "/management-income",
+        icon: UsersRound,
+        roles: [Role.OPERATOR],
+      },
+    ],
+  },
+  {
+    title: "用户管理",
+    href: "/user-management",
+    icon: Users,
+    roles: [Role.OPERATOR],
+  },
+  {
     title: "订单管理",
     href: "/orders",
     icon: ClipboardList,
@@ -121,25 +178,51 @@ const navItems: NavItem[] = [
     title: "教学与反馈",
     matchPrefix: "/teaching-feedback",
     icon: MessageSquareText,
-    roles: [Role.TUTOR, Role.MANAGER],
+    roles: [Role.TUTOR, Role.MANAGER, Role.OPERATOR],
     children: [
       {
         title: "课后反馈检索",
         href: "/teaching-feedback/feedback-search",
         icon: Search,
-        roles: [Role.TUTOR, Role.MANAGER],
+        roles: [Role.TUTOR, Role.MANAGER, Role.OPERATOR],
       },
       {
         title: "阶段性测评检索",
         href: "/teaching-feedback/assessment-search",
         icon: ClipboardCheck,
-        roles: [Role.TUTOR, Role.MANAGER],
+        roles: [Role.TUTOR, Role.MANAGER, Role.OPERATOR],
       },
       {
         title: "学习规划书检索",
         href: "/teaching-feedback/plan-search",
         icon: FileSearch,
-        roles: [Role.TUTOR, Role.MANAGER],
+        roles: [Role.TUTOR, Role.MANAGER, Role.OPERATOR],
+      },
+    ],
+  },
+  {
+    title: "组织与人员",
+    matchPrefix: "/team-management",
+    icon: Network,
+    roles: [Role.OPERATOR],
+    children: [
+      {
+        title: "伴学教练检索",
+        href: "/team-management/tutor-search",
+        icon: UserSearch,
+        roles: [Role.OPERATOR],
+      },
+      {
+        title: "伴学团队检索",
+        href: "/team-management/manager-search",
+        icon: UsersRound,
+        roles: [Role.OPERATOR],
+      },
+      {
+        title: "分公司管理",
+        href: "/branch-companies",
+        icon: Store,
+        roles: [Role.OPERATOR],
       },
     ],
   },
@@ -189,58 +272,10 @@ const navItems: NavItem[] = [
     roles: [Role.TUTOR, Role.MANAGER]
   },
   {
-    title: "订单管理",
-    href: "/manager-orders",
-    icon: ClipboardList,
-    roles: [Role.OPERATOR]
-  },
-  {
-    title: "退款审核",
-    href: "/manager-refund",
-    icon: RefreshCcwDot,
-    roles: [Role.OPERATOR]
-  },
-  {
-    title: "用户管理",
-    href: "/user-management",
-    icon: Users,
-    roles: [Role.OPERATOR]
-  },
-  {
-    title: "分公司管理",
-    href: "/branch-companies",
-    icon: Store,
-    roles: [Role.OPERATOR]
-  },
-  {
-    title: "财务记录",
-    href: "/financial-records",
-    icon: CircleDollarSign,
-    roles: [Role.OPERATOR]
-  },
-  {
     title: "操作日志",
     href: "/operation-logs",
     icon: FileText,
     roles: [Role.OPERATOR, Role.ADMIN]
-  },
-  {
-    title: "伴学教练收入",
-    href: "/tutor-income",
-    icon: BadgeDollarSign,
-    roles: [Role.OPERATOR]
-  },
-  {
-    title: "家长课后反馈",
-    href: "/parent-feedback",
-    icon: MessageSquareText,
-    roles: [Role.OPERATOR]
-  },
-  {
-    title: "订单补录",
-    href: "/order-accord",
-    icon: FilePlus,
-    roles: [Role.OPERATOR]
   },
   {
     title: "教学科目配置",

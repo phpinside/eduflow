@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select"
-import { Search, Eye, ChevronLeft, ChevronRight } from "lucide-react"
+import { Search, Edit, ChevronLeft, ChevronRight } from "lucide-react"
 import { Role, User, UserStatus } from "@/types"
 import { getStoredUsers } from "@/lib/storage"
 import { format } from "date-fns"
@@ -187,7 +187,11 @@ export default function UserManagementPage() {
               </TableRow>
             ) : (
               paginatedUsers.map((user) => (
-                <TableRow key={user.id}>
+                <TableRow
+                  key={user.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => router.push(`/user-management/${user.id}`)}
+                >
                   <TableCell className="font-medium">{user.name}</TableCell>
                   <TableCell>{user.phone}</TableCell>
                   <TableCell>
@@ -210,14 +214,14 @@ export default function UserManagementPage() {
                   <TableCell className="text-sm text-muted-foreground">
                     {format(new Date(user.createdAt), "yyyy-MM-dd HH:mm", { locale: zhCN })}
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => router.push(`/user-management/${user.id}`)}
+                      onClick={() => router.push(`/user-management/${user.id}/edit`)}
                     >
-                      <Eye className="h-4 w-4 mr-1" />
-                      查看详情
+                      <Edit className="h-4 w-4 mr-1" />
+                      编辑信息
                     </Button>
                   </TableCell>
                 </TableRow>

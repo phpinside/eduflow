@@ -85,6 +85,7 @@ export interface FeedbackRow {
   grade: string
   courseType: OrderType | undefined
   tutorName: string
+  tutorPhone: string
   managerName: string
   methods?: string
   mistakes?: string
@@ -98,6 +99,7 @@ export interface FeedbackRow {
 export interface AssessmentTableRow extends MockAssessmentRecord {
   studentAccount: string
   courseType?: OrderType
+  teacherPhone: string
 }
 
 export const ASSESSMENT_PROBLEM_LABELS: Record<string, string> = {
