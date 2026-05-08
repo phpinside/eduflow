@@ -1994,13 +1994,6 @@ export default function ManagerOrderDetailsPage() {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              <div className="font-medium">强提示</div>
-              <div className="mt-1 text-xs leading-relaxed text-amber-800">
-                请先在鼎伴学网站校验「校区账号」与「学生G账号」的正确性后再提交；若信息不匹配将被驳回。
-              </div>
-            </div>
-
             {/* 订单信息摘要 */}
             <div className="bg-muted p-3 rounded-lg">
               <p className="text-sm font-medium">订单信息</p>
@@ -2055,6 +2048,13 @@ export default function ManagerOrderDetailsPage() {
               )
             })()}
 
+            {/* 必填：鼎伴学信息 */}
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <div className="font-medium">强提示</div>
+              <div className="mt-1 text-xs leading-relaxed text-amber-800">
+                请先在鼎伴学网站校验「校区账号」与「学生G账号」的正确性后再提交；若信息不匹配将被驳回。
+              </div>
+            </div>
             {/* 必填：鼎伴学信息 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-1.5">
@@ -2117,7 +2117,7 @@ export default function ManagerOrderDetailsPage() {
             </Button>
             <Button variant="destructive" onClick={handleCsReject}>
               <X className="mr-2 h-4 w-4" />
-              驳回
+              暂存
             </Button>
             <Button onClick={handleCsApprove}>
               <Check className="mr-2 h-4 w-4" />
@@ -2155,13 +2155,48 @@ export default function ManagerOrderDetailsPage() {
               </div>
             </div>
 
+            {/* 鼎伴学信息（只读展示，供财务核验） */}
+            <div className="rounded-lg border bg-muted/20 p-3">
+              <p className="text-sm font-medium mb-2">鼎伴学信息（核验）</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+                <div>
+                  <div className="text-muted-foreground">校区名称</div>
+                  <div className="font-medium">{order?.campusName?.trim() || "—"}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">校区账号</div>
+                  <div className="font-medium">{order?.campusAccount?.trim() || "—"}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">学生G账号</div>
+                  <div className="font-mono font-semibold text-foreground">
+                    {order?.studentAccount?.trim() || "—"}
+                  </div>
+                </div>
+              </div>
+              {(!order?.campusName?.trim() || !order?.campusAccount?.trim() || !order?.studentAccount?.trim()) && (
+                <p className="mt-2 text-xs text-amber-700">
+                  提醒：该订单鼎伴学信息不完整，可能影响后续核验与排课。
+                </p>
+              )}
+            </div>
+
             {/* 费用明细 */}
             {(() => {
               const rules = getStoredPriceRules()
-              const reward = resolveTrialRewardFromRules(rules, order?.subject, order?.grade)
+              const rewardFromTx = (order?.transactions ?? [])
+                .filter((t) => t.type === "REWARD")
+                .reduce((s, t) => s + Math.max(0, Number(t.amount) || 0), 0)
+              const reward =
+                Math.max(
+                  0,
+                  Number(order?.conversionRewardFee ?? 0) || 0,
+                  rewardFromTx,
+                  resolveTrialRewardFromRules(rules, order?.subject, order?.grade)
+                )
               const includeReward = (order?.conversionRewardPaidMode ?? "OFFLINE") === "BUNDLED"
-              const dingApplicable = order?.needsDingbanxueRecharge !== false
-              const includeDing = dingApplicable && (order?.includeDingbanxueFeeInPayment ?? true)
+              const dingApplicable = true
+              const includeDing = order?.needsDingbanxueRecharge !== false
               const b = computePricingBreakdown({
                 subject: order?.subject,
                 grade: order?.grade,
@@ -2181,12 +2216,16 @@ export default function ManagerOrderDetailsPage() {
                       <span>课时费用</span>
                       <span className="font-medium text-foreground">¥{b.courseFee}</span>
                     </div>
+                    {reward > 0 && (
+                      <div className="flex justify-between">
+                        <span>转正红包金额（{includeReward ? "计入本次" : "不计入本次"}）</span>
+                        <span className="font-medium text-foreground">
+                          ¥{includeReward ? b.conversionRewardFee : 0}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
-                      <span>转正红包费用（{includeReward ? "合并支付" : "线下支付"}）</span>
-                      <span className="font-medium text-foreground">¥{includeReward ? b.conversionRewardFee : 0}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>代收鼎伴学费用（{includeDing ? "合并支付" : "不合并"}）</span>
+                      <span>代收鼎伴学费用（{includeDing ? "计入本次" : "已扣减"}）</span>
                       <span className="font-medium text-foreground">¥{includeDing ? b.dingbanxueFee : 0}</span>
                     </div>
                     <div className="flex justify-between pt-1 border-t">
@@ -2194,11 +2233,16 @@ export default function ManagerOrderDetailsPage() {
                       <span className="font-semibold text-foreground">¥{b.totalPayable}</span>
                     </div>
                   </div>
+                  {reward > 0 && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      红包金额取值优先级：订单记录/交易记录（REWARD）→ 价格配置（trialReward）。当前红包金额：¥{reward.toLocaleString()}。
+                    </p>
+                  )}
                 </div>
               )
             })()}
 
-            {/* 课时数调整 */}
+            {/* 课时数调整
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h4 className="text-sm font-semibold text-blue-900 mb-3 flex items-center gap-2">
                 <Pencil className="h-4 w-4" />
@@ -2234,7 +2278,7 @@ export default function ManagerOrderDetailsPage() {
                   </div>
                 )}
               </div>
-            </div>
+            </div> */}
 
             {/* 支付凭证展示 */}
             {order?.paymentVouchers && order.paymentVouchers.length > 0 && (
@@ -2286,7 +2330,7 @@ export default function ManagerOrderDetailsPage() {
             </div>
             
             {/* 调整备注 */}
-            <div>
+            {/* <div>
               <h4 className="text-sm font-medium mb-2">调整备注（可选）</h4>
               <Textarea
                 placeholder="如有课时调整或其他特殊情况，请在此说明..."
@@ -2294,7 +2338,7 @@ export default function ManagerOrderDetailsPage() {
                 onChange={(e) => setFinanceRemark(e.target.value)}
                 rows={2}
               />
-            </div>
+            </div> */}
           </div>
 
           <DialogFooter className="gap-2">
