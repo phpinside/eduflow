@@ -7,6 +7,7 @@ import { zhCN } from "date-fns/locale"
 import { 
   Search, 
   Filter, 
+  Settings,
   Clock, 
   Users, 
   BookOpen, 
@@ -398,10 +399,21 @@ export default function OrderMarketPage() {
   }
 
   return (
-    <div className="space-y-6 container mx-auto pb-10 max-w-5xl">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">接单中心</h1>
-        <p className="text-muted-foreground">浏览并申请适合您的教学订单，抢单倒计时结束前均可申请。</p>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">接单中心</h1>
+          <p className="text-muted-foreground">浏览并申请适合您的教学订单，抢单倒计时结束前均可申请。</p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-fit"
+          onClick={() => router.push("/order-settings")}
+        >
+          <Settings className="h-4 w-4" />
+          接单设置
+        </Button>
       </div>
 
       {/* Filters */}

@@ -1,10 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { toast } from "sonner"
+import { ArrowLeft } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -36,6 +38,7 @@ const formSchema = z.object({
 })
 
 export default function OrderSettingsPage() {
+  const router = useRouter()
   const [subjects, setSubjects] = useState<string[]>([])
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -70,13 +73,32 @@ export default function OrderSettingsPage() {
     console.log(data)
   }
 
+  const handleGoBack = () => {
+    if (window.history.length > 1) {
+      router.back()
+      return
+    }
+    router.push("/orders/market")
+  }
+
   return (
-    <div className="container max-w-2xl py-10 mx-auto">
-      <div className="mb-8 space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">接单设置</h1>
-        <p className="text-muted-foreground">
-          管理您的接单状态和偏好设置，以便系统为您匹配合适的订单。
-        </p>
+    <div className="space-y-6">
+      <div className="space-y-3">
+        <Button
+          type="button"
+          variant="ghost"
+          className="w-fit px-2 text-muted-foreground hover:text-foreground"
+          onClick={handleGoBack}
+        >
+          <ArrowLeft className="mr-1 h-4 w-4" />
+          返回
+        </Button>
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">接单设置</h1>
+          <p className="text-muted-foreground">
+            管理您的接单状态和偏好设置，以便系统为您匹配合适的订单。
+          </p>
+        </div>
       </div>
 
       <Form {...form}>
@@ -302,7 +324,20 @@ export default function OrderSettingsPage() {
             </CardContent>
           </Card>
 
-          <Button type="submit" className="w-full" size="lg">保存设置</Button>
+          <div className="flex items-center gap-3">
+          <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              size="lg"
+              onClick={handleGoBack}
+            >
+              返回
+            </Button>
+            
+            <Button type="submit" className="flex-1" size="lg">保存设置</Button>
+           
+          </div>
         </form>
       </Form>
     </div>

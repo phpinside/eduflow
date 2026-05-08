@@ -17,6 +17,11 @@ import { mockOperationLogs } from './mock-data/operation-logs'
 import type { OperationLog } from '@/types/operation-log'
 import { mockPriceRules } from './mock-data/price-settings'
 import type { PriceRule } from './mock-data/price-settings'
+import { mockAssessments, type MockAssessmentRecord } from './mock-data/assessments'
+import { mockTutorCreditRules } from './mock-data/tutor-credit-rules'
+import { mockTutorCreditLogs } from './mock-data/tutor-credit-logs'
+import { mockManagementIncomeDetails } from './mock-data/management-income'
+import type { TutorCreditRule, TutorCreditLog, ManagementIncomeDetail } from '@/types'
 
 export const STORAGE_KEYS = {
   USERS: 'eduflow:users',
@@ -34,6 +39,10 @@ export const STORAGE_KEYS = {
   REFUND_OPERATION_LOGS: 'eduflow:refund-operation-logs',
   BRANCH_COMPANIES: 'eduflow:branch-companies',
   OPERATION_LOGS: 'eduflow:operation-logs',
+  ASSESSMENTS: 'eduflow:assessments',
+  TUTOR_CREDIT_RULES: 'eduflow:tutor-credit-rules',
+  TUTOR_CREDIT_LOGS: 'eduflow:tutor-credit-logs',
+  MANAGEMENT_INCOME: 'eduflow:management-income',
 }
 
 const isBrowser = typeof window !== 'undefined'
@@ -81,6 +90,12 @@ export const getStoredPriceRules = (): PriceRule[] =>
   getMockData(STORAGE_KEYS.PRICE_RULES, mockPriceRules)
 export const saveStoredPriceRules = (rules: PriceRule[]) =>
   saveMockData(STORAGE_KEYS.PRICE_RULES, rules)
+
+export const getStoredAssessments = (): MockAssessmentRecord[] =>
+  getMockData(STORAGE_KEYS.ASSESSMENTS, mockAssessments)
+
+export const saveAssessments = (data: MockAssessmentRecord[]) =>
+  saveMockData(STORAGE_KEYS.ASSESSMENTS, data)
 export const getStoredOrderAccordRecords = () => getMockData(STORAGE_KEYS.ORDER_ACCORD_RECORDS, mockOrderAccordRecords)
 export const saveOrderAccordRecords = (data: typeof mockOrderAccordRecords) => saveMockData(STORAGE_KEYS.ORDER_ACCORD_RECORDS, data)
 export const getStoredTeacherAccordRecords = () => getMockData(STORAGE_KEYS.TEACHER_ACCORD_RECORDS, mockTeacherAccordRecords)
@@ -219,4 +234,28 @@ export const initializeMockData = () => {
   if (!localStorage.getItem(STORAGE_KEYS.REFUND_OPERATION_LOGS)) saveMockData(STORAGE_KEYS.REFUND_OPERATION_LOGS, mockRefundOperationLogs)
   if (!localStorage.getItem(STORAGE_KEYS.BRANCH_COMPANIES)) saveMockData(STORAGE_KEYS.BRANCH_COMPANIES, mockBranchCompanies)
   if (!localStorage.getItem(STORAGE_KEYS.OPERATION_LOGS)) saveMockData(STORAGE_KEYS.OPERATION_LOGS, mockOperationLogs)
+  if (!localStorage.getItem(STORAGE_KEYS.TUTOR_CREDIT_RULES)) saveMockData(STORAGE_KEYS.TUTOR_CREDIT_RULES, mockTutorCreditRules)
+  if (!localStorage.getItem(STORAGE_KEYS.TUTOR_CREDIT_LOGS)) saveMockData(STORAGE_KEYS.TUTOR_CREDIT_LOGS, mockTutorCreditLogs)
+  if (!localStorage.getItem(STORAGE_KEYS.MANAGEMENT_INCOME)) saveMockData(STORAGE_KEYS.MANAGEMENT_INCOME, mockManagementIncomeDetails)
 }
+
+// === 伴学信用分规则 ===
+
+export const getStoredTutorCreditRules = (): TutorCreditRule[] =>
+  getMockData(STORAGE_KEYS.TUTOR_CREDIT_RULES, mockTutorCreditRules)
+
+export const saveStoredTutorCreditRules = (data: TutorCreditRule[]) =>
+  saveMockData(STORAGE_KEYS.TUTOR_CREDIT_RULES, data)
+
+// === 伴学信用分变动记录 ===
+
+export const getStoredTutorCreditLogs = (): TutorCreditLog[] =>
+  getMockData(STORAGE_KEYS.TUTOR_CREDIT_LOGS, mockTutorCreditLogs)
+
+export const saveStoredTutorCreditLogs = (data: TutorCreditLog[]) =>
+  saveMockData(STORAGE_KEYS.TUTOR_CREDIT_LOGS, data)
+
+// === 管理收入明细 ===
+
+export const getStoredManagementIncomeDetails = (): ManagementIncomeDetail[] =>
+  getMockData(STORAGE_KEYS.MANAGEMENT_INCOME, mockManagementIncomeDetails)

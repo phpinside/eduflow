@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -30,6 +31,8 @@ function createTutorRegisterSchema(expectedCaptchaRef: MutableRefObject<string>)
     .object({
       name: z.string().min(2, { message: "姓名至少需要2个字符" }),
       phone: z.string().length(11, { message: "请输入有效的11位手机号码" }),
+      managerPhone: z.string().length(11, { message: "请输入有效的11位学管手机号" }),
+      tutorId: z.string().trim().length(25, { message: "伴学教练ID长度需为25位" }),
       password: z.string().min(6, { message: "密码至少需要6位" }),
       confirmPassword: z.string(),
       wechatQrCode: z.string().min(1, { message: "请上传个人微信二维码" }),
@@ -60,6 +63,8 @@ export default function TutorRegisterPage() {
     defaultValues: {
       name: "",
       phone: "",
+      managerPhone: "",
+      tutorId: "",
       password: "",
       confirmPassword: "",
       wechatQrCode: "",
@@ -109,6 +114,8 @@ export default function TutorRegisterPage() {
         id: `user-${Date.now()}`,
         name: values.name,
         phone: values.phone,
+        managerPhone: values.managerPhone,
+        tutorId: values.tutorId,
         roles: [Role.TUTOR],
         password: values.password,
         wechatQrCode: values.wechatQrCode,
@@ -210,6 +217,49 @@ export default function TutorRegisterPage() {
                     <FormLabel>手机号 <span className="text-red-500">*</span></FormLabel>
                     <FormControl>
                       <Input placeholder="请输入11位手机号" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="managerPhone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>学管手机号 <span className="text-red-500">*</span></FormLabel>
+                    <FormDescription className="text-xs leading-relaxed">
+                    学管是你所在伴学团队的负责人，会提供教学指导和支持，保障教学质量。加入团队后，你才能接单哦！请填写团队学管老师的手机号。
+                    </FormDescription>
+                    <FormControl>
+                      <Input placeholder="请输入11位学管手机号" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="tutorId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>伴学教练ID <span className="text-red-500">*</span></FormLabel>
+                    <FormDescription className="text-xs leading-relaxed">
+                      请前往{" "}
+                      <a
+                        href="https://tutor.bytemath.cn/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-primary underline-offset-4 hover:underline"
+                      >
+                        伴学教练新手引导系统
+                      </a>
+                      ，完成引导任务后即可获得本人的伴学教练 ID（25 位），再填写到此处。
+                    </FormDescription>
+                    <FormControl>
+                      <Input placeholder="请输入25位伴学教练ID" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

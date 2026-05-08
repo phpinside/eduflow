@@ -4,39 +4,45 @@ import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { zhCN } from "date-fns/locale"
-import { ArrowLeft, FileText, CheckCircle, Clock, Eye, Download, User as UserIcon } from "lucide-react"
+import { ArrowLeft, FileText, CheckCircle, Download, Upload, X } from "lucide-react"
 
 import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
-import { Separator } from "@/components/ui/separator"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { toast } from "sonner"
 
-import { getStoredOrders, getStoredUsers, getStoredStudents, saveMockData } from "@/lib/storage"
+import { getStoredOrders, getStoredUsers, getStoredStudents } from "@/lib/storage"
 import { mockStudyPlans } from "@/lib/mock-data/study-plans"
-import { StudyPlanStatus, StudyPlan, Role } from "@/types"
+import { StudyPlanStatus, StudyPlan, Role, OrderType } from "@/types"
 
 interface DetailedPlan extends StudyPlan {
   studentName: string
+  studentAccount: string
   teacherName: string
   teacherAvatar?: string
   subject: string
   grade: string
+  courseType?: OrderType
 }
 
 export default function StudyPlanReviewPage() {
   const params = useParams()
   const router = useRouter()
-  const { user } = useAuth()
+  const { user, currentRole } = useAuth()
   const planId = params?.planId as string
 
   const [plan, setPlan] = useState<DetailedPlan | null>(null)
   const [loading, setLoading] = useState(true)
   const [reviewComment, setReviewComment] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showUpdateArea, setShowUpdateArea] = useState(false)
+  const [updateFile, setUpdateFile] = useState<File | null>(null)
+  const [isUpdatingFile, setIsUpdatingFile] = useState(false)
 
   // Load Data
   useEffect(() => {
@@ -75,12 +81,13 @@ export default function StudyPlanReviewPage() {
 
       setPlan({
         ...foundPlan,
-        // 优先使用 foundPlan.studentName（弱绑定时保存的姓名），如果没有则从 students 查找
         studentName: foundPlan.studentName || student?.name || "未知学生",
+        studentAccount: order?.studentAccount || "—",
         teacherName: teacher?.name || "未知教练",
         teacherAvatar: teacher?.avatar,
         subject: order?.subject || "-",
-        grade: order?.grade || "-"
+        grade: order?.grade || "-",
+        courseType: order?.type,
       })
       setLoading(false)
     }
@@ -136,12 +143,60 @@ export default function StudyPlanReviewPage() {
     }, 800)
   }
 
+  const handleUpdateFile = () => {
+    if (!plan || !updateFile) return
+    setIsUpdatingFile(true)
+
+    setTimeout(() => {
+      try {
+        const storedPlansStr = localStorage.getItem("eduflow:study-plans")
+        const allPlans: StudyPlan[] = storedPlansStr ? JSON.parse(storedPlansStr) : mockStudyPlans
+
+        const nextFileType: StudyPlan["fileType"] = updateFile.name.toLowerCase().endsWith(".pdf") ? "pdf" : "word"
+        const nextFileUrl = URL.createObjectURL(updateFile)
+        const updatedPlans = allPlans.map((item) => {
+          if (item.id !== plan.id) return item
+          return {
+            ...item,
+            fileUrl: nextFileUrl,
+            fileName: updateFile.name,
+            fileType: nextFileType,
+            status: StudyPlanStatus.PENDING_REVIEW,
+            updatedAt: new Date(),
+          }
+        })
+
+        localStorage.setItem("eduflow:study-plans", JSON.stringify(updatedPlans))
+
+        setPlan((prev) => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            fileUrl: nextFileUrl,
+            fileName: updateFile.name,
+            fileType: nextFileType,
+            status: StudyPlanStatus.PENDING_REVIEW,
+            updatedAt: new Date(),
+          }
+        })
+        setShowUpdateArea(false)
+        setUpdateFile(null)
+        toast.success("学习规划书文件已更新")
+      } catch (error) {
+        console.error(error)
+        toast.error("更新失败，请稍后重试")
+      } finally {
+        setIsUpdatingFile(false)
+      }
+    }, 800)
+  }
+
   if (loading) return <div className="p-8 text-center">Loading...</div>
   if (!plan) return <div className="p-8 text-center">未找到规划书</div>
 
   return (
-    <div className="container mx-auto py-8 max-w-4xl">
-      <Button variant="ghost" className="mb-6 gap-2" onClick={() => router.back()}>
+    <div className="space-y-6">
+      <Button variant="ghost" className="gap-2" onClick={() => router.back()}>
         <ArrowLeft className="h-4 w-4" />
         返回列表
       </Button>
@@ -154,9 +209,6 @@ export default function StudyPlanReviewPage() {
                <div className="flex justify-between items-start">
                    <div>
                         <CardTitle className="text-xl">学习规划书详情</CardTitle>
-                        <CardDescription className="mt-2">
-                             学员：{plan.studentName} ({plan.grade} {plan.subject})
-                        </CardDescription>
                    </div>
                    <Badge 
                         variant={plan.status === StudyPlanStatus.REVIEWED ? "default" : "secondary"}
@@ -167,7 +219,40 @@ export default function StudyPlanReviewPage() {
                </div>
             </CardHeader>
             <CardContent className="space-y-6">
-                <div className="flex items-center p-4 border rounded-lg bg-muted/20 gap-4">
+                {/* Student Info Grid */}
+                <div className="grid grid-cols-2 gap-x-8 gap-y-3 rounded-lg border bg-muted/20 p-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground w-20 shrink-0">学员姓名</span>
+                    <span className="font-medium">{plan.studentName}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground w-20 shrink-0">学员G账号</span>
+                    <span className="font-medium font-mono">{plan.studentAccount}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground w-20 shrink-0">课程类型</span>
+                    <span>
+                      {plan.courseType ? (
+                        <Badge variant={plan.courseType === OrderType.TRIAL ? "secondary" : "default"} className="text-xs">
+                          {plan.courseType === OrderType.TRIAL ? "试课" : "正课"}
+                        </Badge>
+                      ) : "—"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground w-20 shrink-0">学科</span>
+                    <span className="font-medium">{plan.subject}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground w-20 shrink-0">年级</span>
+                    <span className="font-medium">{plan.grade}</span>
+                  </div>
+                </div>
+                <a
+                  href={plan.fileUrl}
+                  download={plan.fileName}
+                  className="flex items-center gap-4 rounded-lg border bg-muted/20 p-4 transition-colors hover:bg-muted/40"
+                >
                     <div className="h-12 w-12 rounded bg-white flex items-center justify-center border shadow-sm">
                         {plan.fileType === 'pdf' ? (
                             <FileText className="h-6 w-6 text-red-500" />
@@ -181,21 +266,64 @@ export default function StudyPlanReviewPage() {
                             提交于 {format(new Date(plan.createdAt), "yyyy-MM-dd HH:mm", { locale: zhCN })}
                         </p>
                     </div>
-                </div>
+                    <Download className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </a>
 
-                <div className="flex gap-4">
-                    <Button className="flex-1" asChild>
-                        <a href={plan.fileUrl} target="_blank" rel="noopener noreferrer">
-                            <Eye className="mr-2 h-4 w-4" />
-                            在线预览
-                        </a>
+                <div className="space-y-3 rounded-lg border border-dashed p-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">支持重新上传最新版本规划书，更新后状态将变为待审核。</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setShowUpdateArea((prev) => !prev)
+                        setUpdateFile(null)
+                      }}
+                    >
+                      <Upload className="mr-1.5 h-4 w-4" />
+                      更新规划书文件
                     </Button>
-                    <Button variant="outline" className="flex-1" asChild>
-                         <a href={plan.fileUrl} download={plan.fileName}>
-                            <Download className="mr-2 h-4 w-4" />
-                            下载文件
-                        </a>
-                    </Button>
+                  </div>
+
+                  {showUpdateArea && (
+                    <div className="space-y-3 border-t pt-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="plan-update-file">选择新文件</Label>
+                        <Input
+                          id="plan-update-file"
+                          type="file"
+                          accept=".pdf,.doc,.docx"
+                          onChange={(e) => setUpdateFile(e.target.files?.[0] ?? null)}
+                        />
+                        <p className="text-xs text-muted-foreground">支持 .pdf、.doc、.docx 格式。</p>
+                      </div>
+
+                      {updateFile && (
+                        <div className="flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 p-2.5 text-sm">
+                          <FileText className="h-4 w-4 shrink-0 text-primary" />
+                          <span className="flex-1 truncate font-medium">{updateFile.name}</span>
+                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setUpdateFile(null)}>
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      )}
+
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setShowUpdateArea(false)
+                            setUpdateFile(null)
+                          }}
+                        >
+                          取消
+                        </Button>
+                        <Button onClick={handleUpdateFile} disabled={!updateFile || isUpdatingFile}>
+                          {isUpdatingFile ? "更新中..." : "确认更新"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
             </CardContent>
           </Card>
@@ -245,8 +373,8 @@ export default function StudyPlanReviewPage() {
                 </CardContent>
             </Card>
 
-            {/* Review Action Area - Only show if pending */}
-            {plan.status === StudyPlanStatus.PENDING_REVIEW && (
+            {/* Review Action Area - Only show for MANAGER when pending */}
+            {plan.status === StudyPlanStatus.PENDING_REVIEW && currentRole === Role.MANAGER && (
                 <Card className="border-primary/20 shadow-md">
                     <CardHeader>
                         <CardTitle>审核操作</CardTitle>

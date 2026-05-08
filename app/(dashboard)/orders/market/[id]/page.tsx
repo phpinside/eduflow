@@ -156,7 +156,7 @@ export default function MarketOrderDetailsPage() {
       : order.lastExamScore
 
   return (
-    <div className="space-y-5 max-w-2xl mx-auto">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => router.back()}>

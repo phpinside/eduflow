@@ -27,8 +27,11 @@ import {
   Shield,
   Calendar,
   RefreshCw,
+  Ban,
+  UserCheck,
 } from "lucide-react"
 import { Role, User, UserStatus } from "@/types"
+import { useAuth } from "@/contexts/AuthContext"
 import { getStoredUsers, saveMockData, STORAGE_KEYS } from "@/lib/storage"
 import { format } from "date-fns"
 import { zhCN } from "date-fns/locale"
@@ -37,6 +40,7 @@ export default function UserDetailPage() {
   const router = useRouter()
   const params = useParams()
   const userId = params.id as string
+  const { user: authUser, logout } = useAuth()
 
   const [user, setUser] = useState<User | null>(null)
   const [allUsers, setAllUsers] = useState<User[]>([])
@@ -48,6 +52,9 @@ export default function UserDetailPage() {
 
   // Reset password dialog
   const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false)
+
+  // Disable account dialog
+  const [isDisableAccountOpen, setIsDisableAccountOpen] = useState(false)
 
   useEffect(() => {
     const storedUsers = getStoredUsers()
@@ -101,6 +108,34 @@ export default function UserDetailPage() {
     toast.success(`用户 ${user.name} 的密码已重置为 123456`)
   }
 
+  const handleDisableAccount = () => {
+    if (!user) return
+    const updatedUsers = allUsers.map(u =>
+      u.id === userId
+        ? { ...u, accountDisabled: true, updatedAt: new Date() }
+        : u
+    )
+    saveAndRefresh(updatedUsers)
+    setIsDisableAccountOpen(false)
+    if (authUser?.id === userId) {
+      toast.warning("当前账号已停用，您将被退出登录")
+      logout()
+    } else {
+      toast.success(`已停用账号 ${user.name}，该用户将无法登录`)
+    }
+  }
+
+  const handleEnableAccount = () => {
+    if (!user) return
+    const updatedUsers = allUsers.map(u =>
+      u.id === userId
+        ? { ...u, accountDisabled: false, updatedAt: new Date() }
+        : u
+    )
+    saveAndRefresh(updatedUsers)
+    toast.success(`已启用账号 ${user.name}，用户可正常登录`)
+  }
+
   const getRoleBadge = (role: Role) => {
     switch (role) {
       case Role.SALES:
@@ -130,7 +165,8 @@ export default function UserDetailPage() {
     }
   }
 
-  const needsReview = user?.roles.some(r => [Role.TUTOR, Role.MANAGER].includes(r))
+  const needsReview =
+    user?.roles?.some(r => [Role.TUTOR, Role.MANAGER].includes(r)) ?? false
 
   if (isLoading) {
     return (
@@ -168,13 +204,38 @@ export default function UserDetailPage() {
             <p className="text-sm text-muted-foreground">用户详情</p>
           </div>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => router.push(`/user-management/${userId}/edit`)}
-        >
-          <Edit className="h-4 w-4 mr-2" />
-          编辑信息
-        </Button>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Button
+            variant="outline"
+            onClick={() => router.push(`/user-management/${userId}/edit`)}
+          >
+            <Edit className="h-4 w-4 mr-2" />
+            编辑信息
+          </Button>
+          {needsReview && user.status === UserStatus.PENDING && (
+            <>
+              <Button
+                size="sm"
+                className="bg-green-600 hover:bg-green-700 text-white"
+                onClick={handleApprove}
+              >
+                <Check className="h-4 w-4 mr-1.5" />
+                通过
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => {
+                  setRejectReason("")
+                  setIsRejectOpen(true)
+                }}
+              >
+                <X className="h-4 w-4 mr-1.5" />
+                驳回
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* 基本信息卡片 */}
@@ -346,8 +407,8 @@ export default function UserDetailPage() {
             密码管理
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
+        <CardContent className="space-y-8">
+          <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium">重置登录密码</p>
               <p className="text-sm text-muted-foreground mt-0.5">
@@ -356,12 +417,55 @@ export default function UserDetailPage() {
             </div>
             <Button
               variant="outline"
-              className="text-orange-600 border-orange-300 hover:bg-orange-50 hover:text-orange-700"
+              className="shrink-0 text-orange-600 border-orange-300 hover:bg-orange-50 hover:text-orange-700"
               onClick={() => setIsResetPasswordOpen(true)}
             >
               <KeyRound className="h-4 w-4 mr-2" />
               重置密码
             </Button>
+          </div>
+
+          <div className="border-t pt-6 space-y-4">
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-muted-foreground" />
+              <h3 className="text-sm font-semibold">用户状态</h3>
+            </div>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">账号登录</p>
+                <p className="text-sm text-muted-foreground">
+                  {user.accountDisabled
+                    ? "该账号已停用，无法登录系统。"
+                    : "账号正常，用户可使用手机号与密码登录。"}
+                </p>
+                <div className="pt-1">
+                  {user.accountDisabled ? (
+                    <Badge variant="destructive">已停用</Badge>
+                  ) : (
+                    <Badge className="bg-green-600 text-white hover:bg-green-600">正常使用</Badge>
+                  )}
+                </div>
+              </div>
+              {user.accountDisabled ? (
+                <Button
+                  variant="outline"
+                  className="shrink-0 border-green-600 text-green-700 hover:bg-green-50"
+                  onClick={handleEnableAccount}
+                >
+                  <UserCheck className="h-4 w-4 mr-2" />
+                  启用此账号
+                </Button>
+              ) : (
+                <Button
+                  variant="destructive"
+                  className="shrink-0"
+                  onClick={() => setIsDisableAccountOpen(true)}
+                >
+                  <Ban className="h-4 w-4 mr-2" />
+                  停用此账号
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -386,6 +490,35 @@ export default function UserDetailPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsRejectOpen(false)}>取消</Button>
             <Button variant="destructive" onClick={handleReject}>确认驳回</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 停用账号 Dialog */}
+      <Dialog open={isDisableAccountOpen} onOpenChange={setIsDisableAccountOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>停用账号</DialogTitle>
+            <DialogDescription>
+              确认停用用户 <span className="font-semibold text-foreground">{user.name}</span>（
+              {user.phone}）吗？
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="flex items-start gap-3 p-3 bg-destructive/10 border border-destructive/25 rounded-md">
+              <Ban className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+              <p className="text-sm text-destructive">
+                停用后该账号将无法登录系统。您可随时在此页面重新启用账号。
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDisableAccountOpen(false)}>
+              取消
+            </Button>
+            <Button variant="destructive" onClick={handleDisableAccount}>
+              确认停用
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

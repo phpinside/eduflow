@@ -2,12 +2,10 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
+import { getStoredOrders, getStoredUsers, getStoredSubjects } from "@/lib/storage"
 import { mockStudents } from "@/lib/mock-data/students"
-import { mockUsers } from "@/lib/mock-data/users"
-import { getStoredOrders, getStoredRefundApplications, getStoredBranchCompanies, getStoredUsers } from "@/lib/storage"
-import { OrderStatus, RefundApplicationStatus, type Order, type RefundApplication, type BranchCompany } from "@/types"
+import { OrderType, Role, type Order, type User, type Subject } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -26,896 +24,510 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { Search, User, FileText, MessageSquare, FilterX, Plus, Star, Pencil, Calendar, Clock, MessageSquareText } from "lucide-react"
-import { StudentSelectorDialog } from "@/components/students/StudentSelectorDialog"
-import { StudentFormDialog, StudentFormData } from "@/components/students/StudentFormDialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog"
 import { Pagination } from "@/components/ui/pagination"
-import { mockFeedbacks } from "@/lib/mock-data/feedbacks"
-import { format } from "date-fns"
-import { zhCN } from "date-fns/locale"
+import {
+    ChevronDown,
+    FilterX,
+    FileText,
+    MessageSquare,
+    ClipboardCheck,
+    Users,
+    UserSquare2,
+    BookMarked,
+    Timer,
+    UserCog,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const RATING_LABELS = ["", "不满意", "需改进", "一般", "比较满意", "非常满意"]
+const PAGE_SIZE = 20
 
-const EVALUATION_SECTIONS = [
-    {
-        title: "课堂效果",
-        dotClass: "bg-amber-400",
-        bgClass: "border-amber-100 bg-amber-50/60",
-        items: [
-            { key: "knowledge_absorption", label: "知识吸收程度" },
-            { key: "student_explain", label: "学生讲解题目" },
-        ],
-    },
-    {
-        title: "教师表现",
-        dotClass: "bg-sky-400",
-        bgClass: "border-sky-100 bg-sky-50/60",
-        items: [
-            { key: "professionalism", label: "专业程度" },
-            { key: "responsibility", label: "责任心" },
-            { key: "patience", label: "耐心程度" },
-            { key: "post_feedback", label: "课后反馈" },
-        ],
-    },
-    {
-        title: "上课规范",
-        dotClass: "bg-emerald-400",
-        bgClass: "border-emerald-100 bg-emerald-50/60",
-        items: [
-            { key: "punctuality", label: "上课守时" },
-            { key: "camera", label: "开摄像头" },
-        ],
-    },
-    {
-        title: "上课环境",
-        dotClass: "bg-rose-400",
-        bgClass: "border-rose-100 bg-rose-50/60",
-        items: [
-            { key: "network", label: "网络状况" },
-            { key: "environment", label: "上课环境" },
-        ],
-    },
-]
+const VALID_STATUSES = ["ASSIGNED", "IN_PROGRESS", "COMPLETED"]
 
-// 手动录入的学员记录类型（基于 StudentFormData 扩展，带唯一 id）
-interface ManualStudentRecord extends StudentFormData {
-    id: string
-    isManual: true
-}
-
-// 统一展示行结构
-interface StudentRow {
+interface StudentCenterRow {
     rowId: string
     studentAccount: string
     studentName: string
-    grade: string
     subject: string
-    totalHours: number | string
-    remainingHours: number | string
-    campusAccount: string
-    remarks: string
+    orderType: OrderType
+    grade: string
+    totalHours: number
+    remainingHours: number
+    tutorName: string
+    managerName: string
     studentId?: string
-    isTransferred?: boolean
-    isManual?: boolean
-    // 原始 order id（用于操作按钮链接）
     orderId?: string
-    refundStatusLabel?: string
-    branchName?: string
-    branchCsName?: string
 }
 
 export default function MyStudentsPage() {
-    const { user } = useAuth()
-    const router = useRouter()
-    const searchParams = useSearchParams()
+    const { user, currentRole } = useAuth()
 
-    // Tab state
-    const defaultTab = searchParams.get('tab') || "students"
-    const [activeTab, setActiveTab] = React.useState(defaultTab)
+    const [orders, setOrders] = React.useState<Order[]>([])
+    const [users, setUsers] = React.useState<User[]>([])
+    const [subjects, setSubjects] = React.useState<Subject[]>([])
 
-    // Pagination
-    const [studentsPage, setStudentsPage] = React.useState(1)
-    const [feedbacksPage, setFeedbacksPage] = React.useState(1)
-    const pageSize = 10
-
-    // Filters - Students Tab
+    const [accountFilter, setAccountFilter] = React.useState("")
     const [nameFilter, setNameFilter] = React.useState("")
-    const [gradeFilter, setGradeFilter] = React.useState<string>("all")
+    const [subjectFilter, setSubjectFilter] = React.useState("all")
+    const [typeFilter, setTypeFilter] = React.useState<"all" | OrderType>("all")
+    const [gradeFilter, setGradeFilter] = React.useState("all")
+    const [remainMinFilter, setRemainMinFilter] = React.useState("")
+    const [remainMaxFilter, setRemainMaxFilter] = React.useState("")
+    const [tutorNameFilter, setTutorNameFilter] = React.useState("")
+    const [managerNameFilter, setManagerNameFilter] = React.useState("")
+    const [filtersExpanded, setFiltersExpanded] = React.useState(true)
 
-    // Filters - Feedbacks Tab
-    const [feedbackNameFilter, setFeedbackNameFilter] = React.useState("")
-    const [feedbackRatingFilter, setFeedbackRatingFilter] = React.useState<string>("all")
-
-    // Dialog states
-    const [showStudyPlanDialog, setShowStudyPlanDialog] = React.useState(false)
-    const [showFeedbackDialog, setShowFeedbackDialog] = React.useState(false)
-    const [selectedParentFeedback, setSelectedParentFeedback] = React.useState<any>(null)
-    const [isParentFeedbackDialogOpen, setIsParentFeedbackDialogOpen] = React.useState(false)
-
-    // 手动录入相关状态
-    const [manualStudents, setManualStudents] = React.useState<ManualStudentRecord[]>([])
-    const [storedOrders, setStoredOrders] = React.useState<Order[]>([])
-    const [refundApps, setRefundApps] = React.useState<RefundApplication[]>([])
-    const [showStudentFormDialog, setShowStudentFormDialog] = React.useState(false)
-    const [editingStudent, setEditingStudent] = React.useState<StudentFormData | undefined>(undefined)
-    const [branchCompanies, setBranchCompanies] = React.useState<BranchCompany[]>([])
-
-    const dayLabels: Record<string, string> = {
-        monday: "周一", tuesday: "周二", wednesday: "周三", thursday: "周四",
-        friday: "周五", saturday: "周六", sunday: "周日"
-    }
+    const [page, setPage] = React.useState(1)
 
     React.useEffect(() => {
-        setStoredOrders(getStoredOrders())
-        setRefundApps(getStoredRefundApplications())
-        setBranchCompanies(getStoredBranchCompanies())
+        setOrders(getStoredOrders())
+        setUsers(getStoredUsers())
+        setSubjects(getStoredSubjects())
     }, [])
 
-    const getRefundStatusLabel = React.useCallback((orderId: string) => {
-        const active = refundApps.find(
-            (a) =>
-                a.orderId === orderId &&
-                (a.status === RefundApplicationStatus.PENDING_FIRST_REVIEW ||
-                    a.status === RefundApplicationStatus.PENDING_SECOND_REVIEW)
-        )
-        if (active?.status === RefundApplicationStatus.PENDING_FIRST_REVIEW) return "退费一审中"
-        if (active?.status === RefundApplicationStatus.PENDING_SECOND_REVIEW) return "退费二审中"
-        const done = refundApps.find((a) => a.orderId === orderId)
-        return done ? "退费相关" : ""
-    }, [refundApps])
+    const userMap = React.useMemo(() => {
+        const map = new Map<string, User>()
+        users.forEach(u => map.set(u.id, u))
+        return map
+    }, [users])
 
-    // 从订单构建学员行
-    const orderRows = React.useMemo((): StudentRow[] => {
+    const allRows = React.useMemo((): StudentCenterRow[] => {
         if (!user) return []
 
-        return storedOrders
-            .filter(order => {
-                const isAssigned = order.assignedTeacherId === user.id &&
-                    [OrderStatus.ASSIGNED, OrderStatus.IN_PROGRESS, OrderStatus.COMPLETED].includes(order.status)
-                const isTransferred = order.transferredOutFrom === user.id
-                return isAssigned || isTransferred
-            })
-            .map(order => {
-                const student = mockStudents.find(s => s.id === order.studentId)
-                const salesPerson = mockUsers.find(u => u.id === order.salesPersonId)
-                const branchCompany = branchCompanies.find(b => b.id === salesPerson?.branchCompanyId)
-                
-                return {
-                    rowId: order.id,
-                    studentAccount: order.studentAccount ?? "",
-                    studentName: student?.name ?? "未知学生",
-                    grade: order.grade,
-                    subject: order.subject,
-                    totalHours: order.totalHours,
-                    remainingHours: order.remainingHours,
-                    campusAccount: order.campusAccount ?? "",
-                    remarks: order.remarks ?? "",
-                    studentId: student?.id,
-                    isTransferred: order.transferredOutFrom === user.id,
-                    orderId: order.id,
-                    refundStatusLabel: getRefundStatusLabel(order.id),
-                    branchName: branchCompany?.name || "—",
-                    branchCsName: branchCompany?.csName || "—",
-                }
-            })
-    }, [user, storedOrders, getRefundStatusLabel])
+        let filtered = orders.filter(o => VALID_STATUSES.includes(o.status))
 
-    // 手动录入行
-    const manualRows = React.useMemo((): StudentRow[] => {
-        return manualStudents.map(s => ({
-            rowId: s.id,
-            studentAccount: s.studentAccount,
-            studentName: s.studentName,
-            grade: s.grade,
-            subject: s.subject,
-            totalHours: s.totalHours,
-            remainingHours: s.remainingHours,
-            campusAccount: s.campusAccount,
-            remarks: s.remarks,
-            isManual: true,
-        }))
-    }, [manualStudents])
+        if (currentRole === Role.TUTOR) {
+            filtered = filtered.filter(o => o.assignedTeacherId === user.id)
+        } else if (currentRole === Role.MANAGER) {
+            filtered = filtered.filter(o => o.managerId === user.id)
+        }
 
-    // 合并并筛选
-    const allRows = React.useMemo((): StudentRow[] => {
-        let rows = [...orderRows, ...manualRows]
+        return filtered.map(order => {
+            const student = mockStudents.find(s => s.id === order.studentId)
+            const tutor = order.assignedTeacherId ? userMap.get(order.assignedTeacherId) : undefined
+            const manager = order.managerId ? userMap.get(order.managerId) : undefined
 
+            return {
+                rowId: order.id,
+                studentAccount: order.studentAccount ?? "",
+                studentName: student?.name ?? "未知学员",
+                subject: order.subject,
+                orderType: order.type,
+                grade: order.grade,
+                totalHours: order.totalHours,
+                remainingHours: order.remainingHours,
+                tutorName: tutor?.name ?? "—",
+                managerName: manager?.name ?? "—",
+                studentId: student?.id,
+                orderId: order.id,
+            }
+        })
+    }, [user, currentRole, orders, userMap])
+
+    const filteredRows = React.useMemo(() => {
+        let rows = allRows
+
+        if (accountFilter.trim()) {
+            rows = rows.filter(r => r.studentAccount.includes(accountFilter.trim()))
+        }
         if (nameFilter.trim()) {
             rows = rows.filter(r => r.studentName.includes(nameFilter.trim()))
+        }
+        if (subjectFilter && subjectFilter !== "all") {
+            rows = rows.filter(r => r.subject === subjectFilter)
+        }
+        if (typeFilter && typeFilter !== "all") {
+            rows = rows.filter(r => r.orderType === typeFilter)
         }
         if (gradeFilter && gradeFilter !== "all") {
             rows = rows.filter(r => r.grade === gradeFilter)
         }
+        if (remainMinFilter.trim() !== "") {
+            const min = parseFloat(remainMinFilter)
+            if (!isNaN(min)) rows = rows.filter(r => r.remainingHours >= min)
+        }
+        if (remainMaxFilter.trim() !== "") {
+            const max = parseFloat(remainMaxFilter)
+            if (!isNaN(max)) rows = rows.filter(r => r.remainingHours <= max)
+        }
+        if (tutorNameFilter.trim()) {
+            rows = rows.filter(r => r.tutorName.includes(tutorNameFilter.trim()))
+        }
+        if (managerNameFilter.trim()) {
+            rows = rows.filter(r => r.managerName.includes(managerNameFilter.trim()))
+        }
 
         return rows
-    }, [orderRows, manualRows, nameFilter, gradeFilter])
+    }, [
+        allRows,
+        accountFilter, nameFilter, subjectFilter, typeFilter,
+        gradeFilter, remainMinFilter, remainMaxFilter,
+        tutorNameFilter, managerNameFilter,
+    ])
+
+    const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE))
 
     const paginatedRows = React.useMemo(() => {
-        const start = (studentsPage - 1) * pageSize
-        return allRows.slice(start, start + pageSize)
-    }, [allRows, studentsPage])
+        const start = (page - 1) * PAGE_SIZE
+        return filteredRows.slice(start, start + PAGE_SIZE)
+    }, [filteredRows, page])
 
-    const studentsTotalPages = Math.ceil(allRows.length / pageSize)
+    React.useEffect(() => { setPage(1) }, [
+        accountFilter, nameFilter, subjectFilter, typeFilter,
+        gradeFilter, remainMinFilter, remainMaxFilter,
+        tutorNameFilter, managerNameFilter,
+    ])
 
-    // 可用年级（来自订单 + 手动录入）
     const availableGrades = React.useMemo(() => {
         const grades = new Set<string>()
-        orderRows.forEach(r => { if (r.grade) grades.add(r.grade) })
-        manualRows.forEach(r => { if (r.grade) grades.add(r.grade) })
+        allRows.forEach(r => { if (r.grade) grades.add(r.grade) })
         return Array.from(grades).sort()
-    }, [orderRows, manualRows])
+    }, [allRows])
 
-    // 课后反馈列表
-    const myFeedbacks = React.useMemo(() => {
-        if (!user) return []
+    const enabledSubjects = React.useMemo(
+        () => subjects.filter(s => s.enabled),
+        [subjects]
+    )
 
-        let feedbacks = mockFeedbacks
-            .filter(fb => fb.teacherId === user.id)
-            .map(fb => {
-                const student = mockStudents.find(s => s.id === fb.studentId)
-                return {
-                    ...fb,
-                    displayStudentName: fb.studentName || student?.name || "未知学生",
-                    studentId: fb.studentId
-                }
-            })
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-
-        if (feedbackNameFilter.trim()) {
-            feedbacks = feedbacks.filter(fb =>
-                fb.displayStudentName.includes(feedbackNameFilter.trim())
-            )
-        }
-
-        if (feedbackRatingFilter && feedbackRatingFilter !== "all") {
-            if (feedbackRatingFilter === "rated") {
-                feedbacks = feedbacks.filter(fb => fb.parentFeedback)
-            } else if (feedbackRatingFilter === "unrated") {
-                feedbacks = feedbacks.filter(fb => !fb.parentFeedback)
-            }
-        }
-
-        return feedbacks
-    }, [user, feedbackNameFilter, feedbackRatingFilter])
-
-    const paginatedFeedbacks = React.useMemo(() => {
-        const start = (feedbacksPage - 1) * pageSize
-        return myFeedbacks.slice(start, start + pageSize)
-    }, [myFeedbacks, feedbacksPage])
-
-    const feedbacksTotalPages = Math.ceil(myFeedbacks.length / pageSize)
+    const hasActiveFilters =
+        accountFilter || nameFilter ||
+        subjectFilter !== "all" || typeFilter !== "all" ||
+        gradeFilter !== "all" || remainMinFilter || remainMaxFilter ||
+        tutorNameFilter || managerNameFilter
 
     const resetFilters = () => {
+        setAccountFilter("")
         setNameFilter("")
+        setSubjectFilter("all")
+        setTypeFilter("all")
         setGradeFilter("all")
-        setStudentsPage(1)
+        setRemainMinFilter("")
+        setRemainMaxFilter("")
+        setTutorNameFilter("")
+        setManagerNameFilter("")
     }
 
-    const resetFeedbackFilters = () => {
-        setFeedbackNameFilter("")
-        setFeedbackRatingFilter("all")
-        setFeedbacksPage(1)
-    }
-
-    React.useEffect(() => {
-        const tabParam = searchParams.get('tab')
-        if (tabParam && (tabParam === 'students' || tabParam === 'feedbacks')) {
-            setActiveTab(tabParam)
-        }
-    }, [searchParams])
-
-    React.useEffect(() => {
-        if (activeTab === "students") {
-            setStudentsPage(1)
-        } else {
-            setFeedbacksPage(1)
-        }
-    }, [activeTab])
-
-    const handleCreateStudyPlan = (studentId: string, studentName: string) => {
-        router.push(`/my-students/study-plan/create?studentId=${studentId}&studentName=${encodeURIComponent(studentName)}`)
-        setShowStudyPlanDialog(false)
-    }
-
-    const handleCreateFeedback = (studentId: string, studentName: string) => {
-        router.push(`/my-students/feedback/create?studentId=${studentId}&studentName=${encodeURIComponent(studentName)}`)
-        setShowFeedbackDialog(false)
-    }
-
-    // 打开新增表单
-    const handleOpenAddStudent = () => {
-        setEditingStudent(undefined)
-        setShowStudentFormDialog(true)
-    }
-
-    // 打开编辑表单（仅手动录入的记录）
-    const handleOpenEditStudent = (row: StudentRow) => {
-        const record = manualStudents.find(s => s.id === row.rowId)
-        if (!record) return
-        setEditingStudent(record)
-        setShowStudentFormDialog(true)
-    }
-
-    // 提交新增/编辑
-    const handleStudentFormSubmit = (data: StudentFormData) => {
-        if (data.id) {
-            // 编辑
-            setManualStudents(prev =>
-                prev.map(s => s.id === data.id ? { ...s, ...data, isManual: true } : s)
-            )
-        } else {
-            // 新增
-            const newRecord: ManualStudentRecord = {
-                ...data,
-                id: `manual-${Date.now()}`,
-                isManual: true,
-            }
-            setManualStudents(prev => [...prev, newRecord])
-        }
-    }
-
-    if (!user) {
-        return <div>请先登录</div>
-    }
+    if (!user) return <div>请先登录</div>
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight">我的学员</h1>
-                    <p className="text-sm text-muted-foreground mt-1">
-                        {activeTab === "students"
-                            ? `共找到 ${allRows.length} 条学员记录`
-                            : `共找到 ${myFeedbacks.length} 条反馈记录`}
-                    </p>
-                </div>
+            <div className="flex flex-col gap-1">
+                <h1 className="text-2xl font-bold tracking-tight">我的学员</h1>
+                <p className="text-sm text-muted-foreground">
+                    共找到 <span className="font-semibold text-foreground">{filteredRows.length}</span> 条学员记录
+                </p>
             </div>
 
-            <Tabs defaultValue="students" value={activeTab} onValueChange={setActiveTab}>
-                <TabsList>
-                    <TabsTrigger value="students">学员列表</TabsTrigger>
-                    <TabsTrigger value="feedbacks">课后反馈列表</TabsTrigger>
-                </TabsList>
+            {/* 检索区域（可折叠） */}
+            <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+                <div
+                    className={cn(
+                        "flex items-center justify-between gap-2 bg-muted/30 px-4 py-2",
+                        filtersExpanded && "border-b"
+                    )}
+                >
+                    <button
+                        type="button"
+                        onClick={() => setFiltersExpanded((e) => !e)}
+                        className="flex min-w-0 flex-1 items-center gap-2 rounded-md py-0.5 pr-1 text-left outline-none ring-offset-background hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        aria-expanded={filtersExpanded}
+                        aria-controls="my-students-filters-panel"
+                    >
+                        <ChevronDown
+                            className={cn(
+                                "size-4 shrink-0 text-muted-foreground transition-transform duration-200",
+                                !filtersExpanded && "-rotate-90"
+                            )}
+                            aria-hidden
+                        />
+                        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+                            <span id="my-students-filters-heading" className="text-sm font-semibold leading-none">
+                                筛选条件
+                            </span>
+                            {!filtersExpanded && hasActiveFilters ? (
+                                <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-normal">
+                                    有条件生效
+                                </Badge>
+                            ) : null}
+                        </div>
+                    </button>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 shrink-0 gap-1 px-2.5 text-xs"
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            resetFilters()
+                        }}
+                        disabled={!hasActiveFilters}
+                        title={hasActiveFilters ? "清空下方所有筛选项" : "当前无筛选条件"}
+                    >
+                        <FilterX className="h-3.5 w-3.5" />
+                        重置筛选
+                    </Button>
+                </div>
 
-                {/* 学员列表 Tab */}
-                <TabsContent value="students" className="space-y-4">
-                    {/* Filters */}
-                    <div className="flex flex-wrap gap-4 items-center bg-muted/20 p-4 rounded-lg border">
-                        <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-                            <Search className="h-4 w-4 text-muted-foreground" />
+                <div
+                    id="my-students-filters-panel"
+                    role="region"
+                    aria-labelledby="my-students-filters-heading"
+                    hidden={!filtersExpanded}
+                >
+                    <div className="p-5 space-y-5">
+                    <div className="space-y-3">
+                        <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                            <UserSquare2 className="h-3 w-3" />
+                            学员信息
+                        </p>
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                             <Input
-                                placeholder="搜索学员姓名..."
+                                placeholder="学员 G账号"
+                                value={accountFilter}
+                                onChange={e => setAccountFilter(e.target.value)}
+                                className="bg-background font-mono text-sm"
+                                autoComplete="off"
+                            />
+                            <Input
+                                placeholder="学员姓名"
                                 value={nameFilter}
-                                onChange={(e) => setNameFilter(e.target.value)}
+                                onChange={e => setNameFilter(e.target.value)}
                                 className="bg-background"
+                                autoComplete="off"
                             />
                         </div>
+                    </div>
 
-                        <div className="w-full md:w-[180px]">
-                            <Select value={gradeFilter} onValueChange={setGradeFilter}>
-                                <SelectTrigger className="bg-background">
-                                    <SelectValue placeholder="年级筛选" />
+                    <div className="space-y-3">
+                        <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                            <BookMarked className="h-3 w-3" />
+                            课程
+                        </p>
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                            <Select value={subjectFilter} onValueChange={setSubjectFilter}>
+                                <SelectTrigger className="bg-background w-full">
+                                    <SelectValue placeholder="学科" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">所有年级</SelectItem>
-                                    {availableGrades.map(grade => (
-                                        <SelectItem key={grade} value={grade}>{grade}</SelectItem>
+                                    <SelectItem value="all">全部学科</SelectItem>
+                                    {enabledSubjects.map(s => (
+                                        <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Select value={typeFilter} onValueChange={v => setTypeFilter(v as "all" | OrderType)}>
+                                <SelectTrigger className="bg-background w-full">
+                                    <SelectValue placeholder="课程类型" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">全部类型</SelectItem>
+                                    <SelectItem value={OrderType.TRIAL}>试课</SelectItem>
+                                    <SelectItem value={OrderType.REGULAR}>正式课</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Select value={gradeFilter} onValueChange={setGradeFilter}>
+                                <SelectTrigger className="bg-background w-full">
+                                    <SelectValue placeholder="年级" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">全部年级</SelectItem>
+                                    {availableGrades.map(g => (
+                                        <SelectItem key={g} value={g}>{g}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
                         </div>
-
-                        {(nameFilter || gradeFilter !== "all") && (
-                            <Button variant="ghost" size="sm" onClick={resetFilters} className="text-muted-foreground">
-                                <FilterX className="mr-2 h-4 w-4" />
-                                重置筛选
-                            </Button>
-                        )}
-
-                       
                     </div>
 
-                    {/* Table */}
-                    <div className="border rounded-md bg-white dark:bg-gray-950 overflow-x-auto">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-[120px]">学员账号编码</TableHead>
-                                    <TableHead className="w-[130px]">学员姓名</TableHead>
-                                    <TableHead className="w-[90px]">年级</TableHead>
-                                    <TableHead className="w-[80px]">科目</TableHead>
-                                    <TableHead className="w-[90px] text-center">总计课时</TableHead>
-                                    <TableHead className="w-[90px] text-center">剩余课时</TableHead>
-                                    <TableHead className="w-[140px]">分公司</TableHead>
-                                    <TableHead className="w-[100px]">专属客服</TableHead>
-                                    <TableHead className="text-right w-[160px]">操作</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {paginatedRows.length > 0 ? (
-                                    paginatedRows.map((row) => (
-                                        <TableRow
-                                            key={row.rowId}
-                                            className={
-                                                row.isTransferred
-                                                    ? "bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:hover:bg-yellow-900/30"
-                                                    : "hover:bg-muted/50"
-                                            }
-                                        >
-                                            <TableCell>
-                                                <span className="text-xs font-mono text-muted-foreground">
-                                                    {row.studentAccount || "—"}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                                                        <User className="h-3.5 w-3.5 text-primary" />
-                                                    </div>
-                                                    <div>
-                                                        {row.studentId ? (
-                                                            <button
-                                                                className="font-medium text-primary hover:underline text-left"
-                                                                onClick={() => router.push(`/my-students/${row.studentId}`)}
-                                                            >
-                                                                {row.studentName}
-                                                            </button>
-                                                        ) : (
-                                                            <span className="font-medium">{row.studentName}</span>
-                                                        )}
-                                                        <div className="flex gap-1 mt-0.5">
-                                                            {row.isTransferred && (
-                                                                <Badge variant="outline" className="text-[10px] px-1 py-0 border-yellow-500 text-yellow-600 bg-yellow-50">
-                                                                    已转走
-                                                                </Badge>
-                                                            )}
-                                                            {row.isManual && (
-                                                                <Badge variant="outline" className="text-[10px] px-1 py-0 border-blue-400 text-blue-500 bg-blue-50">
-                                                                    手动录入
-                                                                </Badge>
-                                                            )}
-                                                            {row.refundStatusLabel && (
-                                                                <Badge variant="outline" className="text-[10px] px-1 py-0 border-amber-400 text-amber-700 bg-amber-50">
-                                                                    {row.refundStatusLabel}
-                                                                </Badge>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>{row.grade}</TableCell>
-                                            <TableCell>{row.subject}</TableCell>
-                                            <TableCell className="text-center font-medium">
-                                                {row.totalHours}
-                                            </TableCell>
-                                            <TableCell className="text-center">
-                                                <span className={
-                                                    Number(row.remainingHours) <= 5
-                                                        ? "text-destructive font-semibold"
-                                                        : "font-medium text-primary"
-                                                }>
-                                                    {row.remainingHours !== "" ? row.remainingHours : "—"}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {row.branchName}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell>
-                                                <span className="text-xs font-medium text-blue-700">
-                                                    {row.branchCsName}
-                                                </span>
-                                            </TableCell>
-                                         
-            
-                                            <TableCell className="text-right">
-                                                <div className="flex justify-end gap-1.5">
-                                                    {row.isManual ? (
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            className="h-8"
-                                                            onClick={() => handleOpenEditStudent(row)}
-                                                        >
-                                                            <Pencil className="h-3.5 w-3.5 mr-1" />
-                                                            编辑
-                                                        </Button>
-                                                    ) : (
-                                                        <>
-                                                            <Button variant="outline" size="sm" className="h-8" asChild>
-                                                                <Link href={`/my-students/study-plan/create?studentId=${row.studentId}&studentName=${encodeURIComponent(row.studentName)}`}>
-                                                                    <FileText className="h-3.5 w-3.5 mr-1" />
-                                                                    规划书
-                                                                </Link>
-                                                            </Button>
-                                                            <Button size="sm" className="h-8" asChild>
-                                                                <Link href={`/my-students/feedback/create?studentId=${row.studentId}&studentName=${encodeURIComponent(row.studentName)}`}>
-                                                                    <MessageSquare className="h-3.5 w-3.5 mr-1" />
-                                                                    课后反馈
-                                                                </Link>
-                                                            </Button>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={9} className="h-24 text-center">
-                                            <div className="flex flex-col items-center justify-center text-muted-foreground gap-2">
-                                                <p>没有找到符合条件的学员</p>
-                                                <Button variant="outline" size="sm" onClick={handleOpenAddStudent}>
-                                                    <Plus className="mr-2 h-4 w-4" />
-                                                    手动新增学员
-                                                </Button>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
-
-                    {/* 分页 */}
-                    {studentsTotalPages > 1 && (
-                        <div className="mt-4">
-                            <Pagination
-                                currentPage={studentsPage}
-                                totalPages={studentsTotalPages}
-                                onPageChange={setStudentsPage}
-                            />
-                        </div>
-                    )}
-                </TabsContent>
-
-                {/* 课后反馈列表 Tab */}
-                <TabsContent value="feedbacks" className="space-y-4">
-                    {/* Filters */}
-                    <div className="flex flex-wrap gap-4 items-center bg-muted/20 p-4 rounded-lg border">
-                        <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-                            <Search className="h-4 w-4 text-muted-foreground" />
+                    <div className="space-y-3">
+                        <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                            <Timer className="h-3 w-3" />
+                            剩余课时区间
+                            <span className="font-normal opacity-70">（留空则不限制）</span>
+                        </p>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:max-w-md">
                             <Input
-                                placeholder="搜索学员姓名..."
-                                value={feedbackNameFilter}
-                                onChange={(e) => setFeedbackNameFilter(e.target.value)}
+                                type="number"
+                                inputMode="decimal"
+                                placeholder="最小剩余课时 ≥"
+                                value={remainMinFilter}
+                                onChange={e => setRemainMinFilter(e.target.value)}
                                 className="bg-background"
+                                min={0}
+                                step={0.5}
+                            />
+                            <span className="flex h-9 shrink-0 items-center justify-center px-2 text-sm text-muted-foreground">
+                                至
+                            </span>
+                            <Input
+                                type="number"
+                                inputMode="decimal"
+                                placeholder="最大剩余课时 ≤"
+                                value={remainMaxFilter}
+                                onChange={e => setRemainMaxFilter(e.target.value)}
+                                className="bg-background"
+                                min={0}
+                                step={0.5}
                             />
                         </div>
-
-                        <div className="w-full md:w-[180px]">
-                            <Select value={feedbackRatingFilter} onValueChange={setFeedbackRatingFilter}>
-                                <SelectTrigger className="bg-background">
-                                    <SelectValue placeholder="点评状态" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">全部</SelectItem>
-                                    <SelectItem value="rated">已点评</SelectItem>
-                                    <SelectItem value="unrated">待点评</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {(feedbackNameFilter || feedbackRatingFilter !== "all") && (
-                            <Button variant="ghost" size="sm" onClick={resetFeedbackFilters} className="text-muted-foreground">
-                                <FilterX className="mr-2 h-4 w-4" />
-                                重置筛选
-                            </Button>
-                        )}
-
-                      
                     </div>
 
-                    {/* Table */}
-                    <div className="border rounded-md bg-white dark:bg-gray-950">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-[160px]">学员信息</TableHead>
-                                    <TableHead className="w-[160px]">上课时间</TableHead>
-                                    <TableHead>课程内容摘要</TableHead>
-                                    <TableHead className="w-[100px]">扣除课时</TableHead>
-                                    <TableHead className="w-[140px]">家长点评</TableHead>
-                                    <TableHead className="w-[140px]">创建时间</TableHead>
-                                    <TableHead className="text-right w-[120px]">操作</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {paginatedFeedbacks.length > 0 ? (
-                                    paginatedFeedbacks.map((feedback) => (
-                                        <TableRow key={feedback.id}>
-                                            <TableCell>
-                                                <div className="font-medium">{feedback.displayStudentName}</div>
-                                                <div className="text-xs text-muted-foreground">ID: {feedback.studentId}</div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-1 text-sm">
-                                                    <Calendar className="h-3 w-3 text-muted-foreground" />
-                                                    {format(new Date(feedback.date), "MM-dd", { locale: zhCN })}
-                                                </div>
-                                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                                    <Clock className="h-3 w-3" />
-                                                    {feedback.startTime}-{feedback.endTime}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="max-w-[300px] truncate text-sm">
-                                                    {feedback.content}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-center">
-                                                <Badge variant="secondary">{feedback.deductHours}h</Badge>
-                                            </TableCell>
-                                            <TableCell
-                                                className={feedback.parentFeedback ? "cursor-pointer" : ""}
-                                                onClick={() => {
-                                                    if (feedback.parentFeedback) {
-                                                        setSelectedParentFeedback(feedback)
-                                                        setIsParentFeedbackDialogOpen(true)
-                                                    }
-                                                }}
+                   
+                    </div>
+                </div>
+            </div>
+
+            {/* Table */}
+            <div className="border rounded-md bg-white dark:bg-gray-950 overflow-x-auto">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-[130px]">学员G账号</TableHead>
+                            <TableHead className="w-[110px]">学员姓名</TableHead>
+                            <TableHead className="w-[80px]">学科</TableHead>
+                            <TableHead className="w-[90px]">课程类型</TableHead>
+                            <TableHead className="w-[90px]">年级</TableHead>
+                            <TableHead className="w-[90px] text-center">总计课时</TableHead>
+                            <TableHead className="w-[90px] text-center">剩余课时</TableHead>
+                            <TableHead className="w-[110px]">伴学教练</TableHead>
+                            <TableHead className="w-[100px]">学管</TableHead>
+                            <TableHead className="text-right w-[220px]">操作</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {paginatedRows.length > 0 ? (
+                            paginatedRows.map(row => (
+                                <TableRow key={row.rowId} className="hover:bg-muted/50">
+                                    <TableCell>
+                                        {row.orderId ? (
+                                            <Link
+                                                href={`/students-center/${row.orderId}`}
+                                                className="text-xs font-mono text-primary hover:underline"
                                             >
-                                                {feedback.parentFeedback ? (
-                                                    <div className="space-y-0.5">
-                                                        <div className="flex items-center gap-0.5">
-                                                            {Array.from({ length: 5 }).map((_, i) => (
-                                                                <Star
-                                                                    key={i}
-                                                                    className={cn(
-                                                                        "h-3.5 w-3.5",
-                                                                        i < feedback.parentFeedback!.rating
-                                                                            ? "fill-amber-400 text-amber-400"
-                                                                            : "fill-muted text-muted"
-                                                                    )}
-                                                                />
-                                                            ))}
-                                                            <span className="text-xs text-muted-foreground ml-1">
-                                                                {RATING_LABELS[feedback.parentFeedback.rating]}
-                                                            </span>
-                                                        </div>
-                                                        {feedback.parentFeedback.remarks ? (
-                                                            <p className="text-xs text-muted-foreground truncate max-w-[140px]">
-                                                                {feedback.parentFeedback.remarks}
-                                                            </p>
-                                                        ) : (
-                                                            <p className="text-xs text-muted-foreground">点击查看详情</p>
-                                                        )}
-                                                    </div>
-                                                ) : (
-                                                    <Badge variant="outline" className="text-xs">待点评</Badge>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-xs text-muted-foreground">
-                                                {format(new Date(feedback.createdAt), "yyyy-MM-dd HH:mm", { locale: zhCN })}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex justify-end gap-1">
-                                                    <Button variant="ghost" size="sm" className="h-8" asChild>
-                                                        <Link href={`/my-students/feedback/${feedback.orderId}/edit/${feedback.id}`}>
-                                                            <Pencil className="h-3 w-3" />
-                                                        </Link>
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={7} className="h-24 text-center">
-                                            <div className="flex flex-col items-center justify-center text-muted-foreground">
-                                                <p>暂无课后反馈记录</p>
-                                                <Button
-                                                    variant="link"
-                                                    className="mt-2"
-                                                    onClick={() => setShowFeedbackDialog(true)}
+                                                {row.studentAccount || "—"}
+                                            </Link>
+                                        ) : (
+                                            <span className="text-xs font-mono text-muted-foreground">
+                                                {row.studentAccount || "—"}
+                                            </span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell>
+                                        {row.orderId ? (
+                                            <Link
+                                                href={`/students-center/${row.orderId}`}
+                                                className="font-medium text-sm text-primary hover:underline"
+                                            >
+                                                {row.studentName}
+                                            </Link>
+                                        ) : (
+                                            <span className="font-medium text-sm">{row.studentName}</span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell className="text-sm">{row.subject}</TableCell>
+                                    <TableCell>
+                                        <Badge
+                                            variant="outline"
+                                            className={cn(
+                                                "text-[11px] px-1.5 py-0",
+                                                row.orderType === OrderType.TRIAL
+                                                    ? "border-sky-400 text-sky-600 bg-sky-50"
+                                                    : "border-emerald-400 text-emerald-700 bg-emerald-50"
+                                            )}
+                                        >
+                                            {row.orderType === OrderType.TRIAL ? "试课" : "正式课"}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-sm">{row.grade}</TableCell>
+                                    <TableCell className="text-center font-medium text-sm">
+                                        {row.totalHours}
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                        <span className={cn(
+                                            "font-semibold text-sm",
+                                            row.remainingHours <= 5
+                                                ? "text-destructive"
+                                                : "text-primary"
+                                        )}>
+                                            {row.remainingHours}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell className="text-sm">{row.tutorName}</TableCell>
+                                    <TableCell className="text-sm">{row.managerName}</TableCell>
+                                    <TableCell className="text-right">
+                                        <div className="flex flex-nowrap justify-end gap-1.5">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 border-muted-foreground/25 text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                                                asChild
+                                            >
+                                                <Link
+                                                    href={`/my-students/study-plan/create?studentId=${row.studentId ?? ""}&studentName=${encodeURIComponent(row.studentName)}`}
                                                 >
-                                                    <Plus className="mr-2 h-4 w-4" />
-                                                    创建第一条反馈
-                                                </Button>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
-
-                    {/* 分页 */}
-                    {feedbacksTotalPages > 1 && (
-                        <div className="mt-4">
-                            <Pagination
-                                currentPage={feedbacksPage}
-                                totalPages={feedbacksTotalPages}
-                                onPageChange={setFeedbacksPage}
-                            />
-                        </div>
-                    )}
-                </TabsContent>
-            </Tabs>
-
-            {/* Dialogs */}
-            <StudentSelectorDialog
-                open={showStudyPlanDialog}
-                onOpenChange={setShowStudyPlanDialog}
-                onConfirm={handleCreateStudyPlan}
-                title="创建学习规划书"
-            />
-            <StudentSelectorDialog
-                open={showFeedbackDialog}
-                onOpenChange={setShowFeedbackDialog}
-                onConfirm={handleCreateFeedback}
-                title="创建课后反馈"
-            />
-
-            {/* 新增/编辑学员 Dialog */}
-            <StudentFormDialog
-                open={showStudentFormDialog}
-                onOpenChange={setShowStudentFormDialog}
-                initialData={editingStudent}
-                onSubmit={handleStudentFormSubmit}
-            />
-
-            {/* 家长点评详情对话框 */}
-            <Dialog open={isParentFeedbackDialogOpen} onOpenChange={setIsParentFeedbackDialogOpen}>
-                <DialogContent className="sm:max-w-5xl w-[90vw] p-0 overflow-hidden">
-                    <DialogHeader className="px-6 pt-6 pb-4 border-b">
-                        <DialogTitle className="flex items-center gap-2">
-                            <MessageSquareText className="h-5 w-5 text-primary" />
-                            课堂反馈 · 家长点评详情
-                        </DialogTitle>
-                    </DialogHeader>
-                    {selectedParentFeedback && (
-                        <div className="grid grid-cols-2 divide-x" style={{ maxHeight: "75vh" }}>
-                            {/* ── Left: lesson feedback record ── */}
-                            <div className="overflow-y-auto p-6 space-y-4">
-                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">课堂反馈详情</p>
-                                <div className="rounded-lg bg-muted/40 px-4 py-3 text-sm space-y-1.5">
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">学员</span>
-                                        <span className="font-medium">{selectedParentFeedback.displayStudentName}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">上课日期</span>
-                                        <span className="font-medium">{selectedParentFeedback.date}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">时间段</span>
-                                        <span className="font-medium">{selectedParentFeedback.startTime}–{selectedParentFeedback.endTime}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">扣除课时</span>
-                                        <span className="font-medium">{selectedParentFeedback.deductHours} 课时</span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <p className="text-xs font-semibold text-muted-foreground mb-1.5">📌 课程内容</p>
-                                    <div className="rounded-lg bg-muted/30 border px-4 py-3 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                                        {selectedParentFeedback.content || "—"}
-                                    </div>
-                                </div>
-                                {selectedParentFeedback.methods && (
-                                    <div>
-                                        <p className="text-xs font-semibold text-muted-foreground mb-1.5">🔑 核心方法</p>
-                                        <div className="rounded-lg bg-muted/30 border px-4 py-3 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                                            {selectedParentFeedback.methods}
+                                                    <FileText className="h-3.5 w-3.5 mr-1" />
+                                                    规划书
+                                                </Link>
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                className="h-8 shadow-md ring-2 ring-primary/25 font-semibold"
+                                                asChild
+                                            >
+                                                <Link
+                                                    href={`/my-students/feedback/create?studentId=${row.studentId ?? ""}&studentName=${encodeURIComponent(row.studentName)}`}
+                                                >
+                                                    <MessageSquare className="h-3.5 w-3.5 mr-1" />
+                                                    课后反馈
+                                                </Link>
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                className="h-8 bg-indigo-400 text-white shadow-sm hover:bg-indigo-500/90 dark:bg-indigo-400 dark:hover:bg-indigo-500/90"
+                                                asChild
+                                            >
+                                                <Link
+                                                    href={`/students-center/assessment/create?orderId=${row.orderId ?? ""}&studentName=${encodeURIComponent(row.studentName)}&studentAccount=${encodeURIComponent(row.studentAccount)}&subject=${encodeURIComponent(row.subject)}&grade=${encodeURIComponent(row.grade)}`}
+                                                >
+                                                    <ClipboardCheck className="h-3.5 w-3.5 mr-1" />
+                                                    阶段性测评
+                                                </Link>
+                                            </Button>
                                         </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={10} className="h-32 text-center">
+                                    <div className="flex flex-col items-center justify-center text-muted-foreground gap-1.5">
+                                        <Users className="h-8 w-8 opacity-30" />
+                                        <p className="text-sm">没有找到符合条件的学员</p>
+                                        {hasActiveFilters && (
+                                            <Button variant="link" size="sm" onClick={resetFilters}>
+                                                清除筛选条件
+                                            </Button>
+                                        )}
                                     </div>
-                                )}
-                                {selectedParentFeedback.mistakes && (
-                                    <div>
-                                        <p className="text-xs font-semibold text-muted-foreground mb-1.5">ℹ️ 易错提醒</p>
-                                        <div className="rounded-lg bg-muted/30 border px-4 py-3 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                                            {selectedParentFeedback.mistakes}
-                                        </div>
-                                    </div>
-                                )}
-                                {selectedParentFeedback.performance && (
-                                    <div>
-                                        <p className="text-xs font-semibold text-muted-foreground mb-1.5">🌟 课堂表现</p>
-                                        <div className="rounded-lg bg-muted/30 border px-4 py-3 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                                            {selectedParentFeedback.performance}
-                                        </div>
-                                    </div>
-                                )}
-                                {selectedParentFeedback.homework && (
-                                    <div>
-                                        <p className="text-xs font-semibold text-muted-foreground mb-1.5">📝 课后巩固建议</p>
-                                        <div className="rounded-lg bg-muted/30 border px-4 py-3 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                                            {selectedParentFeedback.homework}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
 
-                            {/* ── Right: parent evaluation ── */}
-                            <div className="overflow-y-auto p-6 space-y-4">
-                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">家长点评</p>
-                                {/* 整体评分 */}
-                                <div className="rounded-lg border border-amber-100 bg-gradient-to-br from-amber-50 to-white p-4">
-                                    <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-3">整体评分</p>
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex gap-1">
-                                            {Array.from({ length: 5 }).map((_, i) => (
-                                                <Star
-                                                    key={i}
-                                                    className={cn(
-                                                        "h-6 w-6",
-                                                        i < selectedParentFeedback.parentFeedback.rating
-                                                            ? "fill-amber-400 text-amber-400"
-                                                            : "fill-muted text-muted"
-                                                    )}
-                                                />
-                                            ))}
-                                        </div>
-                                        <span className="text-base font-semibold text-slate-800">
-                                            {RATING_LABELS[selectedParentFeedback.parentFeedback.rating]}
-                                        </span>
-                                        <span className="ml-auto text-sm text-muted-foreground">
-                                            {selectedParentFeedback.parentFeedback.rating} / 5 分
-                                        </span>
-                                    </div>
-                                </div>
-
-                                {/* 详细评价 10 项 */}
-                                <div>
-                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">详细评价</p>
-                                    <div className="space-y-2">
-                                        {EVALUATION_SECTIONS.map((section) => (
-                                            <div key={section.title} className={cn("rounded-lg border p-3", section.bgClass)}>
-                                                <div className="flex items-center gap-1.5 mb-2">
-                                                    <span className={cn("h-2 w-2 rounded-full shrink-0", section.dotClass)} />
-                                                    <span className="text-xs font-semibold text-slate-700">{section.title}</span>
-                                                </div>
-                                                <div className="grid grid-cols-2 gap-1.5">
-                                                    {section.items.map((item) => {
-                                                        const value = selectedParentFeedback.parentFeedback?.evaluation?.[item.key]
-                                                        return (
-                                                            <div
-                                                                key={item.key}
-                                                                className="flex items-center justify-between rounded-md bg-white/80 px-2.5 py-1.5 text-xs"
-                                                            >
-                                                                <span className="text-muted-foreground">{item.label}</span>
-                                                                <span className="font-medium text-slate-800 ml-2 shrink-0">
-                                                                    {value ?? "—"}
-                                                                </span>
-                                                            </div>
-                                                        )
-                                                    })}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* 补充说明 */}
-                                {selectedParentFeedback.parentFeedback.remarks && (
-                                    <div>
-                                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">补充说明</p>
-                                        <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm text-slate-700 leading-relaxed">
-                                            {selectedParentFeedback.parentFeedback.remarks}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* 提交时间 */}
-                                <p className="text-xs text-muted-foreground text-right">
-                                    提交时间：{format(new Date(selectedParentFeedback.parentFeedback.submittedAt), "yyyy-MM-dd HH:mm", { locale: zhCN })}
-                                </p>
-                            </div>
-                        </div>
-                    )}
-                </DialogContent>
-            </Dialog>
+            {/* Pagination */}
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <span>
+                        第 {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredRows.length)} 条，共 {filteredRows.length} 条
+                    </span>
+                    <Pagination
+                        currentPage={page}
+                        totalPages={totalPages}
+                        onPageChange={setPage}
+                    />
+                </div>
+            )}
         </div>
     )
 }

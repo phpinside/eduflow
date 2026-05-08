@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Select,
@@ -28,8 +29,19 @@ function isMultipleOfHalfHour(h: number): boolean {
   return Number.isFinite(doubled) && Math.abs(doubled - Math.round(doubled)) < 1e-6
 }
 
+/** 编辑表单中的统一「用户状态」（审核类状态与用户禁用合并为一个下拉） */
+type EditCompositeUserStatus = "DISABLED" | "PENDING" | "APPROVED" | "REJECTED"
+
+function getCompositeUserStatus(u: Partial<User>): EditCompositeUserStatus {
+  if (u.accountDisabled) return "DISABLED"
+  const s = u.status ?? UserStatus.PENDING
+  if (s === UserStatus.REJECTED) return "REJECTED"
+  if (s === UserStatus.APPROVED) return "APPROVED"
+  return "PENDING"
+}
+
 export default function UserEditPage() {
-  const { user: sessionUser } = useAuth()
+  const { user: sessionUser, logout } = useAuth()
   const canEditMinRechargeHours = sessionUser?.roles.includes(Role.OPERATOR) ?? false
   const router = useRouter()
   const params = useParams()
@@ -59,7 +71,9 @@ export default function UserEditPage() {
     }
 
     const managerList = usersWithStatus.filter(u =>
-      u.roles.includes(Role.MANAGER) && u.status === UserStatus.APPROVED
+      u.roles.includes(Role.MANAGER) &&
+      u.status === UserStatus.APPROVED &&
+      !u.accountDisabled
     )
     setManagers(managerList)
     setFilteredManagers(managerList)
@@ -104,14 +118,31 @@ export default function UserEditPage() {
       }
     }
 
+    if (
+      !editForm.accountDisabled &&
+      editForm.status === UserStatus.REJECTED &&
+      !editForm.rejectReason?.trim()
+    ) {
+      toast.error("状态为「已驳回」时，请填写驳回原因")
+      return
+    }
+
     setIsSaving(true)
     const updatedUsers = allUsers.map(u =>
       u.id === userId ? { ...u, ...editForm, updatedAt: new Date() } : u
     )
     saveMockData(STORAGE_KEYS.USERS, updatedUsers)
+    setAllUsers(updatedUsers)
     toast.success("用户信息已保存")
     setIsSaving(false)
-    router.push(`/user-management/${userId}`)
+
+    if (sessionUser?.id === userId && editForm.accountDisabled) {
+      toast.warning("当前账号已被禁用，您将被退出登录")
+      logout()
+      return
+    }
+
+    router.back()
   }
 
   const getRoleBadge = (role: Role) => {
@@ -151,10 +182,10 @@ export default function UserEditPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.push(`/user-management/${userId}`)}
+            onClick={() => router.back()}
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
-            返回详情
+            返回
           </Button>
           <div>
             <h2 className="text-2xl font-bold tracking-tight">编辑用户</h2>
@@ -184,6 +215,55 @@ export default function UserEditPage() {
                 onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>用户状态</Label>
+            <Select
+              value={getCompositeUserStatus(editForm)}
+              onValueChange={(value) => {
+                const v = value as EditCompositeUserStatus
+                setEditForm((prev) => {
+                  if (v === "DISABLED") {
+                    return { ...prev, accountDisabled: true }
+                  }
+                  const next = { ...prev, accountDisabled: false }
+                  if (v === "APPROVED") {
+                    return { ...next, status: UserStatus.APPROVED, rejectReason: undefined }
+                  }
+                  if (v === "REJECTED") {
+                    return { ...next, status: UserStatus.REJECTED }
+                  }
+                  return { ...next, status: UserStatus.PENDING, rejectReason: undefined }
+                })
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="选择用户状态" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="PENDING">待审核</SelectItem>
+                <SelectItem value="APPROVED">审核通过</SelectItem>
+                <SelectItem value="REJECTED">已驳回</SelectItem>
+                <SelectItem value="DISABLED">用户被禁用</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              「用户被禁用」仅禁止登录，原先审核结论仍保留；改回其他状态将解除禁用。
+            </p>
+            {!editForm.accountDisabled && editForm.status === UserStatus.REJECTED && (
+              <div className="space-y-2 pt-1">
+                <Label>驳回原因</Label>
+                <Textarea
+                  placeholder="请填写驳回原因…"
+                  value={editForm.rejectReason || ""}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, rejectReason: e.target.value })
+                  }
+                  rows={3}
+                />
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -382,7 +462,7 @@ export default function UserEditPage() {
       <div className="flex items-center gap-3 pt-2">
         <Button
           variant="outline"
-          onClick={() => router.push(`/user-management/${userId}`)}
+          onClick={() => router.back()}
         >
           取消
         </Button>

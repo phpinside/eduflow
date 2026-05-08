@@ -28,9 +28,21 @@ export interface User {
   formalPaymentEnabled?: boolean
   /** 最小起充课时数（招生老师）；未设置时默认 10；最小 0.5，须为 0.5 的倍数 */
   minRechargeHours?: number
+  /** 运营停用账号后为 true，停用后不可登录；未设置视为正常 */
+  accountDisabled?: boolean
   recommendedForTrial?: boolean // 系统推荐试课
+  tutorLevel?: 'A' | 'B' | 'C' | 'D' | 'E'  // 教练等级（伴学教练专用）
+  tutorSubjects?: string[]    // 可授科目（伴学教练专用）
+  tutorGrades?: string[]      // 可授年级（伴学教练专用）
+  creditScore?: number        // 信用分 1-12（伴学教练专用）
+  tutorId?: string            // 伴学师ID（业务侧展示ID）
+  managerPhone?: string       // 学管手机号（伴学教练注册填写）
   managerId?: string         // 归属的学管ID（伴学教练专用）
   managerName?: string       // 归属的学管姓名（冗余字段，便于展示）
+  managerRank?: '见习学管' | '正式学管' | '总监'  // 学管职级
+  managerRankEffectiveDate?: Date                  // 职级生效时间
+  superiorId?: string        // 上级学管ID（学管专用）
+  superiorName?: string      // 上级学管姓名（冗余字段）
   branchCompanyId?: string   // 所属分公司ID（招生老师专用）
   branchCompanyName?: string // 所属分公司名称（冗余字段）
   createdAt: Date
@@ -399,6 +411,27 @@ export interface IncomeRecord {
   updatedAt: Date
 }
 
+// ========== 管理收入子类型 ==========
+
+export enum ManagementIncomeSubType {
+  TUTOR_MGMT_FEE = 'TUTOR_MGMT_FEE',       // 教练管理费
+  MANAGER_MGMT_FEE = 'MANAGER_MGMT_FEE',     // 学管管理费
+  DIRECTOR_TRAIN_FEE = 'DIRECTOR_TRAIN_FEE',  // 总监培养费
+}
+
+export interface ManagementIncomeDetail {
+  id: string
+  teamLeaderId: string
+  teamLeaderName: string
+  teamLeaderPhone: string
+  teamLeaderRank: string
+  regularLessonCount: number
+  subType: ManagementIncomeSubType
+  amount: number
+  occurredAt: Date
+  createdAt: Date
+}
+
 // ========== 伴学教练收入汇总 ==========
 
 // 伴学教练收入汇总（按教练聚合）
@@ -500,6 +533,54 @@ export interface Subject {
   enabled: boolean                   // 是否启用
   createdAt: Date
   updatedAt: Date
+}
+
+// ========== 伴学信用分规则 ==========
+
+export enum TutorCreditRuleCategory {
+  MINOR = 'MINOR',       // 轻微违规
+  GENERAL = 'GENERAL',   // 一般违规
+  SEVERE = 'SEVERE',     // 严重违规
+  REDLINE = 'REDLINE',   // 红线行为
+}
+
+export interface TutorCreditRule {
+  id: string
+  category: TutorCreditRuleCategory
+  title: string
+  description: string
+  /** 分值变化：负数为扣分；红线类别固定为 -12（扣 12 分 + 立即清退） */
+  scoreDelta: number
+  isEnabled: boolean
+  sortOrder: number
+  createdAt: Date
+  updatedAt: Date
+}
+
+// ========== 伴学信用分变动记录 ==========
+
+export enum TutorCreditChangeType {
+  INITIAL_REGISTRATION = 'INITIAL_REGISTRATION', // 初始注册
+  RESET                = 'RESET',                // 重置为12分
+  MINOR_VIOLATION      = 'MINOR_VIOLATION',       // 轻微违规
+  GENERAL_VIOLATION    = 'GENERAL_VIOLATION',     // 一般违规
+  SEVERE_VIOLATION     = 'SEVERE_VIOLATION',      // 严重违规
+  REDLINE_VIOLATION    = 'REDLINE_VIOLATION',     // 红线行为
+}
+
+export interface TutorCreditLog {
+  id: string
+  tutorId: string
+  changeType: TutorCreditChangeType
+  ruleId?: string
+  ruleName?: string
+  scoreDelta: number
+  scoreAfter: number
+  changedAt: Date
+  submittedById: string
+  submittedByName: string
+  note?: string
+  evidenceImages?: string[]
 }
 
 // ========== 分公司管理 ==========
