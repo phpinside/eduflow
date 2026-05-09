@@ -144,6 +144,12 @@ const navItems: NavItem[] = [
     roles: [Role.SALES,]
   },
   {
+    title: "订单搜索",
+    href: "/manager-order-search",
+    icon: Search,
+    roles: [Role.MANAGER],
+  },
+  {
     title: "学员档案",
     href: "/students",
     icon: UserSearch,

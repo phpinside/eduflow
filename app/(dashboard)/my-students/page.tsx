@@ -474,7 +474,11 @@ export default function MyStudentsPage() {
                                                 asChild
                                             >
                                                 <Link
-                                                    href={`/my-students/feedback/create?studentId=${row.studentId ?? ""}&studentName=${encodeURIComponent(row.studentName)}`}
+                                                    href={
+                                                        row.orderId
+                                                            ? `/my-students/feedback/${row.orderId}/create`
+                                                            : `/my-students/feedback/create?studentId=${row.studentId ?? ""}&studentName=${encodeURIComponent(row.studentName)}`
+                                                    }
                                                 >
                                                     <MessageSquare className="h-3.5 w-3.5 mr-1" />
                                                     课后反馈

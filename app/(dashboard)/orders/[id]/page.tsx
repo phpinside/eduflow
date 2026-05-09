@@ -63,6 +63,19 @@ import { getLatestUnitPriceByGrade } from "@/lib/course-pricing"
 import type { Order, RefundApplication } from "@/types"
 import { OrderStatus, OrderType, RefundApplicationStatus } from "@/types"
 import { ORDER_STATUS_MAP, ORDER_STATUS_COLOR_MAP } from "@/lib/order-constants"
+import { SalesOrderPipeline } from "@/components/orders/sales-order-pipeline"
+
+const COPY_TRIAL_TO_REGULAR =
+  "试课转正课：适用于已经完成试课，想要申请上正课的学员。本流程中，需要支持正课课时费、转正红包等费用。"
+
+const COPY_REGULAR_RENEW =
+  "续费：适用于已经在上正课，需要对该正课进行续费，增加上课课时的学员。本流程中将根据您需要增加的课时数，来支付对应的课时费用等。"
+
+function isOrderOnlinePaid(order: Order): boolean {
+  if (order.type === OrderType.REGULAR) return true
+  const method = (order as any).trialPaymentMethod
+  return method === "ONLINE"
+}
 
 
 
@@ -199,6 +212,32 @@ export default function OrderDetailsPage() {
     toast.success("已撤销申请，课时已解冻")
   }
 
+  const handleCancelOrderDirect = () => {
+    if (!order || !user) return
+    if (order.status === OrderStatus.CANCELLED) return
+    if (order.status === OrderStatus.CANCEL_REQUESTED) return
+    if (order.status === OrderStatus.REFUNDED) return
+    const ok = window.confirm(
+      "确认取消订单？\n\n该订单未发生在线实收，将直接取消，不进入退款审核流程。"
+    )
+    if (!ok) return
+    const now = new Date()
+    const next = orders.map((o) =>
+      o.id === order.id
+        ? {
+            ...o,
+            status: OrderStatus.CANCELLED,
+            cancelReason: "未发生在线实收，招生侧直接取消订单",
+            updatedAt: now,
+          }
+        : o
+    )
+    saveStoredOrders(next)
+    setOrders(next)
+    setOrder(next.find((o) => o.id === id))
+    toast.success("订单已取消")
+  }
+
   // === 新增：模拟支付功能 ===
   const handleSimulatePayment = () => {
     if (!order) return
@@ -276,6 +315,8 @@ export default function OrderDetailsPage() {
           {isTrial && order.status === OrderStatus.COMPLETED && (
             <Button
               size="sm"
+              className="bg-emerald-600 hover:bg-emerald-700"
+              title={COPY_TRIAL_TO_REGULAR}
               onClick={() => {
                 const p = new URLSearchParams({
                   studentName: student?.name || "未知学生",
@@ -290,7 +331,7 @@ export default function OrderDetailsPage() {
               }}
             >
               <ArrowRight className="mr-2 h-4 w-4" />
-              转正课
+              试课转正课
             </Button>
           )}
 
@@ -301,7 +342,8 @@ export default function OrderDetailsPage() {
             !order.refundFreezeActive && (
               <Button
                 size="sm"
-                className="bg-green-600 hover:bg-green-700 text-white"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                title={COPY_REGULAR_RENEW}
                 onClick={() => {
                   setRenewGrade(order.grade)
                   setIsRenewOpen(true)
@@ -314,9 +356,19 @@ export default function OrderDetailsPage() {
 
           {user &&
             order.salesPersonId === user.id &&
-            canSalesApplyRefund(order, refundApplications) && (
+            canSalesApplyRefund(order, refundApplications) &&
+            isOrderOnlinePaid(order) && (
               <Button size="sm" variant="outline" onClick={() => setRefundDialogOpen(true)}>
                 申请退费
+              </Button>
+            )}
+
+          {user &&
+            order.salesPersonId === user.id &&
+            canSalesApplyRefund(order, refundApplications) &&
+            !isOrderOnlinePaid(order) && (
+              <Button size="sm" variant="destructive" onClick={handleCancelOrderDirect}>
+                取消订单
               </Button>
             )}
 
@@ -350,6 +402,12 @@ export default function OrderDetailsPage() {
           <p className="mt-1 text-muted-foreground">{latestRejected.firstRejectApplicantNote}</p>
         </div>
       )}
+
+      <Card className="overflow-hidden">
+        <CardContent className="p-4">
+          <SalesOrderPipeline order={order} />
+        </CardContent>
+      </Card>
 
       {/* 订单全字段信息 */}
       <Card>
@@ -634,8 +692,11 @@ export default function OrderDetailsPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>正课续费</DialogTitle>
-            <DialogDescription>
-              为学生 {student?.name} 的 {order?.subject} 课程续费。
+            <DialogDescription asChild>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>为学生 {student?.name} 的 {order?.subject} 课程续费。</p>
+                <p className="leading-relaxed">{COPY_REGULAR_RENEW}</p>
+              </div>
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">

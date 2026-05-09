@@ -290,7 +290,7 @@ export default function StudentCourseDetailPage() {
 
     const displayStudentName = student?.name ?? "未知学员"
     const planCreateHref = `/my-students/study-plan/create?studentId=${order.studentId}&studentName=${encodeURIComponent(displayStudentName)}`
-    const feedbackCreateHref = `/my-students/feedback/create?studentId=${order.studentId}&studentName=${encodeURIComponent(displayStudentName)}`
+    const feedbackCreateHref = `/my-students/feedback/${order.id}/create`
     const assessmentCreateHref = `/students-center/assessment/create?orderId=${order.id}&studentName=${encodeURIComponent(displayStudentName)}&studentAccount=${encodeURIComponent(order.studentAccount ?? "")}&subject=${encodeURIComponent(order.subject)}&grade=${encodeURIComponent(order.grade)}`
 
     const examScore =

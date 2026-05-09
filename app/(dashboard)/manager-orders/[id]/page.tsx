@@ -52,17 +52,31 @@ import { format } from "date-fns"
 import { zhCN } from "date-fns/locale"
 import { mockStudents } from "@/lib/mock-data/students"
 import { mockUsers } from "@/lib/mock-data/users"
-import { getStoredOrders, saveStoredOrders } from "@/lib/storage"
+import {
+  getStoredOrders,
+  saveStoredOrders,
+  getStoredPriceRules,
+  getStoredRefundApplications,
+  saveRefundApplications,
+  getStoredRefundOperationLogs,
+  saveRefundOperationLogs,
+} from "@/lib/storage"
 import type { Order } from "@/types"
-import { OrderStatus, OrderType, Role } from "@/types"
+import { OrderStatus, OrderType, Role, RefundApplication, RefundApplicationStatus } from "@/types"
 import { ORDER_STATUS_MAP, ORDER_STATUS_COLOR_MAP, SCHEDULING_TIMEOUT_HOURS } from "@/lib/order-constants"
 import { SchedulingCountdown, VoucherUpload } from "@/components/order/order-review-components"
 import { Upload } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
-import { logOrderOperation } from "@/lib/operation-log-helper"
+import { logOrderOperation, logRefundOperation } from "@/lib/operation-log-helper"
 import { OperationAction } from "@/types/operation-log"
 import { computePricingBreakdown, resolveTrialRewardFromRules } from "@/lib/order-pricing"
-import { getStoredPriceRules } from "@/lib/storage"
+import {
+  createRefundLog,
+  findActiveRefundApplication,
+  generateRefundApplicationId,
+  getComputedMaxForKind,
+  resolveRefundKind,
+} from "@/lib/refund-domain"
 
 function loadOrderFromStorage(orderId: string): Order | undefined {
   return getStoredOrders().find((o) => o.id === orderId)
@@ -80,6 +94,18 @@ function deleteOrderFromStorage(orderId: string) {
   saveStoredOrders(getStoredOrders().filter((o) => o.id !== orderId))
 }
 
+/** 是否已发生实际收款（已标记支付或已有 INITIAL/RENEWAL/REWARD 实缴流水） */
+function orderHasEffectivelyPaid(o: Order): boolean {
+  if (o.isPaid === true) return true
+  const txs = o.transactions?.filter(
+    (t) => t.type === "INITIAL" || t.type === "RENEWAL" || t.type === "REWARD"
+  )
+  if (txs?.length) {
+    const sum = txs.reduce((s, t) => s + t.amount, 0)
+    if (sum > 0) return true
+  }
+  return false
+}
 
 const DAY_MAP: Record<string, string> = {
   monday: "周一",
@@ -547,6 +573,8 @@ export default function ManagerOrderDetailsPage() {
       ...order,
       status: OrderStatus.PENDING_FINANCE_REVIEW,
       csReviewNote: reviewNote || "客服审核通过",
+      csReviewerId: user?.id,
+      csReviewerName: user?.name,
       paymentVouchers: vouchers.length > 0 ? vouchers : order.paymentVouchers,
       campusName: csCampusName.trim(),
       campusAccount: csCampusAccount.trim(),
@@ -574,6 +602,8 @@ export default function ManagerOrderDetailsPage() {
       ...order,
       status: OrderStatus.PENDING_PAYMENT,
       financeReviewNote: reviewNote,
+      csReviewerId: user?.id,
+      csReviewerName: user?.name,
       updatedAt: new Date()
     }
     persistOrder(updated)
@@ -585,6 +615,155 @@ export default function ManagerOrderDetailsPage() {
     setCsCampusAccount("")
     setCsStudentAccount("")
     toast.success('已驳回，返回待支付状态')
+  }
+
+  /** 取消订单：无实收则直接关闭订单；否则等价于发起「全额剩余可退课时」的退款申请 */
+  const handleCsCancelOrder = () => {
+    if (!order) return
+    if (!user) {
+      toast.error("请先登录后再操作")
+      return
+    }
+    const apps = getStoredRefundApplications()
+    if (findActiveRefundApplication(apps, order.id)) {
+      toast.error("该订单已有进行中的退款申请，请勿重复提交")
+      return
+    }
+
+    const ok = window.confirm(
+      "确认「取消订单」？\n\n" +
+        "· 若订单尚未发生实际收款：订单将直接变为「已取消」。\n" +
+        "· 若已收款：将为当前订单自动发起「全额剩余可退课时」退款申请，订单进入退费审核流程（与招生端申请退款等效）。"
+    )
+    if (!ok) return
+
+    const note = reviewNote.trim() || "客服审核取消订单"
+
+    if (!orderHasEffectivelyPaid(order)) {
+      const updated: Order = {
+        ...order,
+        status: OrderStatus.CANCELLED,
+        cancelReason: note,
+        updatedAt: new Date(),
+      }
+      persistOrder(updated)
+      setOrder(updated)
+      setIsCsReviewOpen(false)
+      setReviewNote("")
+      setVouchers([])
+      setCsCampusName("")
+      setCsCampusAccount("")
+      setCsStudentAccount("")
+      toast.success("订单未发生实际收款，已直接取消")
+      logOrderOperation({
+        action: OperationAction.STATUS_CHANGE,
+        operator: user,
+        orderId: order.id,
+        beforeState: { status: order.status },
+        afterState: { status: OrderStatus.CANCELLED },
+        remark: note,
+      })
+      return
+    }
+
+    const kind = resolveRefundKind(order, "ORDER")
+    const { max, breakdown } = getComputedMaxForKind(order, kind, apps)
+    const isRegularByHours = kind !== "TRIAL"
+    const maxH = isRegularByHours ? Math.floor(breakdown?.maxRefundableHours ?? 0) : 0
+
+    if (max <= 0 || (isRegularByHours && maxH <= 0)) {
+      const updated: Order = {
+        ...order,
+        status: OrderStatus.CANCELLED,
+        cancelReason: note,
+        updatedAt: new Date(),
+      }
+      persistOrder(updated)
+      setOrder(updated)
+      setIsCsReviewOpen(false)
+      setReviewNote("")
+      setVouchers([])
+      setCsCampusName("")
+      setCsCampusAccount("")
+      setCsStudentAccount("")
+      toast.success("当前无可退金额/课时，订单已直接取消")
+      logOrderOperation({
+        action: OperationAction.STATUS_CHANGE,
+        operator: user,
+        orderId: order.id,
+        beforeState: { status: order.status },
+        afterState: { status: OrderStatus.CANCELLED },
+        remark: note,
+      })
+      return
+    }
+
+    const now = new Date()
+    const amt = Math.round(max * 100) / 100
+    const hrs = isRegularByHours ? maxH : undefined
+
+    const app: RefundApplication = {
+      id: generateRefundApplicationId(),
+      orderId: order.id,
+      applicantUserId: user.id,
+      applicantName: user.name,
+      refundKind: kind,
+      status: RefundApplicationStatus.PENDING_FIRST_REVIEW,
+      reason: note,
+      requestedHours: hrs,
+      requestedAmount: amt,
+      userOriginalRequestedAmount: amt,
+      userOriginalRequestedHours: hrs,
+      computedMaxAtApply: max,
+      breakdown,
+      createdAt: now,
+      updatedAt: now,
+    }
+    saveRefundApplications([...apps, app])
+
+    const nextOrder: Order = {
+      ...order,
+      status: OrderStatus.CANCEL_REQUESTED,
+      refundFreezeActive: true,
+      cancelReason: note,
+      csReviewerId: user.id,
+      csReviewerName: user.name,
+      updatedAt: now,
+    }
+    persistOrder(nextOrder)
+    setOrder(nextOrder)
+
+    const logs = [
+      ...getStoredRefundOperationLogs(),
+      createRefundLog({
+        refundApplicationId: app.id,
+        orderId: order.id,
+        actorRole: "OPERATOR",
+        actorUserId: user.id,
+        actorName: user.name,
+        action: "客服取消订单·发起全额退款申请",
+        detail: `申请退款 ¥${amt.toLocaleString()}${hrs != null ? `，课时 ${hrs}` : ""}`,
+      }),
+    ]
+    saveRefundOperationLogs(logs)
+
+    logRefundOperation({
+      action: OperationAction.REFUND_APPLY,
+      operator: user,
+      refundApplicationId: app.id,
+      orderId: order.id,
+      beforeState: { orderStatus: order.status },
+      afterState: { orderStatus: OrderStatus.CANCEL_REQUESTED, refundFreezeActive: true },
+      remark: note,
+    })
+
+    setIsCsReviewOpen(false)
+    setReviewNote("")
+    setVouchers([])
+    setCsCampusName("")
+    setCsCampusAccount("")
+    setCsStudentAccount("")
+    toast.success("已发起全额剩余可退课时退款申请，订单进入退费审核（申请退款）流程")
   }
 
   // === 新增：财务审核处理函数 ===
@@ -2111,18 +2290,30 @@ export default function ManagerOrderDetailsPage() {
             </div>
           </div>
 
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setIsCsReviewOpen(false)}>
-              取消
-            </Button>
-            <Button variant="destructive" onClick={handleCsReject}>
-              <X className="mr-2 h-4 w-4" />
-              暂存
-            </Button>
-            <Button onClick={handleCsApprove}>
-              <Check className="mr-2 h-4 w-4" />
-              通过
-            </Button>
+          <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
+            <p className="mr-auto w-full text-xs text-muted-foreground sm:max-w-[55%]">
+              「取消订单」：未实际收款则直接关闭订单；已收款则自动提交与「申请全额剩余课时退款」等价的退费单，进入退费一审。
+            </p>
+            <div className="flex w-full flex-wrap justify-end gap-2 sm:w-auto">
+              <Button variant="outline" onClick={() => setIsCsReviewOpen(false)}>
+                关闭
+              </Button>
+              <Button
+                variant="destructive"
+                className="border-destructive/80 bg-destructive/95 hover:bg-destructive"
+                onClick={handleCsCancelOrder}
+              >
+                取消订单
+              </Button>
+              <Button variant="destructive" onClick={handleCsReject}>
+                <X className="mr-2 h-4 w-4" />
+                暂存
+              </Button>
+              <Button onClick={handleCsApprove}>
+                <Check className="mr-2 h-4 w-4" />
+                通过
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

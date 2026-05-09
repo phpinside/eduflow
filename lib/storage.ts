@@ -8,7 +8,7 @@ import { mockSubjects } from './mock-data/subjects'
 import { mockOrderAccordRecords } from './mock-data/order-accord'
 import { mockTeacherAccordRecords } from './mock-data/teacher-accord'
 import { mockFinancialRecords } from './mock-data/financial-records'
-import type { Order, OrderStatus } from '@/types'
+import type { Order, OrderStatus, Student } from '@/types'
 import { OrderStatus as OrderStatusEnum } from '@/types'
 import { mockRefundApplications } from './mock-data/refund-applications'
 import { mockRefundOperationLogs } from './mock-data/refund-logs'
@@ -220,8 +220,50 @@ export const initializeMockData = () => {
     }
   }
 
-  if (!localStorage.getItem(STORAGE_KEYS.ORDERS)) saveMockData(STORAGE_KEYS.ORDERS, mockOrders)
-  if (!localStorage.getItem(STORAGE_KEYS.STUDENTS)) saveMockData(STORAGE_KEYS.STUDENTS, mockStudents)
+  // Orders: merge in new mock orders by id when storage already exists (mirrors users merge)
+  const storedOrdersStr = localStorage.getItem(STORAGE_KEYS.ORDERS)
+  if (!storedOrdersStr) {
+    saveMockData(STORAGE_KEYS.ORDERS, mockOrders)
+  } else {
+    try {
+      const storedOrders = JSON.parse(storedOrdersStr, (key, value) => {
+        if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
+          return new Date(value)
+        }
+        return value
+      }) as Order[]
+      const storedIds = new Set(storedOrders.map((o) => o.id))
+      const newOrders = mockOrders.filter((o) => !storedIds.has(o.id))
+      if (newOrders.length > 0) {
+        console.log(`Merging ${newOrders.length} new orders into storage`)
+        saveMockData(STORAGE_KEYS.ORDERS, [...storedOrders, ...newOrders])
+      }
+    } catch (e) {
+      console.error('Failed to merge orders', e)
+    }
+  }
+
+  const storedStudentsStr = localStorage.getItem(STORAGE_KEYS.STUDENTS)
+  if (!storedStudentsStr) {
+    saveMockData(STORAGE_KEYS.STUDENTS, mockStudents)
+  } else {
+    try {
+      const storedStudents = JSON.parse(storedStudentsStr, (key, value) => {
+        if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
+          return new Date(value)
+        }
+        return value
+      }) as Student[]
+      const storedStudentIds = new Set(storedStudents.map((s) => s.id))
+      const newStudents = mockStudents.filter((s) => !storedStudentIds.has(s.id))
+      if (newStudents.length > 0) {
+        console.log(`Merging ${newStudents.length} new students into storage`)
+        saveMockData(STORAGE_KEYS.STUDENTS, [...storedStudents, ...newStudents])
+      }
+    } catch (e) {
+      console.error('Failed to merge students', e)
+    }
+  }
   if (!localStorage.getItem(STORAGE_KEYS.LESSONS)) saveMockData(STORAGE_KEYS.LESSONS, mockLessons)
   if (!localStorage.getItem(STORAGE_KEYS.INCOME_RECORDS)) saveMockData(STORAGE_KEYS.INCOME_RECORDS, mockIncomeRecords)
   if (!localStorage.getItem(STORAGE_KEYS.TUTOR_INCOME_SUMMARY)) saveMockData(STORAGE_KEYS.TUTOR_INCOME_SUMMARY, mockTutorIncomeSummary)

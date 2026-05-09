@@ -5,7 +5,17 @@ import { Role } from "@/types"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Users, BookOpen, CheckCircle, Clock, TrendingUp, AlertCircle } from "lucide-react"
+import {
+  Users,
+  BookOpen,
+  CheckCircle,
+  Clock,
+  TrendingUp,
+  AlertCircle,
+  GraduationCap,
+  MousePointerClick,
+  ArrowRightLeft,
+} from "lucide-react"
 
 // Dashboard Sub-components for different roles
 
@@ -46,24 +56,74 @@ function SalesDashboard() {
         </Card>
       </div>
       
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="col-span-3">
-            <CardHeader>
-                <CardTitle>快捷操作</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-                <Button className="w-full bg-blue-600 hover:bg-blue-700" asChild>
-                    <Link href="/trial-lesson/create">创建试课单</Link>
-                </Button>
-                <Button className="w-full bg-green-600 hover:bg-green-700" asChild>
-                    <Link href="/regular-course/select-trial">创建正课单</Link>
-                </Button>
-                <Button variant="outline" className="w-full" asChild>
-                    <Link href="/students/create">录入学生信息</Link>
-                </Button>
-            </CardContent>
-        </Card>
-      </div>
+      <Card className="overflow-hidden border-border/80 shadow-sm">
+        <CardHeader className="space-y-1 pb-2">
+          <CardTitle>快捷操作</CardTitle>
+          <CardDescription>
+            按真实业务场景选择入口；试课转正课需在「订单管理」中基于已有试课单操作，不会新建空白试课单。
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5 pt-0">
+          <div className="space-y-2 rounded-xl border border-sky-200/80 bg-sky-50/50 p-4 dark:border-sky-900/50 dark:bg-sky-950/25">
+            <div className="flex items-center gap-2 text-sm font-semibold text-sky-950 dark:text-sky-100">
+              <MousePointerClick className="h-4 w-4 shrink-0" aria-hidden />
+              我要试课
+            </div>
+            <p className="text-xs leading-relaxed text-sky-900/90 dark:text-sky-200/90">
+              <span className="font-semibold text-foreground">适用场景：</span>
+              学员尚未安排试课，需要先创建试课订单、约定试听时间并完成试听费支付（线上/线下）时使用。
+              将进入「创建试课单」流程，与原有逻辑一致。
+            </p>
+            <Button className="w-full bg-sky-600 text-white hover:bg-sky-700" asChild>
+              <Link href="/trial-lesson/create">进入 · 创建试课单</Link>
+            </Button>
+          </div>
+
+          <div className="space-y-2 rounded-xl border border-amber-200/90 bg-amber-50/70 p-4 dark:border-amber-900/50 dark:bg-amber-950/30">
+            <div className="flex items-center gap-2 text-sm font-semibold text-amber-950 dark:text-amber-100">
+              <ArrowRightLeft className="h-4 w-4 shrink-0" aria-hidden />
+              我要试课转正课
+            </div>
+            <p className="text-xs leading-relaxed text-amber-950/95 dark:text-amber-200/90">
+              <span className="font-semibold text-foreground">适用场景：</span>
+              试课已经完成，需要在该学员名下的
+              <span className="font-semibold text-foreground">原试课订单</span>
+              上发起「转正课」、配置正课课时费与转正红包等时使用。请先到「订单管理」页，在筛选区按
+              <span className="font-semibold text-foreground">孩子姓名</span>
+              查找对应试课单，再在订单卡片上操作（勿在此新建空白单）。
+            </p>
+            <Button
+              className="w-full border-amber-300 bg-amber-600 text-white hover:bg-amber-700 dark:border-amber-700"
+              asChild
+            >
+              <Link href="/orders?guide=trial-convert">前往 · 订单管理中操作</Link>
+            </Button>
+          </div>
+
+          <div className="space-y-2 rounded-xl border border-emerald-200/80 bg-emerald-50/50 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/25">
+            <div className="flex items-center gap-2 text-sm font-semibold text-emerald-950 dark:text-emerald-100">
+              <GraduationCap className="h-4 w-4 shrink-0" aria-hidden />
+              我要直接上正课
+            </div>
+            <p className="text-xs leading-relaxed text-emerald-900/90 dark:text-emerald-200/90">
+              <span className="font-semibold text-foreground">适用场景：</span>
+              不经过试课、直接为新学员购买正课包（或从列表选择已有试课转化）时使用。将进入「创建正课单」入口，与原有「新增正课单」按钮一致。
+            </p>
+            <Button className="w-full bg-emerald-600 text-white hover:bg-emerald-700" asChild>
+              <Link href="/regular-course/select-trial">进入 · 创建正课单</Link>
+            </Button>
+          </div>
+
+          <div className="border-t pt-4">
+            <Button variant="outline" className="w-full" asChild>
+              <Link href="/students/create">录入学员档案</Link>
+            </Button>
+            <p className="mt-2 text-center text-[11px] text-muted-foreground">
+              新建客户档案时可与上方入口配合使用；不作为正课/试课下单的必经步骤。
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">企业微信客服</h3>

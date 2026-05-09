@@ -73,15 +73,29 @@ import {
 } from "@/lib/refund-domain"
 import type { Order, RefundApplication } from "@/types"
 import { OrderStatus, OrderType, RefundApplicationStatus } from "@/types"
-import { FormField } from "@/components/ui/form"
 import { ORDER_STATUS_MAP, ORDER_STATUS_COLOR_MAP } from "@/lib/order-constants"
+import { SalesOrderPipeline } from "@/components/orders/sales-order-pipeline"
 
+const COPY_TRIAL_TO_REGULAR =
+  "试课转正课：适用于已经完成试课，想要申请上正课的学员。本流程中，需要支持正课课时费、转正红包等费用。"
 
+const COPY_REGULAR_RENEW =
+  "续费：适用于已经在上正课，需要对该正课进行续费，增加上课课时的学员。本流程中将根据您需要增加的课时数，来支付对应的课时费用等。"
+
+function isOrderOnlinePaid(order: Order): boolean {
+  // 规则口径（业务约束）：
+  // - 正课/续课：视为实际支付过费用 → 申请退费
+  // - 试课：仅 ONLINE 视为支付过费用；OFFLINE 视为未支付 → 取消订单
+  if (order.type === OrderType.REGULAR) return true
+  const method = (order as any).trialPaymentMethod
+  return method === "ONLINE"
+}
 
 export default function OrdersPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const studentId = searchParams.get("studentId")
+  const guideTrialConvert = searchParams.get("guide") === "trial-convert"
   const { user } = useAuth()
 
   const [orders, setOrders] = React.useState<Order[]>([])
@@ -91,6 +105,17 @@ export default function OrdersPage() {
     setOrders(getStoredOrders())
     setRefundApplications(getStoredRefundApplications())
   }, [])
+
+  React.useEffect(() => {
+    if (!guideTrialConvert) return
+    setOrderTypeFilter(OrderType.TRIAL)
+    const id = window.requestAnimationFrame(() => {
+      document.getElementById("orders-trial-convert-guide")?.scrollIntoView({ behavior: "smooth", block: "start" })
+      const el = document.getElementById("filter-student-name") as HTMLInputElement | null
+      el?.focus({ preventScroll: true })
+    })
+    return () => cancelAnimationFrame(id)
+  }, [guideTrialConvert])
 
   const getStudentName = (studentId: string) => {
     const student = mockStudents.find(s => s.id === studentId)
@@ -300,6 +325,31 @@ export default function OrdersPage() {
     toast.success("已撤销申请，本单课时恢复可用")
   }
 
+  const handleCancelOrderDirect = (order: Order) => {
+    if (!user) return
+    if (order.status === OrderStatus.CANCELLED) return
+    if (order.status === OrderStatus.CANCEL_REQUESTED) return
+    if (order.status === OrderStatus.REFUNDED) return
+    const ok = window.confirm(
+      "确认取消订单？\n\n该订单未发生在线实收，将直接取消，不进入退款审核流程。"
+    )
+    if (!ok) return
+    const now = new Date()
+    const nextOrders = orders.map((o) =>
+      o.id === order.id
+        ? {
+            ...o,
+            status: OrderStatus.CANCELLED,
+            cancelReason: "未发生在线实收，招生侧直接取消订单",
+            updatedAt: now,
+          }
+        : o
+    )
+    saveStoredOrders(nextOrders)
+    setOrders(nextOrders)
+    toast.success("订单已取消")
+  }
+
   const refundStatusLabel = (orderId: string) => {
     const a = findActiveRefundApplication(refundApplications, orderId)
     if (!a) return null
@@ -344,6 +394,31 @@ export default function OrdersPage() {
             </Button>
         </div>
       </div>
+
+      {guideTrialConvert && (
+        <div
+          id="orders-trial-convert-guide"
+          className="rounded-xl border border-amber-200 bg-amber-50/90 p-4 shadow-sm dark:border-amber-900/60 dark:bg-amber-950/40"
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 space-y-2">
+              <p className="text-sm font-semibold text-amber-950 dark:text-amber-50">试课转正课 · 操作引导</p>
+              <p className="text-xs leading-relaxed text-amber-950/95 dark:text-amber-100/95">
+                已为您筛出「试课订单」。请在下方筛选区「学员姓名」中输入孩子姓名，定位到对应试课单；确认该单状态为「已完成」后，在订单卡片上使用「试课转正课」按钮进入正课创建与支付（含正课课时费、转正红包等）。本入口不会在空白单上发起转正。
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0 border-amber-300 bg-background text-amber-950 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-50 dark:hover:bg-amber-900/50"
+              onClick={() => router.replace("/orders")}
+            >
+              关闭引导
+            </Button>
+          </div>
+        </div>
+      )}
 
       {studentId && (
         <Card>
@@ -620,168 +695,330 @@ export default function OrdersPage() {
         <div className="text-center py-10 text-muted-foreground">暂无符合条件的订单</div>
       ) : (
         <div className="grid gap-4">
-          {filteredOrders.map((order) => (
-            <Card
-              key={order.id}
-              className="cursor-pointer transition-colors hover:bg-muted/50"
-              onClick={() => router.push(`/orders/${order.id}`)}
-            >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <CardTitle className="text-base font-medium">
-                    {order.subject} ({order.grade})
-                  </CardTitle>
-                  <span className="text-xs text-muted-foreground">#{order.id}</span>
-                  <Badge variant={order.type === OrderType.TRIAL ? "secondary" : "default"}>
-                    {order.type === OrderType.TRIAL ? "试课订单" : "正课订单"}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant={ORDER_STATUS_COLOR_MAP[order.status]}>{ORDER_STATUS_MAP[order.status]}</Badge>
-                  {order.refundFreezeActive && (
-                    <Badge variant="secondary">课时冻结</Badge>
-                  )}
-                  {refundStatusLabel(order.id) && (
-                    <Badge variant="outline" className="text-amber-800 border-amber-300">
-                      {refundStatusLabel(order.id)}
-                    </Badge>
-                  )}
+          {filteredOrders.map((order) => {
+            const studentLabel = getStudentName(order.studentId)
+            const showTrialConvert =
+              order.type === OrderType.TRIAL && order.status === OrderStatus.COMPLETED
+            const showRenew =
+              order.type === OrderType.REGULAR &&
+              order.status !== OrderStatus.CANCELLED &&
+              order.status !== OrderStatus.CANCEL_REQUESTED &&
+              order.status !== OrderStatus.REFUNDED &&
+              !order.refundFreezeActive
+            const hasPrimaryAction = showTrialConvert || showRenew
+            const canApplyRefundHere =
+              user &&
+              order.salesPersonId === user.id &&
+              canSalesApplyRefund(order, refundApplications) &&
+              isOrderOnlinePaid(order)
+            const canCancelDirectHere =
+              user &&
+              order.salesPersonId === user.id &&
+              canSalesApplyRefund(order, refundApplications) &&
+              !isOrderOnlinePaid(order) &&
+              order.status !== OrderStatus.CANCELLED &&
+              order.status !== OrderStatus.CANCEL_REQUESTED &&
+              order.status !== OrderStatus.REFUNDED
 
-                  <div className="flex gap-2 items-center">
-                    {order.type === OrderType.TRIAL &&
-                      order.status === OrderStatus.COMPLETED && (
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          className="h-8 text-green-600 hover:text-green-700"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            const params = new URLSearchParams({
-                              studentName: getStudentName(order.studentId),
-                              subject: order.subject,
-                              grade: order.grade,
-                              fromTrialConversion: "true",
-                              campusName: order.campusName || "",
-                              campusAccount: order.campusAccount || "",
-                              studentAccount: order.studentAccount || "",
-                            }).toString()
-                            router.push(`/regular-course/create?${params}`)
-                          }}
-                        >
-                          <ArrowRight className="mr-1 h-3 w-3" />
-                          转正课
-                        </Button>
-                      )}
-
-                    {order.type === OrderType.REGULAR &&
-                      order.status !== OrderStatus.CANCELLED &&
-                      order.status !== OrderStatus.CANCEL_REQUESTED &&
-                      order.status !== OrderStatus.REFUNDED &&
-                      !order.refundFreezeActive && (
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          className="h-8 text-green-600 hover:text-green-700"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setSelectedOrder(order)
-                            setRenewGrade(order.grade)
-                            setIsRenewOpen(true)
-                          }}
-                        >
-                          <RefreshCw className="mr-1 h-3 w-3" />
-                          续费
-                        </Button>
-                      )}
-
-                    {user &&
-                      order.salesPersonId === user.id &&
-                      canSalesWithdraw(findActiveRefundApplication(refundApplications, order.id)) && (
-                        <Button
-                          size="sm"
+            return (
+              <Card
+                key={order.id}
+                className="overflow-hidden border-border/80 transition-colors hover:bg-muted/25"
+                role="button"
+                tabIndex={0}
+                onClick={() => router.push(`/orders/${order.id}`)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault()
+                    router.push(`/orders/${order.id}`)
+                  }
+                }}
+              >
+                <CardContent className="p-0">
+                  {/* 核心信息：紧凑聚合 */}
+                  <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 space-y-2">
+                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                        <span className="truncate text-lg font-semibold tracking-tight text-foreground">
+                          {studentLabel}
+                        </span>
+                        <span className="text-muted-foreground">·</span>
+                        <span className="font-medium text-foreground">{order.subject}</span>
+                        <Badge variant="outline" className="h-5 px-1.5 text-[11px] font-normal">
+                          {order.grade}
+                        </Badge>
+                        <Badge
+                          className={
+                            order.type === OrderType.TRIAL
+                              ? "border-sky-300/80 bg-sky-50 text-sky-800 hover:bg-sky-50 dark:bg-sky-950/50 dark:text-sky-100"
+                              : "border-emerald-300/80 bg-emerald-50 text-emerald-900 hover:bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-50"
+                          }
                           variant="outline"
-                          className="h-8"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleWithdrawRefund(order)
-                          }}
                         >
-                          撤销退费申请
-                        </Button>
+                          {order.type === OrderType.TRIAL ? "试课订单" : "正课订单"}
+                        </Badge>
+                      </div>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                        <span className="font-mono text-[11px]">{order.id}</span>
+                        <span>下单 {format(new Date(order.createdAt), "yyyy-MM-dd HH:mm", { locale: zhCN })}</span>
+                        {order.studentAccount?.trim() ? (
+                          <span className="font-mono text-[11px]">G {order.studentAccount}</span>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div
+                      className="flex shrink-0 flex-wrap items-center justify-end gap-2"
+                      data-no-nav
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Badge variant={ORDER_STATUS_COLOR_MAP[order.status]}>
+                        {ORDER_STATUS_MAP[order.status]}
+                      </Badge>
+                      {order.refundFreezeActive && <Badge variant="secondary">课时冻结</Badge>}
+                      {refundStatusLabel(order.id) && (
+                        <Badge variant="outline" className="border-amber-300 text-amber-800">
+                          {refundStatusLabel(order.id)}
+                        </Badge>
                       )}
+                    </div>
+                  </div>
 
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          className="h-8 w-8 p-0"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <span className="sr-only">Open menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>操作</DropdownMenuLabel>
-                        <DropdownMenuItem asChild>
-                          <Link href={`/orders/${order.id}`} className="cursor-pointer">
-                            查看详情
-                          </Link>
-                        </DropdownMenuItem>
+                  <div className="border-t bg-muted/20 px-4 py-3">
+                    <SalesOrderPipeline order={order} />
+                  </div>
 
-                        {user &&
-                          order.salesPersonId === user.id &&
-                          canSalesApplyRefund(order, refundApplications) && (
-                            <DropdownMenuItem
-                              className="cursor-pointer"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setSelectedOrder(order)
-                                setRefundDialogOpen(true)
+                  <div className="flex flex-wrap gap-x-8 gap-y-3 border-t px-4 py-3 text-sm">
+                    <div className="min-w-[140px]">
+                      <p className="text-[11px] font-medium text-muted-foreground">订单金额</p>
+                      <p className="font-semibold tabular-nums text-foreground">¥{order.price.toLocaleString()}</p>
+                    </div>
+                    {order.type === OrderType.REGULAR ? (
+                      <div className="min-w-[140px]">
+                        <p className="text-[11px] font-medium text-muted-foreground">课时（剩余/总计）</p>
+                        <p className="font-semibold tabular-nums text-foreground">
+                          {order.remainingHours} / {order.totalHours}
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="min-w-[120px]">
+                          <p className="text-[11px] font-medium text-muted-foreground">试课课时</p>
+                          <p className="font-semibold text-foreground">{order.totalHours ?? 1} 课时</p>
+                        </div>
+                        <div className="min-w-[160px]">
+                          <p className="text-[11px] font-medium text-muted-foreground">预约上课时间</p>
+                          <p className="text-foreground">
+                            {order.scheduledAt
+                              ? format(new Date(order.scheduledAt), "yyyy-MM-dd HH:mm", { locale: zhCN })
+                              : "—"}
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  <div
+                    className="space-y-3 border-t bg-card px-4 pb-4 pt-3"
+                    data-no-nav
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {showTrialConvert ? (
+                      <div className="rounded-xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/90 to-background p-4 shadow-sm dark:border-emerald-900/50 dark:from-emerald-950/30">
+                        <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-start">
+                          <div className="min-w-0">
+                            <Button
+                              size="default"
+                              className="shrink-0 gap-2 bg-emerald-600 font-semibold text-white shadow-md hover:bg-emerald-700"
+                              onClick={() => {
+                                const params = new URLSearchParams({
+                                  studentName: getStudentName(order.studentId),
+                                  subject: order.subject,
+                                  grade: order.grade,
+                                  fromTrialConversion: "true",
+                                  campusName: order.campusName || "",
+                                  campusAccount: order.campusAccount || "",
+                                  studentAccount: order.studentAccount || "",
+                                }).toString()
+                                router.push(`/regular-course/create?${params}`)
                               }}
                             >
-                              申请退费
-                            </DropdownMenuItem>
-                          )}
+                              <ArrowRight className="h-4 w-4" />
+                              试课转正课
+                            </Button>
+                            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                              {COPY_TRIAL_TO_REGULAR}
+                            </p>
+                          </div>
 
-                        <DropdownMenuItem onClick={() => navigator.clipboard.writeText(order.id)}>
-                          复制订单号
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground mt-2 md:grid-cols-4">
-                  <div>
-                    <span className="font-medium text-foreground">学生：</span>
-                    {getStudentName(order.studentId)}
-                  </div>
-                  <div>
-                    <span className="font-medium text-foreground">金额：</span>
-                    ¥{order.price.toLocaleString()}
-                  </div>
-                  <div>
-                    <span className="font-medium text-foreground">下单时间：</span>
-                    {format(new Date(order.createdAt), "yyyy-MM-dd HH:mm", { locale: zhCN })}
-                  </div>
-                  {order.type === OrderType.REGULAR && (
-                    <div>
-                      <span className="font-medium text-foreground">课时：</span>
-                      {order.remainingHours} / {order.totalHours}
+                          <div className="flex flex-wrap items-center justify-end gap-2 lg:pl-6">
+                            {canApplyRefundHere && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-9"
+                                  onClick={() => {
+                                    setSelectedOrder(order)
+                                    setRefundDialogOpen(true)
+                                  }}
+                                >
+                                  申请退费
+                                </Button>
+                            )}
+                            {canCancelDirectHere && (
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="h-9"
+                                onClick={() => handleCancelOrderDirect(order)}
+                              >
+                                取消订单
+                              </Button>
+                            )}
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-9"
+                              onClick={() => navigator.clipboard.writeText(order.id)}
+                            >
+                              复制订单号
+                            </Button>
+
+                            <Button size="sm" variant="outline" className="h-9" asChild>
+                              <Link href={`/orders/${order.id}`}>查看详情</Link>
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {showRenew ? (
+                      <div className="rounded-xl border border-blue-200/90 bg-gradient-to-br from-blue-50/90 to-background p-4 shadow-sm dark:border-blue-900/50 dark:from-blue-950/30">
+                        <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-start">
+                          <div className="min-w-0">
+                            <Button
+                              size="default"
+                              variant="default"
+                              className="shrink-0 gap-2 bg-blue-600 font-semibold text-white shadow-md hover:bg-blue-700"
+                              onClick={() => {
+                                setSelectedOrder(order)
+                                setRenewGrade(order.grade)
+                                setIsRenewOpen(true)
+                              }}
+                            >
+                              <RefreshCw className="h-4 w-4" />
+                              续费
+                            </Button>
+                            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                              {COPY_REGULAR_RENEW}
+                            </p>
+                          </div>
+
+                          <div className="flex flex-wrap items-center justify-end gap-2 lg:pl-6">
+                            {canApplyRefundHere && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-9"
+                                  onClick={() => {
+                                    setSelectedOrder(order)
+                                    setRefundDialogOpen(true)
+                                  }}
+                                >
+                                  申请退费
+                                </Button>
+                            )}
+                            {canCancelDirectHere && (
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="h-9"
+                                onClick={() => handleCancelOrderDirect(order)}
+                              >
+                                取消订单
+                              </Button>
+                            )}
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-9"
+                              onClick={() => navigator.clipboard.writeText(order.id)}
+                            >
+                              复制订单号
+                            </Button>
+
+                            <Button size="sm" variant="outline" className="h-9" asChild>
+                              <Link href={`/orders/${order.id}`}>查看详情</Link>
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      {user &&
+                        order.salesPersonId === user.id &&
+                        canSalesWithdraw(findActiveRefundApplication(refundApplications, order.id)) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-9"
+                            onClick={() => handleWithdrawRefund(order)}
+                          >
+                            撤销退费申请
+                          </Button>
+                        )}
+
+                      {/* 有主操作时：大屏展开按钮，小屏保留更多；无主操作时：大屏也保留更多 */}
+                      <div className={hasPrimaryAction ? "lg:hidden" : ""}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" className="h-9 gap-1">
+                              <MoreHorizontal className="h-4 w-4" />
+                              更多
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>操作</DropdownMenuLabel>
+                            <DropdownMenuItem asChild>
+                              <Link href={`/orders/${order.id}`} className="cursor-pointer">
+                                查看详情
+                              </Link>
+                            </DropdownMenuItem>
+
+                            {canApplyRefundHere && (
+                                <DropdownMenuItem
+                                  className="cursor-pointer"
+                                  onClick={() => {
+                                    setSelectedOrder(order)
+                                    setRefundDialogOpen(true)
+                                  }}
+                                >
+                                  申请退费
+                                </DropdownMenuItem>
+                            )}
+                            {canCancelDirectHere && (
+                              <DropdownMenuItem
+                                className="cursor-pointer text-destructive focus:text-destructive"
+                                onClick={() => handleCancelOrderDirect(order)}
+                              >
+                                取消订单
+                              </DropdownMenuItem>
+                            )}
+
+                            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(order.id)}>
+                              复制订单号
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
-                  )}
-                  {order.type === OrderType.TRIAL && order.scheduledAt && (
-                    <div>
-                      <span className="font-medium text-foreground">预约时间：</span>
-                      {format(new Date(order.scheduledAt), "yyyy-MM-dd HH:mm", { locale: zhCN })}
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       )}
 
@@ -790,8 +1027,11 @@ export default function OrdersPage() {
         <DialogContent>
             <DialogHeader>
                 <DialogTitle>正课续费</DialogTitle>
-                <DialogDescription>
-                    为学生 {selectedOrder ? getStudentName(selectedOrder.studentId) : ''} 的 {selectedOrder?.subject} 课程续费。
+                <DialogDescription asChild>
+                    <div className="space-y-2 text-sm text-muted-foreground">
+                        <p>为学生 {selectedOrder ? getStudentName(selectedOrder.studentId) : ""} 的 {selectedOrder?.subject} 课程续费。</p>
+                        <p className="leading-relaxed">{COPY_REGULAR_RENEW}</p>
+                    </div>
                 </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">

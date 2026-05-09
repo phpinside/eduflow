@@ -138,6 +138,10 @@ export interface Order {
   
   /** 客服审核批注 */
   csReviewNote?: string
+
+  /** 客服审核人（用于学管/运营检索页展示） */
+  csReviewerId?: string
+  csReviewerName?: string
   
   /** 财务审核批注/驳回原因 */
   financeReviewNote?: string

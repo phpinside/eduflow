@@ -586,5 +586,71 @@ export const mockFeedbacks: LessonFeedbackRecord[] = [
     homework: '写一篇议论文作文',
     createdAt: new Date('2024-02-12T20:40:00'),
     updatedAt: new Date('2024-02-12T20:40:00')
-  }
+  },
+
+  // 试课课后反馈演示（订单 ord-feedback-trial-done-with-feedback）
+  {
+    id: 'fb-trial-demo-with-parent',
+    orderId: 'ord-feedback-trial-done-with-feedback',
+    studentId: 'stu-feedback-t-d',
+    studentName: '周思源',
+    teacherId: 'user-tutor-1',
+    date: '2026-05-01',
+    startTime: '10:00',
+    endTime: '11:00',
+    deductHours: '1',
+    feeStandardGrade: '五年级',
+    studentAttendance: '按时上课',
+    homeworkCompletion: '没有布置作业',
+    content:
+      '[试课演示] 本节课梳理了五年级语文阅读题的审题步骤，讲解了概括段意与人物形象分析的典型问法。',
+    methods: '四步阅读：标关键词—划中心句—联上下文—回看题干',
+    mistakes: '作答时要点遗漏较多，需注意分点作答',
+    performance: '课堂专注度好，能与老师互动复述要点',
+    homework: '完成一篇课外阅读并完成两道开放题作答',
+    parentFeedback: {
+      rating: 5,
+      tags: ['🧘 无明显问题'],
+      evaluation: {
+        knowledge_absorption: '很好',
+        student_explain: '有',
+        professionalism: '专业严谨',
+        responsibility: '主动关注',
+        patience: '非常耐心',
+        post_feedback: '及时详细',
+        punctuality: '很守时',
+        camera: '开',
+        network: '网络通畅',
+        environment: '安静',
+      },
+      remarks: '试课老师讲得很清楚，孩子愿意继续跟',
+      submittedAt: new Date('2026-05-01T20:30:00'),
+    },
+    createdAt: new Date('2026-05-01T11:30:00'),
+    updatedAt: new Date('2026-05-01T11:30:00'),
+  },
+
+  // 试课课后反馈演示（订单 ord-feedback-trial-done-tutor-only，无家长反馈）
+  {
+    id: 'fb-trial-demo-tutor-only',
+    orderId: 'ord-feedback-trial-done-tutor-only',
+    studentId: 'stu-feedback-t-e',
+    studentName: '周艺涵',
+    teacherId: 'user-tutor-1',
+    date: '2026-05-05',
+    startTime: '19:00',
+    endTime: '20:00',
+    deductHours: '1',
+    feeStandardGrade: '九年级',
+    studentAttendance: '按时上课',
+    homeworkCompletion: '没有布置作业',
+    content:
+      '[试课演示] 化学用语与方程式书写入门：物质的量初步、化学式读写与方程式配平示意。',
+    methods: '先写产物再配平，守恒检查一遍',
+    mistakes: '方程式条件与箭头容易漏写',
+    performance: '基础尚可，方程式书写需放慢节奏巩固',
+    homework: '整理本节课方程式 3 条并抄写在错题本',
+    createdAt: new Date('2026-05-05T20:15:00'),
+    updatedAt: new Date('2026-05-05T20:15:00'),
+  },
 ]
