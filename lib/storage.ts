@@ -22,6 +22,9 @@ import { mockTutorCreditRules } from './mock-data/tutor-credit-rules'
 import { mockTutorCreditLogs } from './mock-data/tutor-credit-logs'
 import { mockManagementIncomeDetails } from './mock-data/management-income'
 import type { TutorCreditRule, TutorCreditLog, ManagementIncomeDetail } from '@/types'
+import { initializeSiteMessages } from '@/lib/site-messages'
+import { mockHeaderNavConfigs } from './mock-data/header-nav'
+import type { HeaderNavConfig } from '@/types'
 
 export const STORAGE_KEYS = {
   USERS: 'eduflow:users',
@@ -43,6 +46,7 @@ export const STORAGE_KEYS = {
   TUTOR_CREDIT_RULES: 'eduflow:tutor-credit-rules',
   TUTOR_CREDIT_LOGS: 'eduflow:tutor-credit-logs',
   MANAGEMENT_INCOME: 'eduflow:management-income',
+  HEADER_NAV_CONFIGS: 'eduflow:header-nav-configs',
 }
 
 const isBrowser = typeof window !== 'undefined'
@@ -279,6 +283,8 @@ export const initializeMockData = () => {
   if (!localStorage.getItem(STORAGE_KEYS.TUTOR_CREDIT_RULES)) saveMockData(STORAGE_KEYS.TUTOR_CREDIT_RULES, mockTutorCreditRules)
   if (!localStorage.getItem(STORAGE_KEYS.TUTOR_CREDIT_LOGS)) saveMockData(STORAGE_KEYS.TUTOR_CREDIT_LOGS, mockTutorCreditLogs)
   if (!localStorage.getItem(STORAGE_KEYS.MANAGEMENT_INCOME)) saveMockData(STORAGE_KEYS.MANAGEMENT_INCOME, mockManagementIncomeDetails)
+  if (!localStorage.getItem(STORAGE_KEYS.HEADER_NAV_CONFIGS)) saveMockData(STORAGE_KEYS.HEADER_NAV_CONFIGS, mockHeaderNavConfigs)
+  initializeSiteMessages()
 }
 
 // === 伴学信用分规则 ===
@@ -301,3 +307,11 @@ export const saveStoredTutorCreditLogs = (data: TutorCreditLog[]) =>
 
 export const getStoredManagementIncomeDetails = (): ManagementIncomeDetail[] =>
   getMockData(STORAGE_KEYS.MANAGEMENT_INCOME, mockManagementIncomeDetails)
+
+// === 顶部导航配置 ===
+
+export const getStoredHeaderNavConfigs = (): HeaderNavConfig[] =>
+  getMockData(STORAGE_KEYS.HEADER_NAV_CONFIGS, mockHeaderNavConfigs)
+
+export const saveStoredHeaderNavConfigs = (data: HeaderNavConfig[]) =>
+  saveMockData(STORAGE_KEYS.HEADER_NAV_CONFIGS, data)

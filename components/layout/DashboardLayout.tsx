@@ -6,6 +6,9 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/AuthContext"
 import { Role } from "@/types"
+import type { HeaderNavConfig } from "@/types"
+import { getStoredHeaderNavConfigs } from "@/lib/storage"
+import { getIconComponent } from "@/lib/icon-map"
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -42,7 +45,13 @@ import {
   FileSearch,
   ClipboardCheck,
   PanelLeft,
+  Sparkles,
+  ExternalLink,
+  Bell,
+  Megaphone,
+  Compass,
 } from "lucide-react"
+import { MessageCenterBell } from "@/components/messages/MessageCenterBell"
 import { Button } from "@/components/ui/button"
 import {
   Avatar,
@@ -309,12 +318,138 @@ const navItems: NavItem[] = [
     roles: [Role.ADMIN]
   },
   {
+    title: "消息中心",
+    matchPrefix: "/messages",
+    icon: Bell,
+    roles: [Role.SALES, Role.TUTOR, Role.MANAGER, Role.OPERATOR, Role.ADMIN],
+    children: [
+      {
+        title: "系统通知",
+        href: "/messages/notifications",
+        icon: Bell,
+        roles: [Role.SALES, Role.TUTOR, Role.MANAGER, Role.OPERATOR, Role.ADMIN],
+      },
+      {
+        title: "网站公告",
+        href: "/messages/announcements",
+        icon: Megaphone,
+        roles: [Role.SALES, Role.TUTOR, Role.MANAGER, Role.OPERATOR, Role.ADMIN],
+      },
+      {
+        title: "通知管理",
+        href: "/messages/admin/notifications",
+        icon: Bell,
+        roles: [Role.OPERATOR],
+      },
+      {
+        title: "公告管理",
+        href: "/messages/admin/announcements",
+        icon: Megaphone,
+        roles: [Role.OPERATOR],
+      },
+    ],
+  },
+  {
+    title: "导航管理",
+    href: "/nav-settings",
+    icon: Compass,
+    roles: [Role.OPERATOR]
+  },
+  {
     title: "个人设置",
     href: "/profile",
     icon: UserCog,
     roles: [Role.SALES, Role.TUTOR, Role.MANAGER, Role.OPERATOR, Role.ADMIN]
   }
 ]
+
+function DynamicIcon({ name, className }: { name: string; className?: string }) {
+  return React.createElement(getIconComponent(name), { className })
+}
+
+function DashboardHeaderNav({ pathname }: { pathname: string }) {
+  const { currentRole } = useAuth()
+  const [navConfigs, setNavConfigs] = React.useState<HeaderNavConfig[]>([])
+
+  React.useEffect(() => {
+    setNavConfigs(getStoredHeaderNavConfigs())
+
+    const handler = () => setNavConfigs(getStoredHeaderNavConfigs())
+    window.addEventListener('header-nav-updated', handler)
+    return () => window.removeEventListener('header-nav-updated', handler)
+  }, [])
+
+  const visibleLinks = React.useMemo(() => {
+    return navConfigs
+      .filter(c => c.enabled && (!currentRole || c.visibleRoles.includes(currentRole)))
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+  }, [navConfigs, currentRole])
+
+  return (
+    <nav
+      aria-label="顶部快捷导航"
+      className="hidden min-w-0 flex-1 md:flex md:items-center md:px-2"
+    >
+      <div className="flex min-w-0 flex-wrap items-center gap-x-0.5 gap-y-1 border-l border-border/80 pl-3 dark:border-border/60">
+        {visibleLinks.map(link => {
+          const isInternal = !link.external && !link.href.startsWith("http")
+          const isActive =
+            isInternal &&
+            (link.href === "/"
+              ? pathname === "/"
+              : pathname === link.href || pathname.startsWith(`${link.href}/`))
+
+          const className = cn(
+            "group inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[13px] font-medium tracking-tight transition-colors",
+            link.emphasis
+              ? "bg-primary/5 text-primary ring-1 ring-primary/15 hover:bg-primary/10"
+              : "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+            isActive && "bg-muted text-foreground shadow-sm ring-1 ring-border/60"
+          )
+
+          const content = (
+            <>
+              <DynamicIcon
+                name={link.icon}
+                className={cn(
+                  "h-3.5 w-3.5 shrink-0 opacity-80 transition-opacity group-hover:opacity-100",
+                  link.emphasis && "text-primary"
+                )}
+              />
+              <span className="whitespace-nowrap">{link.title}</span>
+              {link.emphasis && (
+                <Sparkles className="h-3 w-3 shrink-0 text-primary/70" aria-hidden />
+              )}
+              {link.external && (
+                <ExternalLink className="h-2.5 w-2.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-50" aria-hidden />
+              )}
+            </>
+          )
+
+          if (link.external) {
+            return (
+              <a
+                key={link.id}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={className}
+              >
+                {content}
+              </a>
+            )
+          }
+
+          return (
+            <Link key={link.id} href={link.href} className={className}>
+              {content}
+            </Link>
+          )
+        })}
+      </div>
+    </nav>
+  )
+}
 
 function NavItemLink({ item, pathname }: { item: NavItem; pathname: string }) {
   const hasChildren = Boolean(item.children && item.children.length > 0)
@@ -434,11 +569,12 @@ export function DashboardHeader({
   setDesktopSidebarHidden: React.Dispatch<React.SetStateAction<boolean>>
 }) {
   const { user, logout, currentRole, switchRole } = useAuth()
+  const pathname = usePathname()
 
   if (!user) return null
 
   return (
-    <header className="flex h-16 w-full items-center gap-2 border-b bg-white px-6 dark:bg-gray-950">
+    <header className="flex min-h-16 w-full flex-wrap items-center gap-2 border-b bg-white px-4 py-2 md:flex-nowrap md:px-6 md:py-0 dark:bg-gray-950">
       <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setSidebarOpen(true)}>
         <Menu className="h-6 w-6" />
         <span className="sr-only">打开菜单</span>
@@ -454,10 +590,10 @@ export function DashboardHeader({
         <PanelLeft className="h-5 w-5" />
         <span className="sr-only">{desktopSidebarHidden ? "展开左侧菜单" : "隐藏左侧菜单"}</span>
       </Button>
-      <div className="w-full flex-1">
-        <div className="md:hidden font-bold text-lg">EduFlow</div>
-      </div>
-      <div className="flex items-center gap-4">
+      <DashboardHeaderNav pathname={pathname} />
+      <div className="min-w-0 flex-1 font-bold text-lg md:hidden">EduFlow</div>
+      <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
+        <MessageCenterBell />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-8 w-8 rounded-full">

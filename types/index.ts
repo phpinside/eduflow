@@ -587,6 +587,22 @@ export interface TutorCreditLog {
   evidenceImages?: string[]
 }
 
+// ========== 顶部导航配置 ==========
+
+export interface HeaderNavConfig {
+  id: string
+  title: string
+  href: string
+  icon: string
+  external: boolean
+  emphasis: boolean
+  visibleRoles: Role[]
+  sortOrder: number
+  enabled: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
 // ========== 分公司管理 ==========
 
 export interface BranchCompany {
