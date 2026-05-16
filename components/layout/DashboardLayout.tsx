@@ -50,6 +50,7 @@ import {
   Bell,
   Megaphone,
   Compass,
+  Landmark,
 } from "lucide-react"
 import { MessageCenterBell } from "@/components/messages/MessageCenterBell"
 import { Button } from "@/components/ui/button"
@@ -136,6 +137,12 @@ const navItems: NavItem[] = [
         title: "伴学团队收入",
         href: "/management-income",
         icon: UsersRound,
+        roles: [Role.OPERATOR],
+      },
+      {
+        title: "伴学账单记录",
+        href: "/tutor-bill-records",
+        icon: FileText,
         roles: [Role.OPERATOR],
       },
     ],
@@ -234,12 +241,6 @@ const navItems: NavItem[] = [
         icon: UsersRound,
         roles: [Role.OPERATOR],
       },
-      {
-        title: "分公司管理",
-        href: "/branch-companies",
-        icon: Store,
-        roles: [Role.OPERATOR],
-      },
     ],
   },
   {
@@ -278,6 +279,12 @@ const navItems: NavItem[] = [
         href: "/management-income",
         icon: UsersRound,
         roles: [Role.MANAGER],
+      },
+      {
+        title: "收款账号信息",
+        href: "/payment-account",
+        icon: Landmark,
+        roles: [Role.TUTOR, Role.MANAGER],
       },
     ],
   },

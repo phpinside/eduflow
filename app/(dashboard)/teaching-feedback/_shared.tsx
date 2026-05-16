@@ -87,6 +87,7 @@ export interface FeedbackRow {
   tutorName: string
   tutorPhone: string
   managerName: string
+  managerPhone: string
   methods?: string
   mistakes?: string
   performance?: string
@@ -94,12 +95,15 @@ export interface FeedbackRow {
   studentAttendance: string
   homeworkCompletion: string
   orderId?: string
+  campusAccount: string
 }
 
 export interface AssessmentTableRow extends MockAssessmentRecord {
   studentAccount: string
   courseType?: OrderType
   teacherPhone: string
+  campusAccount: string
+  managerPhone: string
 }
 
 export const ASSESSMENT_PROBLEM_LABELS: Record<string, string> = {

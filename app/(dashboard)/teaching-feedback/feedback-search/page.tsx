@@ -61,11 +61,12 @@ export default function FeedbackSearchPage() {
   const [rating, setRating] = React.useState("ALL")
   const [tutorName, setTutorName] = React.useState("")
   const [tutorPhone, setTutorPhone] = React.useState("")
-  const [managerName, setManagerName] = React.useState("")
+  const [managerPhone, setManagerPhone] = React.useState("")
   const [startDate, setStartDate] = React.useState("")
   const [endDate, setEndDate] = React.useState("")
   const [studentAttendance, setStudentAttendance] = React.useState("ALL")
   const [homeworkCompletion, setHomeworkCompletion] = React.useState("ALL")
+  const [campusAccount, setCampusAccount] = React.useState("")
   const [page, setPage] = React.useState(1)
   const [selectedRow, setSelectedRow] = React.useState<FeedbackRow | null>(null)
 
@@ -97,9 +98,11 @@ export default function FeedbackSearchPage() {
         tutorName: tutor?.name ?? "—",
         tutorPhone: tutor?.phone ?? "—",
         managerName: manager?.name ?? tutor?.managerName ?? "—",
+        managerPhone: manager?.phone ?? "—",
         studentAttendance: feedback.studentAttendance ?? "—",
         homeworkCompletion: feedback.homeworkCompletion ?? "—",
         orderId: feedback.orderId,
+        campusAccount: order?.campusAccount ?? "—",
       }
     })
   }, [users])
@@ -140,16 +143,17 @@ export default function FeedbackSearchPage() {
       if (rating !== "ALL" && String(row.parentFeedback?.rating ?? "") !== rating) return false
       if (studentAttendance !== "ALL" && row.studentAttendance !== studentAttendance) return false
       if (homeworkCompletion !== "ALL" && row.homeworkCompletion !== homeworkCompletion) return false
+      if (campusAccount && !row.campusAccount.toLowerCase().includes(campusAccount.toLowerCase())) return false
       if (tutorName && !row.tutorName.toLowerCase().includes(tutorName.toLowerCase())) return false
       if (tutorPhone.trim() && !row.tutorPhone.includes(tutorPhone.trim())) return false
-      if (managerName && !row.managerName.toLowerCase().includes(managerName.toLowerCase())) return false
+      if (managerPhone.trim() && !row.managerPhone.includes(managerPhone.trim())) return false
       if (startDate && row.date < startDate) return false
       if (endDate && row.date > endDate) return false
       return true
     })
-  }, [feedbackRows, studentName, studentAccount, courseType, subject, grade, reviewStatus, rating, studentAttendance, homeworkCompletion, tutorName, tutorPhone, managerName, startDate, endDate])
+  }, [feedbackRows, studentName, studentAccount, courseType, subject, grade, reviewStatus, rating, studentAttendance, homeworkCompletion, campusAccount, tutorName, tutorPhone, managerPhone, startDate, endDate])
 
-  React.useEffect(() => { setPage(1) }, [studentName, studentAccount, courseType, subject, grade, reviewStatus, rating, studentAttendance, homeworkCompletion, tutorName, tutorPhone, managerName, startDate, endDate])
+  React.useEffect(() => { setPage(1) }, [studentName, studentAccount, courseType, subject, grade, reviewStatus, rating, studentAttendance, homeworkCompletion, campusAccount, tutorName, tutorPhone, managerPhone, startDate, endDate])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -177,7 +181,7 @@ export default function FeedbackSearchPage() {
               onClick={() => {
                 setStudentName(""); setStudentAccount(""); setCourseType("ALL"); setSubject("ALL"); setGrade("ALL")
                 setReviewStatus("ALL"); setRating("ALL"); setStudentAttendance("ALL"); setHomeworkCompletion("ALL")
-                setTutorName(""); setTutorPhone(""); setManagerName(""); setStartDate(""); setEndDate("")
+                setTutorName(""); setTutorPhone(""); setManagerPhone(""); setCampusAccount(""); setStartDate(""); setEndDate("")
               }}
             >
               重置筛选
@@ -185,12 +189,13 @@ export default function FeedbackSearchPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
             <SearchInput label="学员姓名" value={studentName} onChange={setStudentName} placeholder="输入学员姓名..." />
             <SearchInput label="学员G账号" value={studentAccount} onChange={setStudentAccount} placeholder="输入G账号..." />
             <SearchInput label="伴学教练姓名" value={tutorName} onChange={setTutorName} placeholder="输入教练姓名..." />
             <SearchInput label="伴学教练手机号" value={tutorPhone} onChange={setTutorPhone} placeholder="输入教练手机号..." />
-            <SearchInput label="学管姓名" value={managerName} onChange={setManagerName} placeholder="输入学管姓名..." />
+            <SearchInput label="学管手机号" value={managerPhone} onChange={setManagerPhone} placeholder="输入学管手机号..." />
+            <SearchInput label="校区账号" value={campusAccount} onChange={setCampusAccount} placeholder="输入校区账号..." />
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4 lg:grid-cols-5">
@@ -264,6 +269,7 @@ export default function FeedbackSearchPage() {
                   <TableHead>课程类型</TableHead>
                   <TableHead>伴学教练</TableHead>
                   <TableHead>学管</TableHead>
+                  <TableHead>校区账号</TableHead>
                   <TableHead>上课时间</TableHead>
                   <TableHead>家长点评</TableHead>
                   <TableHead className="text-right">操作</TableHead>
@@ -271,7 +277,7 @@ export default function FeedbackSearchPage() {
               </TableHeader>
               <TableBody>
                 {visible.length === 0 ? (
-                  <EmptyRow colSpan={9} text="暂无符合条件的反馈记录" />
+                  <EmptyRow colSpan={10} text="暂无符合条件的反馈记录" />
                 ) : (
                   visible.map((row) => (
                     <TableRow key={row.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedRow(row)}>
@@ -287,6 +293,7 @@ export default function FeedbackSearchPage() {
                       </TableCell>
                       <TableCell>{row.tutorName}</TableCell>
                       <TableCell>{row.managerName}</TableCell>
+                      <TableCell className="text-muted-foreground">{row.campusAccount}</TableCell>
                       <TableCell className="text-sm">
                         <div>{row.date}</div>
                         <div className="text-muted-foreground">{row.startTime}-{row.endTime}</div>

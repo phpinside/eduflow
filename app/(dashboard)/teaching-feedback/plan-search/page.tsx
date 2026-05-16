@@ -47,10 +47,12 @@ interface StudyPlanRow extends StudyPlan {
   teacherName: string
   teacherPhone: string
   managerName: string
+  managerPhone: string
   studentAccount: string
   subject: string
   grade: string
   courseType: OrderType | undefined
+  campusAccount: string
 }
 
 export default function PlanSearchPage() {
@@ -62,7 +64,8 @@ export default function PlanSearchPage() {
   const [studentAccount, setStudentAccount] = React.useState("")
   const [tutorName, setTutorName] = React.useState("")
   const [tutorPhone, setTutorPhone] = React.useState("")
-  const [managerName, setManagerName] = React.useState("")
+  const [managerPhone, setManagerPhone] = React.useState("")
+  const [campusAccount, setCampusAccount] = React.useState("")
   const [courseType, setCourseType] = React.useState("ALL")
   const [subject, setSubject] = React.useState("ALL")
   const [grade, setGrade] = React.useState("ALL")
@@ -109,10 +112,12 @@ export default function PlanSearchPage() {
           teacherName: teacher?.name ?? "未知教练",
           teacherPhone: teacher?.phone ?? "—",
           managerName: manager?.name ?? teacher?.managerName ?? "—",
+          managerPhone: manager?.phone ?? "—",
           studentAccount: order?.studentAccount ?? "—",
           subject: order?.subject ?? "-",
           grade: order?.grade ?? "-",
           courseType: order?.type,
+          campusAccount: order?.campusAccount ?? "—",
         }
       })
       .sort((a, b) => safeDate(b.createdAt).getTime() - safeDate(a.createdAt).getTime())
@@ -144,7 +149,8 @@ export default function PlanSearchPage() {
       if (studentAccount && !row.studentAccount.toLowerCase().includes(studentAccount.trim().toLowerCase())) return false
       if (tutorName && !row.teacherName.toLowerCase().includes(tutorName.trim().toLowerCase())) return false
       if (tutorPhone.trim() && !row.teacherPhone.includes(tutorPhone.trim())) return false
-      if (managerName && !row.managerName.toLowerCase().includes(managerName.trim().toLowerCase())) return false
+      if (managerPhone.trim() && !row.managerPhone.includes(managerPhone.trim())) return false
+      if (campusAccount && !row.campusAccount.toLowerCase().includes(campusAccount.trim().toLowerCase())) return false
       if (courseType !== "ALL" && row.courseType !== courseType) return false
       if (subject !== "ALL" && row.subject !== subject) return false
       if (grade !== "ALL" && row.grade !== grade) return false
@@ -161,9 +167,9 @@ export default function PlanSearchPage() {
       }
       return true
     })
-  }, [roleFilteredPlans, studentName, studentAccount, tutorName, tutorPhone, managerName, courseType, subject, grade, reviewStatus, submittedFrom, submittedTo])
+  }, [roleFilteredPlans, studentName, studentAccount, tutorName, tutorPhone, managerPhone, campusAccount, courseType, subject, grade, reviewStatus, submittedFrom, submittedTo])
 
-  React.useEffect(() => { setPage(1) }, [studentName, studentAccount, tutorName, tutorPhone, managerName, courseType, subject, grade, reviewStatus, submittedFrom, submittedTo])
+  React.useEffect(() => { setPage(1) }, [studentName, studentAccount, tutorName, tutorPhone, managerPhone, campusAccount, courseType, subject, grade, reviewStatus, submittedFrom, submittedTo])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -173,7 +179,8 @@ export default function PlanSearchPage() {
     setStudentAccount("")
     setTutorName("")
     setTutorPhone("")
-    setManagerName("")
+    setManagerPhone("")
+    setCampusAccount("")
     setCourseType("ALL")
     setSubject("ALL")
     setGrade("ALL")
@@ -256,12 +263,13 @@ export default function PlanSearchPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Row 1: text search inputs */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
             <SearchInput label="学员姓名" value={studentName} onChange={setStudentName} placeholder="输入学员姓名..." />
             <SearchInput label="学员G账号" value={studentAccount} onChange={setStudentAccount} placeholder="输入G账号..." />
             <SearchInput label="伴学教练姓名" value={tutorName} onChange={setTutorName} placeholder="输入教练姓名..." />
             <SearchInput label="伴学教练手机号" value={tutorPhone} onChange={setTutorPhone} placeholder="输入教练手机号..." />
-            <SearchInput label="学管姓名" value={managerName} onChange={setManagerName} placeholder="输入学管姓名..." />
+            <SearchInput label="学管手机号" value={managerPhone} onChange={setManagerPhone} placeholder="输入学管手机号..." />
+            <SearchInput label="校区账号" value={campusAccount} onChange={setCampusAccount} placeholder="输入校区账号..." />
           </div>
 
           {/* Row 2: select filters */}
@@ -329,6 +337,7 @@ export default function PlanSearchPage() {
                   <TableHead>学员G账号</TableHead>
                   <TableHead>伴学教练</TableHead>
                   <TableHead>学管</TableHead>
+                  <TableHead>校区账号</TableHead>
                   <TableHead>课程类型</TableHead>
                   <TableHead>年级/学科</TableHead>
                   <TableHead>文件名</TableHead>
@@ -338,7 +347,7 @@ export default function PlanSearchPage() {
               </TableHeader>
               <TableBody>
                 {visible.length === 0 ? (
-                  <EmptyRow colSpan={9} text="暂无符合条件的规划书" />
+                  <EmptyRow colSpan={10} text="暂无符合条件的规划书" />
                 ) : (
                   visible.map((row) => (
                     <TableRow
@@ -350,6 +359,7 @@ export default function PlanSearchPage() {
                       <TableCell>{row.studentAccount}</TableCell>
                       <TableCell>{row.teacherName}</TableCell>
                       <TableCell>{row.managerName}</TableCell>
+                      <TableCell className="text-muted-foreground">{row.campusAccount}</TableCell>
                       <TableCell>
                         {row.courseType ? (
                           <Badge variant={row.courseType === OrderType.TRIAL ? "secondary" : "default"}>

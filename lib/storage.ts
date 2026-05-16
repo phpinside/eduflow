@@ -8,7 +8,7 @@ import { mockSubjects } from './mock-data/subjects'
 import { mockOrderAccordRecords } from './mock-data/order-accord'
 import { mockTeacherAccordRecords } from './mock-data/teacher-accord'
 import { mockFinancialRecords } from './mock-data/financial-records'
-import type { Order, OrderStatus, Student } from '@/types'
+import type { Order, OrderStatus, Student, IncomeRecord, ManagementIncomeDetail } from '@/types'
 import { OrderStatus as OrderStatusEnum } from '@/types'
 import { mockRefundApplications } from './mock-data/refund-applications'
 import { mockRefundOperationLogs } from './mock-data/refund-logs'
@@ -21,7 +21,7 @@ import { mockAssessments, type MockAssessmentRecord } from './mock-data/assessme
 import { mockTutorCreditRules } from './mock-data/tutor-credit-rules'
 import { mockTutorCreditLogs } from './mock-data/tutor-credit-logs'
 import { mockManagementIncomeDetails } from './mock-data/management-income'
-import type { TutorCreditRule, TutorCreditLog, ManagementIncomeDetail } from '@/types'
+import type { TutorCreditRule, TutorCreditLog } from '@/types'
 import { initializeSiteMessages } from '@/lib/site-messages'
 import { mockHeaderNavConfigs } from './mock-data/header-nav'
 import type { HeaderNavConfig } from '@/types'
@@ -47,6 +47,7 @@ export const STORAGE_KEYS = {
   TUTOR_CREDIT_LOGS: 'eduflow:tutor-credit-logs',
   MANAGEMENT_INCOME: 'eduflow:management-income',
   HEADER_NAV_CONFIGS: 'eduflow:header-nav-configs',
+  PAYMENT_ACCOUNTS: 'eduflow:payment-accounts',
 }
 
 const isBrowser = typeof window !== 'undefined'
@@ -269,7 +270,30 @@ export const initializeMockData = () => {
     }
   }
   if (!localStorage.getItem(STORAGE_KEYS.LESSONS)) saveMockData(STORAGE_KEYS.LESSONS, mockLessons)
-  if (!localStorage.getItem(STORAGE_KEYS.INCOME_RECORDS)) saveMockData(STORAGE_KEYS.INCOME_RECORDS, mockIncomeRecords)
+
+  // Income records: merge new records by id
+  const storedIncomeStr = localStorage.getItem(STORAGE_KEYS.INCOME_RECORDS)
+  if (!storedIncomeStr) {
+    saveMockData(STORAGE_KEYS.INCOME_RECORDS, mockIncomeRecords)
+  } else {
+    try {
+      const storedIncome = JSON.parse(storedIncomeStr, (key, value) => {
+        if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
+          return new Date(value)
+        }
+        return value
+      }) as IncomeRecord[]
+      const storedIds = new Set(storedIncome.map(r => r.id))
+      const newRecords = mockIncomeRecords.filter(r => !storedIds.has(r.id))
+      if (newRecords.length > 0) {
+        console.log(`Merging ${newRecords.length} new income records into storage`)
+        saveMockData(STORAGE_KEYS.INCOME_RECORDS, [...storedIncome, ...newRecords])
+      }
+    } catch (e) {
+      console.error('Failed to merge income records', e)
+    }
+  }
+
   if (!localStorage.getItem(STORAGE_KEYS.TUTOR_INCOME_SUMMARY)) saveMockData(STORAGE_KEYS.TUTOR_INCOME_SUMMARY, mockTutorIncomeSummary)
   if (!localStorage.getItem(STORAGE_KEYS.SUBJECTS)) saveMockData(STORAGE_KEYS.SUBJECTS, mockSubjects)
   if (!localStorage.getItem(STORAGE_KEYS.PRICE_RULES)) saveMockData(STORAGE_KEYS.PRICE_RULES, mockPriceRules)
@@ -282,7 +306,28 @@ export const initializeMockData = () => {
   if (!localStorage.getItem(STORAGE_KEYS.OPERATION_LOGS)) saveMockData(STORAGE_KEYS.OPERATION_LOGS, mockOperationLogs)
   if (!localStorage.getItem(STORAGE_KEYS.TUTOR_CREDIT_RULES)) saveMockData(STORAGE_KEYS.TUTOR_CREDIT_RULES, mockTutorCreditRules)
   if (!localStorage.getItem(STORAGE_KEYS.TUTOR_CREDIT_LOGS)) saveMockData(STORAGE_KEYS.TUTOR_CREDIT_LOGS, mockTutorCreditLogs)
-  if (!localStorage.getItem(STORAGE_KEYS.MANAGEMENT_INCOME)) saveMockData(STORAGE_KEYS.MANAGEMENT_INCOME, mockManagementIncomeDetails)
+  // Management income: merge new records by id
+  const storedMgmtStr = localStorage.getItem(STORAGE_KEYS.MANAGEMENT_INCOME)
+  if (!storedMgmtStr) {
+    saveMockData(STORAGE_KEYS.MANAGEMENT_INCOME, mockManagementIncomeDetails)
+  } else {
+    try {
+      const storedMgmt = JSON.parse(storedMgmtStr, (key, value) => {
+        if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
+          return new Date(value)
+        }
+        return value
+      }) as ManagementIncomeDetail[]
+      const storedIds = new Set(storedMgmt.map(r => r.id))
+      const newRecords = mockManagementIncomeDetails.filter(r => !storedIds.has(r.id))
+      if (newRecords.length > 0) {
+        console.log(`Merging ${newRecords.length} new management income records into storage`)
+        saveMockData(STORAGE_KEYS.MANAGEMENT_INCOME, [...storedMgmt, ...newRecords])
+      }
+    } catch (e) {
+      console.error('Failed to merge management income', e)
+    }
+  }
   if (!localStorage.getItem(STORAGE_KEYS.HEADER_NAV_CONFIGS)) saveMockData(STORAGE_KEYS.HEADER_NAV_CONFIGS, mockHeaderNavConfigs)
   initializeSiteMessages()
 }
@@ -315,3 +360,108 @@ export const getStoredHeaderNavConfigs = (): HeaderNavConfig[] =>
 
 export const saveStoredHeaderNavConfigs = (data: HeaderNavConfig[]) =>
   saveMockData(STORAGE_KEYS.HEADER_NAV_CONFIGS, data)
+
+// === 收款账号信息 ===
+
+export interface PaymentAccount {
+  userId: string
+  name: string
+  idCardNumber: string
+  bankName: string
+  bankCardNumber: string
+  remarks?: string
+  updatedAt: Date
+}
+
+export const getStoredPaymentAccount = (userId: string): PaymentAccount | null => {
+  if (!isBrowser) return null
+  const raw = localStorage.getItem(STORAGE_KEYS.PAYMENT_ACCOUNTS)
+  if (!raw) return null
+  try {
+    const all: Record<string, PaymentAccount> = JSON.parse(raw)
+    return all[userId] || null
+  } catch {
+    return null
+  }
+}
+
+export const saveStoredPaymentAccount = (account: PaymentAccount) => {
+  if (!isBrowser) return
+  const raw = localStorage.getItem(STORAGE_KEYS.PAYMENT_ACCOUNTS)
+  let all: Record<string, PaymentAccount> = {}
+  if (raw) {
+    try { all = JSON.parse(raw) } catch { all = {} }
+  }
+  all[account.userId] = account
+  localStorage.setItem(STORAGE_KEYS.PAYMENT_ACCOUNTS, JSON.stringify(all))
+}
+
+export const isPaymentAccountComplete = (userId: string): boolean => {
+  const account = getStoredPaymentAccount(userId)
+  if (!account) return false
+  return !!(account.name && account.idCardNumber && account.bankName && account.bankCardNumber)
+}
+
+// === 月度账单确认 ===
+
+export interface BillConfirmation {
+  userId: string
+  year: number
+  month: number
+  signatureDataUrl: string
+  confirmedAt: Date
+}
+
+export const BILL_CONFIRMATION_KEY = 'eduflow:bill-confirmations'
+
+export const getStoredBillConfirmations = (): Record<string, BillConfirmation[]> => {
+  if (!isBrowser) return {}
+  const raw = localStorage.getItem(BILL_CONFIRMATION_KEY)
+  if (!raw) return {}
+  try {
+    return JSON.parse(raw, (key, value) => {
+      if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
+        return new Date(value)
+      }
+      return value
+    })
+  } catch {
+    return {}
+  }
+}
+
+export const isBillConfirmed = (userId: string, year: number, month: number): boolean => {
+  const all = getStoredBillConfirmations()
+  const userBills = all[userId]
+  if (!userBills) return false
+  return userBills.some(b => b.year === year && b.month === month)
+}
+
+export const saveBillConfirmation = (confirmation: BillConfirmation) => {
+  if (!isBrowser) return
+  const all = getStoredBillConfirmations()
+  if (!all[confirmation.userId]) {
+    all[confirmation.userId] = []
+  }
+  const idx = all[confirmation.userId].findIndex(
+    b => b.year === confirmation.year && b.month === confirmation.month
+  )
+  if (idx >= 0) {
+    all[confirmation.userId][idx] = confirmation
+  } else {
+    all[confirmation.userId].push(confirmation)
+  }
+  localStorage.setItem(BILL_CONFIRMATION_KEY, JSON.stringify(all))
+}
+
+export const isBillConfirmationPeriod = (): boolean => {
+  const now = new Date()
+  const day = now.getDate()
+  return day >= 1 && day <= 5
+}
+
+export const getBillMonth = (): { year: number; month: number } => {
+  const now = new Date()
+  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  return { year: prev.getFullYear(), month: prev.getMonth() + 1 }
+}

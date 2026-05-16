@@ -11,8 +11,8 @@ export const mockManagementIncomeDetails: ManagementIncomeDetail[] = [
     regularLessonCount: 45,
     subType: ManagementIncomeSubType.TUTOR_MGMT_FEE,
     amount: 225,
-    occurredAt: new Date('2025-04-30'),
-    createdAt: new Date('2025-05-01'),
+    occurredAt: new Date('2026-04-30'),
+    createdAt: new Date('2026-05-01'),
   },
   // 第2条：正式学管 → 学管管理费
   {
@@ -24,8 +24,8 @@ export const mockManagementIncomeDetails: ManagementIncomeDetail[] = [
     regularLessonCount: 280,
     subType: ManagementIncomeSubType.MANAGER_MGMT_FEE,
     amount: 1400,
-    occurredAt: new Date('2025-04-30'),
-    createdAt: new Date('2025-05-01'),
+    occurredAt: new Date('2026-04-30'),
+    createdAt: new Date('2026-05-01'),
   },
   // 第3条：见习学管 → 学管管理费
   {
@@ -37,8 +37,8 @@ export const mockManagementIncomeDetails: ManagementIncomeDetail[] = [
     regularLessonCount: 210,
     subType: ManagementIncomeSubType.MANAGER_MGMT_FEE,
     amount: 1050,
-    occurredAt: new Date('2025-04-30'),
-    createdAt: new Date('2025-05-01'),
+    occurredAt: new Date('2026-04-30'),
+    createdAt: new Date('2026-05-01'),
   },
   // 第4条：见习学管（王学管下属）→ 学管管理费
   {
@@ -50,8 +50,8 @@ export const mockManagementIncomeDetails: ManagementIncomeDetail[] = [
     regularLessonCount: 60,
     subType: ManagementIncomeSubType.MANAGER_MGMT_FEE,
     amount: 300,
-    occurredAt: new Date('2025-04-30'),
-    createdAt: new Date('2025-05-01'),
+    occurredAt: new Date('2026-04-30'),
+    createdAt: new Date('2026-05-01'),
   },
   // 第5条：正式学管（王学管下属）→ 学管管理费
   {
@@ -63,8 +63,8 @@ export const mockManagementIncomeDetails: ManagementIncomeDetail[] = [
     regularLessonCount: 140,
     subType: ManagementIncomeSubType.MANAGER_MGMT_FEE,
     amount: 700,
-    occurredAt: new Date('2025-04-30'),
-    createdAt: new Date('2025-05-01'),
+    occurredAt: new Date('2026-04-30'),
+    createdAt: new Date('2026-05-01'),
   },
   // 第6条：见习学管（李学管下属）→ 学管管理费
   {
@@ -76,8 +76,8 @@ export const mockManagementIncomeDetails: ManagementIncomeDetail[] = [
     regularLessonCount: 85,
     subType: ManagementIncomeSubType.MANAGER_MGMT_FEE,
     amount: 425,
-    occurredAt: new Date('2025-04-30'),
-    createdAt: new Date('2025-05-01'),
+    occurredAt: new Date('2026-04-30'),
+    createdAt: new Date('2026-05-01'),
   },
   // 第7条：正式学管（李学管下属）→ 学管管理费
   {
@@ -89,8 +89,8 @@ export const mockManagementIncomeDetails: ManagementIncomeDetail[] = [
     regularLessonCount: 120,
     subType: ManagementIncomeSubType.MANAGER_MGMT_FEE,
     amount: 600,
-    occurredAt: new Date('2025-04-30'),
-    createdAt: new Date('2025-05-01'),
+    occurredAt: new Date('2026-04-30'),
+    createdAt: new Date('2026-05-01'),
   },
   // 第8条：见习学管（张学管下属）→ 学管管理费
   {
@@ -102,8 +102,8 @@ export const mockManagementIncomeDetails: ManagementIncomeDetail[] = [
     regularLessonCount: 55,
     subType: ManagementIncomeSubType.MANAGER_MGMT_FEE,
     amount: 275,
-    occurredAt: new Date('2025-04-30'),
-    createdAt: new Date('2025-05-01'),
+    occurredAt: new Date('2026-04-30'),
+    createdAt: new Date('2026-05-01'),
   },
   // 第9条：正式学管（张学管下属）→ 学管管理费
   {
@@ -115,8 +115,8 @@ export const mockManagementIncomeDetails: ManagementIncomeDetail[] = [
     regularLessonCount: 95,
     subType: ManagementIncomeSubType.MANAGER_MGMT_FEE,
     amount: 475,
-    occurredAt: new Date('2025-04-30'),
-    createdAt: new Date('2025-05-01'),
+    occurredAt: new Date('2026-04-30'),
+    createdAt: new Date('2026-05-01'),
   },
   // 第10条：总监（王学管已晋升为总监）→ 总监培养费（1元/课时）
   {
@@ -128,7 +128,20 @@ export const mockManagementIncomeDetails: ManagementIncomeDetail[] = [
     regularLessonCount: 320,
     subType: ManagementIncomeSubType.DIRECTOR_TRAIN_FEE,
     amount: 320,
-    occurredAt: new Date('2025-04-30'),
-    createdAt: new Date('2025-05-01'),
+    occurredAt: new Date('2026-04-30'),
+    createdAt: new Date('2026-05-01'),
+  },
+  // 王学管 → 教练管理费（5元/课时，直管教练团队）
+  {
+    id: 'mgmt-income-11',
+    teamLeaderId: 'user-manager-1',
+    teamLeaderName: '王学管',
+    teamLeaderPhone: '13800003001',
+    teamLeaderRank: '总监',
+    regularLessonCount: 180,
+    subType: ManagementIncomeSubType.TUTOR_MGMT_FEE,
+    amount: 900,
+    occurredAt: new Date('2026-04-30'),
+    createdAt: new Date('2026-05-01'),
   },
 ]

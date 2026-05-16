@@ -95,7 +95,8 @@ export default function AssessmentSearchPage() {
   const [conclusion, setConclusion] = React.useState("ALL")
   const [tutorName, setTutorName] = React.useState("")
   const [tutorPhone, setTutorPhone] = React.useState("")
-  const [managerName, setManagerName] = React.useState("")
+  const [managerPhone, setManagerPhone] = React.useState("")
+  const [campusAccount, setCampusAccount] = React.useState("")
   const [startDate, setStartDate] = React.useState("")
   const [endDate, setEndDate] = React.useState("")
   const [page, setPage] = React.useState(1)
@@ -107,11 +108,14 @@ export default function AssessmentSearchPage() {
     return list.map((row) => {
       const order = orders.find((o) => o.id === row.orderId)
       const tutorUser = users.find((u) => u.id === row.teacherId)
+      const managerUser = row.managerId ? users.find((u) => u.id === row.managerId) : undefined
       return {
         ...row,
         studentAccount: row.studentAccount ?? order?.studentAccount ?? "—",
         courseType: order?.type as OrderType | undefined,
         teacherPhone: tutorUser?.phone ?? "—",
+        campusAccount: order?.campusAccount ?? "—",
+        managerPhone: managerUser?.phone ?? "—",
       }
     })
   }, [users])
@@ -139,7 +143,8 @@ export default function AssessmentSearchPage() {
       if (conclusion !== "ALL" && row.conclusion !== conclusion) return false
       if (tutorName && !row.teacherName.toLowerCase().includes(tutorName.toLowerCase())) return false
       if (tutorPhone.trim() && !row.teacherPhone.includes(tutorPhone.trim())) return false
-      if (managerName && !row.managerName.toLowerCase().includes(managerName.toLowerCase())) return false
+      if (managerPhone.trim() && !row.managerPhone.includes(managerPhone.trim())) return false
+      if (campusAccount && !row.campusAccount.toLowerCase().includes(campusAccount.toLowerCase())) return false
       if (startDate) {
         const rowDate = format(row.assessedAt, "yyyy-MM-dd")
         if (rowDate < startDate) return false
@@ -150,9 +155,9 @@ export default function AssessmentSearchPage() {
       }
       return true
     })
-  }, [assessmentRows, studentName, studentAccount, courseType, subject, grade, type, conclusion, tutorName, tutorPhone, managerName, startDate, endDate])
+  }, [assessmentRows, studentName, studentAccount, courseType, subject, grade, type, conclusion, tutorName, tutorPhone, managerPhone, campusAccount, startDate, endDate])
 
-  React.useEffect(() => { setPage(1) }, [studentName, studentAccount, courseType, subject, grade, type, conclusion, tutorName, tutorPhone, managerName, startDate, endDate])
+  React.useEffect(() => { setPage(1) }, [studentName, studentAccount, courseType, subject, grade, type, conclusion, tutorName, tutorPhone, managerPhone, campusAccount, startDate, endDate])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -179,7 +184,7 @@ export default function AssessmentSearchPage() {
               variant="outline"
               onClick={() => {
                 setStudentName(""); setStudentAccount(""); setCourseType("ALL"); setSubject("ALL"); setGrade("ALL")
-                setType("ALL"); setConclusion("ALL"); setTutorName(""); setTutorPhone(""); setManagerName(""); setStartDate(""); setEndDate("")
+                setType("ALL"); setConclusion("ALL"); setTutorName(""); setTutorPhone(""); setManagerPhone(""); setCampusAccount(""); setStartDate(""); setEndDate("")
               }}
             >
               重置筛选
@@ -187,12 +192,13 @@ export default function AssessmentSearchPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
             <SearchInput label="学员姓名" value={studentName} onChange={setStudentName} placeholder="输入学员姓名..." />
             <SearchInput label="学员G账号" value={studentAccount} onChange={setStudentAccount} placeholder="输入G账号..." />
             <SearchInput label="伴学教练姓名" value={tutorName} onChange={setTutorName} placeholder="输入教练姓名..." />
             <SearchInput label="伴学教练手机号" value={tutorPhone} onChange={setTutorPhone} placeholder="输入教练手机号..." />
-            <SearchInput label="学管姓名" value={managerName} onChange={setManagerName} placeholder="输入学管姓名..." />
+            <SearchInput label="学管手机号" value={managerPhone} onChange={setManagerPhone} placeholder="输入学管手机号..." />
+            <SearchInput label="校区账号" value={campusAccount} onChange={setCampusAccount} placeholder="输入校区账号..." />
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
@@ -261,13 +267,14 @@ export default function AssessmentSearchPage() {
                   <TableHead>测评结论</TableHead>
                   <TableHead>伴学教练</TableHead>
                   <TableHead>学管</TableHead>
+                  <TableHead>校区账号</TableHead>
                   <TableHead>测评时间</TableHead>
                   <TableHead className="text-right">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {visible.length === 0 ? (
-                  <EmptyRow colSpan={10} text="暂无符合条件的测评记录" />
+                  <EmptyRow colSpan={11} text="暂无符合条件的测评记录" />
                 ) : (
                   visible.map((row) => (
                     <TableRow key={row.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedRow(row)}>
@@ -285,6 +292,7 @@ export default function AssessmentSearchPage() {
                       <TableCell>{assessmentConclusionLabel(row.conclusion)}</TableCell>
                       <TableCell>{row.teacherName}</TableCell>
                       <TableCell>{row.managerName}</TableCell>
+                      <TableCell className="text-muted-foreground">{row.campusAccount}</TableCell>
                       <TableCell>{format(row.assessedAt, "yyyy-MM-dd HH:mm", { locale: zhCN })}</TableCell>
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <Button variant="ghost" size="sm" className="h-8" asChild>

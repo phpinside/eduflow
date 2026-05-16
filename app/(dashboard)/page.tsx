@@ -3,7 +3,7 @@
 import { useAuth } from "@/contexts/AuthContext"
 import { Role } from "@/types"
 import Link from "next/link"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
   Users,
@@ -15,8 +15,7 @@ import {
   GraduationCap,
   MousePointerClick,
 } from "lucide-react"
-
-// Dashboard Sub-components for different roles
+import { TutorCreditScoreCard, ManagerTutorCreditCard } from "@/components/credit-score/CreditScoreCard"
 
 function SalesDashboard() {
   return (
@@ -106,6 +105,7 @@ function TutorDashboard() {
     <div className="space-y-6">
       <h2 className="text-3xl font-bold tracking-tight">伴学中心</h2>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <TutorCreditScoreCard />
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">待上课程</CardTitle>
@@ -144,8 +144,10 @@ function ManagerDashboard() {
     return (
       <div className="space-y-6">
         <h2 className="text-3xl font-bold tracking-tight">学管工作台</h2>
-        {/* Placeholder Content */}
-        <p className="text-muted-foreground">欢迎，来到学管工作台！</p>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <TutorCreditScoreCard />
+          <ManagerTutorCreditCard />
+        </div>
       </div>
     )
 }

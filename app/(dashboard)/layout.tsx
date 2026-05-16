@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import { useRouter } from "next/navigation"
 import { DashboardHeader, DashboardSidebar } from "@/components/layout/DashboardLayout"
+import { BillConfirmationModal } from "@/components/bill-confirmation/BillConfirmationModal"
 import { Loader2 } from "lucide-react"
 
 const SIDEBAR_HIDDEN_KEY = "eduflow:dashboard-sidebar-hidden"
@@ -80,6 +81,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           setDesktopSidebarHidden={setDesktopSidebarHidden}
         />
         <main className="flex-1 overflow-y-auto p-6">
+          <BillConfirmationModal />
           {children}
         </main>
       </div>
