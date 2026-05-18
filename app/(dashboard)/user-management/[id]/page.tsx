@@ -302,6 +302,14 @@ export default function UserDetailPage() {
                 <p className="font-medium">{user.minRechargeHours ?? 10}</p>
               </div>
             )}
+            {user.roles.includes(Role.SALES) && (
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">专属排课老师</p>
+                <p className="font-medium">
+                  {user.dedicatedSchedulerName || <span className="text-muted-foreground text-sm">未分配</span>}
+                </p>
+              </div>
+            )}
           </div>
 
           {user.wechatQrCode && (

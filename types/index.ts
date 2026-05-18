@@ -45,6 +45,10 @@ export interface User {
   superiorName?: string      // 上级学管姓名（冗余字段）
   branchCompanyId?: string   // 所属分公司ID（招生老师专用）
   branchCompanyName?: string // 所属分公司名称（冗余字段）
+  /** 专属排课老师ID（招生老师专用） */
+  dedicatedSchedulerId?: string
+  /** 专属排课老师姓名（冗余字段，便于展示） */
+  dedicatedSchedulerName?: string
   createdAt: Date
   updatedAt: Date
 }
@@ -607,12 +611,13 @@ export interface HeaderNavConfig {
 
 export interface BranchCompany {
   id: string
-  name: string                       // 分公司名称（必填）
-  managerName: string                // 负责人名称（必填）
+  name: string                       // 校区名称（必填）
+  managerName: string                // 负责人/校长名称（必填）
   phone?: string                     // 联系电话（选填）
   wechat?: string                    // 微信号（选填）
   csName: string                     // 专属客服人员姓名（必填）
   csPhone?: string                   // 专属客服人员电话（选填）
+  schedulerName?: string             // 专属排课老师姓名（选填）
   enabled: boolean                   // 是否启用
   createdAt: Date
   updatedAt: Date

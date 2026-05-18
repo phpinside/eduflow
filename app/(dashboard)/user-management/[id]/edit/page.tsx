@@ -57,6 +57,11 @@ export default function UserEditPage() {
   const [managerSearchTerm, setManagerSearchTerm] = useState("")
   const [filteredManagers, setFilteredManagers] = useState<User[]>([])
 
+  // Scheduler search (专属排课老师)
+  const [operators, setOperators] = useState<User[]>([])
+  const [schedulerSearchTerm, setSchedulerSearchTerm] = useState("")
+  const [filteredSchedulers, setFilteredSchedulers] = useState<User[]>([])
+
   useEffect(() => {
     const storedUsers = getStoredUsers()
     const usersWithStatus = storedUsers.map(u => ({
@@ -78,6 +83,14 @@ export default function UserEditPage() {
     setManagers(managerList)
     setFilteredManagers(managerList)
 
+    const operatorList = usersWithStatus.filter(u =>
+      u.roles.includes(Role.OPERATOR) &&
+      u.status === UserStatus.APPROVED &&
+      !u.accountDisabled
+    )
+    setOperators(operatorList)
+    setFilteredSchedulers(operatorList)
+
     setIsLoading(false)
   }, [userId])
 
@@ -91,6 +104,20 @@ export default function UserEditPage() {
       managers.filter(m =>
         m.id.toLowerCase().includes(value.toLowerCase()) ||
         m.name.toLowerCase().includes(value.toLowerCase())
+      )
+    )
+  }
+
+  const handleSchedulerSearch = (value: string) => {
+    setSchedulerSearchTerm(value)
+    if (!value.trim()) {
+      setFilteredSchedulers(operators)
+      return
+    }
+    setFilteredSchedulers(
+      operators.filter(op =>
+        op.name.toLowerCase().includes(value.toLowerCase()) ||
+        op.phone.includes(value)
       )
     )
   }
@@ -454,6 +481,66 @@ export default function UserEditPage() {
                 )}
               </div>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 专属排课老师（仅招生老师） */}
+      {editForm.roles?.includes(Role.SALES) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">专属排课老师</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Input
+              placeholder="输入排课老师姓名或手机号搜索"
+              value={schedulerSearchTerm}
+              onChange={(e) => handleSchedulerSearch(e.target.value)}
+            />
+
+            {editForm.dedicatedSchedulerId && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-md flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">当前专属排课老师</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    {editForm.dedicatedSchedulerName}（ID: {editForm.dedicatedSchedulerId}）
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground"
+                  onClick={() => setEditForm({ ...editForm, dedicatedSchedulerId: undefined, dedicatedSchedulerName: undefined })}
+                >
+                  清除
+                </Button>
+              </div>
+            )}
+
+            {schedulerSearchTerm && filteredSchedulers.length > 0 && (
+              <div className="border rounded-md max-h-48 overflow-y-auto">
+                {filteredSchedulers.map(op => (
+                  <div
+                    key={op.id}
+                    className="p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
+                    onClick={() => {
+                      setEditForm({ ...editForm, dedicatedSchedulerId: op.id, dedicatedSchedulerName: op.name })
+                      setSchedulerSearchTerm("")
+                      setFilteredSchedulers(operators)
+                    }}
+                  >
+                    <p className="font-medium text-sm">{op.name}</p>
+                    <p className="text-xs text-muted-foreground">ID: {op.id} | 手机: {op.phone}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {schedulerSearchTerm && filteredSchedulers.length === 0 && (
+              <div className="p-3 text-sm text-muted-foreground text-center border rounded-md">
+                未找到匹配的排课老师
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

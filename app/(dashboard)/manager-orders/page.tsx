@@ -90,16 +90,12 @@ export default function ManagerOrdersPage() {
   const [tutorNameSearch, setTutorNameSearch] = React.useState("")
   const [tutorPhoneSearch, setTutorPhoneSearch] = React.useState("")
   
-  // 新增：分公司、负责人、专属客服、待审核客服多选筛选
-  const [selectedBranches, setSelectedBranches] = React.useState<string[]>([])
-  const [selectedManagers, setSelectedManagers] = React.useState<string[]>([])
-  const [selectedCsNames, setSelectedCsNames] = React.useState<string[]>([])
+  // 专属排课老师筛选
+  const [selectedSchedulerNames, setSelectedSchedulerNames] = React.useState<string[]>([])
   const [selectedPendingReviewers, setSelectedPendingReviewers] = React.useState<string[]>([])
 
   // 多选下拉框状态
-  const [isBranchOpen, setIsBranchOpen] = React.useState(false)
-  const [isManagerOpen, setIsManagerOpen] = React.useState(false)
-  const [isCsOpen, setIsCsOpen] = React.useState(false)
+  const [isSchedulerOpen, setIsSchedulerOpen] = React.useState(false)
 
   // 分页状态
   const [currentPage, setCurrentPage] = React.useState(1)
@@ -118,85 +114,55 @@ export default function ManagerOrdersPage() {
     }
   }, [orders])
   
-  // 获取所有唯一的分公司、负责人、专属客服、待审核客服（用于多选筛选）
+  // 获取所有唯一的专属排课老师、待审核客服（用于多选筛选）
   const filterOptions = React.useMemo(() => {
-    const branchesSet = new Set<string>()
-    const managersSet = new Set<string>()
-    const csNamesSet = new Set<string>()
+    const schedulerNamesSet = new Set<string>()
     const pendingReviewersSet = new Set<string>()
-    
+
     orders.forEach((order) => {
       const salesPerson = mockUsers.find(u => u.id === order.salesPersonId)
       const branchCompany = branchCompanies.find(b => b.id === salesPerson?.branchCompanyId)
-      
-      if (branchCompany?.name && branchCompany.name !== "—") {
-        branchesSet.add(branchCompany.name)
+
+      if (branchCompany?.schedulerName && branchCompany.schedulerName !== "—") {
+        schedulerNamesSet.add(branchCompany.schedulerName)
       }
-      if (branchCompany?.managerName && branchCompany.managerName !== "—") {
-        managersSet.add(branchCompany.managerName)
-      }
-      if (branchCompany?.csName && branchCompany.csName !== "—") {
-        csNamesSet.add(branchCompany.csName)
-      }
-      
+
       // 待审核客服：筛选状态为 PENDING_CS_REVIEW 的订单
       if (order.status === OrderStatus.PENDING_CS_REVIEW) {
         // 这里可以根据实际业务逻辑确定"待审核客服"的值
-        // 暂时使用分公司名称作为标识
+        // 暂时使用校区名称作为标识
         if (branchCompany?.name && branchCompany.name !== "—") {
           pendingReviewersSet.add(branchCompany.name)
         }
       }
     })
-    
+
     return {
-      branches: Array.from(branchesSet).sort(),
-      managers: Array.from(managersSet).sort(),
-      csNames: Array.from(csNamesSet).sort(),
+      schedulerNames: Array.from(schedulerNamesSet).sort(),
       pendingReviewers: Array.from(pendingReviewersSet).sort()
     }
   }, [orders, branchCompanies])
 
   // 切换状态选择
   const toggleStatus = (status: OrderStatus) => {
-    setSelectedStatuses(prev => 
-      prev.includes(status) 
+    setSelectedStatuses(prev =>
+      prev.includes(status)
         ? prev.filter(s => s !== status)
         : [...prev, status]
     )
     setCurrentPage(1) // 重置到第一页
   }
-  
-  // 切换分公司选择
-  const toggleBranch = (branch: string) => {
-    setSelectedBranches(prev =>
-      prev.includes(branch)
-        ? prev.filter(b => b !== branch)
-        : [...prev, branch]
+
+  // 切换专属排课老师选择
+  const toggleSchedulerName = (schedulerName: string) => {
+    setSelectedSchedulerNames(prev =>
+      prev.includes(schedulerName)
+        ? prev.filter(s => s !== schedulerName)
+        : [...prev, schedulerName]
     )
     setCurrentPage(1)
   }
-  
-  // 切换负责人选择
-  const toggleManager = (manager: string) => {
-    setSelectedManagers(prev =>
-      prev.includes(manager)
-        ? prev.filter(m => m !== manager)
-        : [...prev, manager]
-    )
-    setCurrentPage(1)
-  }
-  
-  // 切换专属客服选择
-  const toggleCsName = (csName: string) => {
-    setSelectedCsNames(prev =>
-      prev.includes(csName)
-        ? prev.filter(c => c !== csName)
-        : [...prev, csName]
-    )
-    setCurrentPage(1)
-  }
-  
+
   // 切换待审核客服选择
   const togglePendingReviewer = (reviewer: string) => {
     setSelectedPendingReviewers(prev =>
@@ -234,9 +200,9 @@ export default function ManagerOrdersPage() {
         _parentPhone: student?.parentPhone || "",
         _tutorName: tutor?.name || "",
         _tutorPhone: tutor?.phone || "",
-        _branchName: branchCompany?.name || "—",
-        _branchManager: branchCompany?.managerName || "—",
-        _branchCs: branchCompany?.csName || "—",
+        _campusName: branchCompany?.name || "—",
+        _campusManager: branchCompany?.managerName || "—",
+        _campusScheduler: branchCompany?.schedulerName || "—",
         _nearestScheduledTime: nearestScheduledTime,
       }
     }).filter(order => {
@@ -307,28 +273,18 @@ export default function ManagerOrdersPage() {
       if (tutorPhoneSearch && !order._tutorPhone.toLowerCase().includes(tutorPhoneSearch.toLowerCase())) {
         return false
       }
-      
-      // 分公司筛选（多选）
-      if (selectedBranches.length > 0 && !selectedBranches.includes(order._branchName)) {
+
+      // 专属排课老师筛选（多选）
+      if (selectedSchedulerNames.length > 0 && !selectedSchedulerNames.includes(order._campusScheduler)) {
         return false
       }
-      
-      // 负责人筛选（多选）
-      if (selectedManagers.length > 0 && !selectedManagers.includes(order._branchManager)) {
-        return false
-      }
-      
-      // 专属客服筛选（多选）
-      if (selectedCsNames.length > 0 && !selectedCsNames.includes(order._branchCs)) {
-        return false
-      }
-      
-      // 待审核客服筛选（多选）- 筛选状态为 PENDING_CS_REVIEW 且属于选定分公司的订单
+
+      // 待审核客服筛选（多选）- 筛选状态为 PENDING_CS_REVIEW 且属于选定校区的订单
       if (selectedPendingReviewers.length > 0) {
         if (order.status !== OrderStatus.PENDING_CS_REVIEW) {
           return false
         }
-        if (!selectedPendingReviewers.includes(order._branchName)) {
+        if (!selectedPendingReviewers.includes(order._campusName)) {
           return false
         }
       }
@@ -354,9 +310,7 @@ export default function ManagerOrdersPage() {
     parentPhoneSearch,
     tutorNameSearch,
     tutorPhoneSearch,
-    selectedBranches,
-    selectedManagers,
-    selectedCsNames,
+    selectedSchedulerNames,
     selectedPendingReviewers,
   ])
 
@@ -384,9 +338,7 @@ export default function ManagerOrdersPage() {
     setParentPhoneSearch("")
     setTutorNameSearch("")
     setTutorPhoneSearch("")
-    setSelectedBranches([])
-    setSelectedManagers([])
-    setSelectedCsNames([])
+    setSelectedSchedulerNames([])
     setSelectedPendingReviewers([])
     setCurrentPage(1)
   }
@@ -660,139 +612,45 @@ export default function ManagerOrdersPage() {
               </div>
             </div>
 
-            {/* 第五行：分公司、负责人、专属客服（紧凑布局） */}
+            {/* 第五行：专属排课老师（紧凑布局） */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* 分公司多选下拉框 */}
-              {filterOptions.branches.length > 0 && (
+              {/* 专属排课老师多选下拉框 */}
+              {filterOptions.schedulerNames.length > 0 && (
                   <div>
-                    <label className="text-sm font-medium mb-2 block">分公司</label>
-                    <Popover open={isBranchOpen} onOpenChange={setIsBranchOpen}>
+                    <label className="text-sm font-medium mb-2 block">专属排课老师</label>
+                    <Popover open={isSchedulerOpen} onOpenChange={setIsSchedulerOpen}>
                       <PopoverTrigger asChild>
                         <Button
                             variant="outline"
                             role="combobox"
-                            aria-expanded={isBranchOpen}
+                            aria-expanded={isSchedulerOpen}
                             className="w-full justify-between"
                         >
-                          {selectedBranches.length > 0
-                              ? `已选择 ${selectedBranches.length} 项`
-                              : "选择分公司..."}
+                          {selectedSchedulerNames.length > 0
+                              ? `已选择 ${selectedSchedulerNames.length} 项`
+                              : "选择专属排课老师..."}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-full p-0" align="start">
                         <Command>
-                          <CommandInput placeholder="搜索分公司..." />
+                          <CommandInput placeholder="搜索排课老师..." />
                           <CommandList>
-                            <CommandEmpty>未找到分公司</CommandEmpty>
+                            <CommandEmpty>未找到排课老师</CommandEmpty>
                             <CommandGroup>
-                              {filterOptions.branches.map((branch) => (
+                              {filterOptions.schedulerNames.map((schedulerName) => (
                                   <CommandItem
-                                      key={branch}
+                                      key={schedulerName}
                                       onSelect={() => {
-                                        toggleBranch(branch)
+                                        toggleSchedulerName(schedulerName)
                                       }}
                                   >
                                     <Check
                                         className={cn(
                                             "mr-2 h-4 w-4",
-                                            selectedBranches.includes(branch) ? "opacity-100" : "opacity-0"
+                                            selectedSchedulerNames.includes(schedulerName) ? "opacity-100" : "opacity-0"
                                         )}
                                     />
-                                    {branch}
-                                  </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-              )}
-
-              {/* 负责人多选下拉框 */}
-              {filterOptions.managers.length > 0 && (
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">负责人</label>
-                    <Popover open={isManagerOpen} onOpenChange={setIsManagerOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={isManagerOpen}
-                            className="w-full justify-between"
-                        >
-                          {selectedManagers.length > 0
-                              ? `已选择 ${selectedManagers.length} 项`
-                              : "选择负责人..."}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-full p-0" align="start">
-                        <Command>
-                          <CommandInput placeholder="搜索负责人..." />
-                          <CommandList>
-                            <CommandEmpty>未找到负责人</CommandEmpty>
-                            <CommandGroup>
-                              {filterOptions.managers.map((manager) => (
-                                  <CommandItem
-                                      key={manager}
-                                      onSelect={() => {
-                                        toggleManager(manager)
-                                      }}
-                                  >
-                                    <Check
-                                        className={cn(
-                                            "mr-2 h-4 w-4",
-                                            selectedManagers.includes(manager) ? "opacity-100" : "opacity-0"
-                                        )}
-                                    />
-                                    {manager}
-                                  </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-              )}
-
-              {/* 专属客服多选下拉框 */}
-              {filterOptions.csNames.length > 0 && (
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">专属客服</label>
-                    <Popover open={isCsOpen} onOpenChange={setIsCsOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={isCsOpen}
-                            className="w-full justify-between"
-                        >
-                          {selectedCsNames.length > 0
-                              ? `已选择 ${selectedCsNames.length} 项`
-                              : "选择专属客服..."}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-full p-0" align="start">
-                        <Command>
-                          <CommandInput placeholder="搜索专属客服..." />
-                          <CommandList>
-                            <CommandEmpty>未找到专属客服</CommandEmpty>
-                            <CommandGroup>
-                              {filterOptions.csNames.map((csName) => (
-                                  <CommandItem
-                                      key={csName}
-                                      onSelect={() => {
-                                        toggleCsName(csName)
-                                      }}
-                                  >
-                                    <Check
-                                        className={cn(
-                                            "mr-2 h-4 w-4",
-                                            selectedCsNames.includes(csName) ? "opacity-100" : "opacity-0"
-                                        )}
-                                    />
-                                    {csName}
+                                    {schedulerName}
                                   </CommandItem>
                               ))}
                             </CommandGroup>
@@ -849,7 +707,7 @@ export default function ManagerOrdersPage() {
                   <TableHead className="w-[80px]">类型</TableHead>
                   <TableHead className="w-[100px]">学生</TableHead>
                   <TableHead className="w-[120px]">年级/科目</TableHead>
-                  <TableHead className="w-[180px]">分公司信息</TableHead>
+                  <TableHead className="w-[180px]">校区信息</TableHead>
                   <TableHead className="w-[150px]">预约/首课时间</TableHead>
                   <TableHead className="w-[80px]">课时数</TableHead>
                   <TableHead className="w-[100px]">状态</TableHead>
@@ -878,20 +736,20 @@ export default function ManagerOrdersPage() {
                       <TableCell className="text-sm font-medium">{order.studentName}</TableCell>
                       <TableCell className="text-sm">{order.grade} {order.subject}</TableCell>
                       
-                      {/* 分公司信息整合列 */}
+                      {/* 校区信息整合列 */}
                       <TableCell>
                         <div className="space-y-1 text-xs">
                           <div className="flex items-center gap-1">
-                            <span className="text-muted-foreground shrink-0">分公司:</span>
-                            <span className="font-medium text-blue-700">{order._branchName}</span>
+                            <span className="text-muted-foreground shrink-0">校区:</span>
+                            <span className="font-medium text-blue-700">{order._campusName}</span>
                           </div>
                           <div className="flex items-center gap-1">
-                            <span className="text-muted-foreground shrink-0">负责人:</span>
-                            <span>{order._branchManager}</span>
+                            <span className="text-muted-foreground shrink-0">校长:</span>
+                            <span>{order._campusManager}</span>
                           </div>
                           <div className="flex items-center gap-1">
-                            <span className="text-muted-foreground shrink-0">客服:</span>
-                            <span>{order._branchCs}</span>
+                            <span className="text-muted-foreground shrink-0">排课老师:</span>
+                            <span>{order._campusScheduler}</span>
                           </div>
                         </div>
                       </TableCell>

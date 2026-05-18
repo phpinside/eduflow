@@ -35,13 +35,10 @@ app/
 components/
   ui/              # shadcn/ui components (do not modify directly)
   layout/          # DashboardLayout (sidebar, header)
-  calendar/        # Calendar views (Day, Week, Month)
-  students/        # Student-related dialogs
-  feedback/        # Feedback form component
+  messages/        # Message center components
 contexts/
   AuthContext.tsx  # Authentication state and methods
 hooks/
-  useCalendarData.ts
 lib/
   storage.ts       # LocalStorage management for mock data
   mock-data.ts     # Exports STORAGE_KEYS and data accessors
@@ -68,6 +65,32 @@ Users can have **multiple roles** and switch between them via the header dropdow
 
 All data is stored in browser localStorage with keys prefixed `eduflow:`. See `STORAGE_KEYS` in `lib/storage.ts`. The `initializeMockData()` function seeds initial data on first load. **This is a prototype** - data will be lost if localStorage is cleared.
 
+**Mock data merge pattern**: When updating mock data files in `lib/mock-data/`, the `initializeMockData()` function merges new items by ID rather than overwriting. This preserves user-created data during development.
+
+### Image Storage Pattern
+
+Images (payment vouchers, screenshots, etc.) are stored as Base64 strings in arrays within localStorage objects. This is a prototype pattern - production would use proper file storage.
+
+### Date Handling
+
+JSON.parse doesn't automatically deserialize Date objects. The storage layer uses a date reviver function that detects ISO 8601 date strings and converts them to Date objects. When adding new storage getters, copy this pattern from existing functions.
+
+### Operation Logging
+
+The `addOperationLog()` function in `storage.ts` tracks user actions for audit purposes. Logs are limited to 1000 entries (FIFO). Use this for significant state changes like order status updates, refund approvals, etc.
+
+### Refund Application Workflow
+
+Refunds follow a two-stage review process:
+1. **First Review** (一审): OPERATOR reviews and can approve or reject
+2. **Second Review** (二审): Different OPERATOR reviews approved refunds and executes the actual refund
+- See `RefundApplicationStatus` enum for all states
+- Operation logs track all state transitions
+
+### Header Navigation Configuration
+
+The header supports dynamic quick links configured via `HeaderNavConfig` stored in localStorage (`eduflow:header-nav-configs`). Admin can configure links per role, with options for emphasis styling and external targets. Changes trigger a `header-nav-updated` custom event.
+
 ### Route Groups
 
 - `(auth)` - Pages without sidebar (login, register)
@@ -86,6 +109,10 @@ Dashboard pages in `app/(dashboard)/` are wrapped by `app/(dashboard)/layout.tsx
 1. Create the page file in `app/(dashboard)/your-page/page.tsx`
 2. Add navigation entry in `components/layout/DashboardLayout.tsx` under `navItems` with appropriate roles
 3. Use `"use client"` directive for pages that need client-side hooks
+
+### Icon Usage
+
+The `lib/icon-map.ts` file maps icon names to lucide-react components. Use `getIconComponent()` for dynamic icon rendering (e.g., in header nav configs). For static usage, import directly from lucide-react.
 
 ## Code Conventions
 
