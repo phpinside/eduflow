@@ -153,8 +153,8 @@ export default function LoginPage() {
                         key={captchaTick}
                         onCodeReady={(code) => {
                           captchaAnswerRef.current = code
+                          form.setValue("captcha", code)
                         }}
-                        onRefresh={() => form.setValue("captcha", "")}
                       />
                     </div>
                     <FormMessage />
