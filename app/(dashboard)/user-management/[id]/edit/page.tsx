@@ -331,13 +331,36 @@ export default function UserEditPage() {
         </CardContent>
       </Card>
 
+      {/* 伴学教练ID（伴学教练、学管、总监） */}
+      {(editForm.roles?.includes(Role.TUTOR) || editForm.roles?.includes(Role.MANAGER)) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">伴学教练ID</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>伴学教练ID</Label>
+              <Input
+                placeholder="请输入25位伴学教练ID"
+                value={editForm.tutorId || ""}
+                onChange={(e) => setEditForm({ ...editForm, tutorId: e.target.value })}
+                maxLength={25}
+              />
+              <p className="text-xs text-muted-foreground">
+                25位业务侧展示ID，用于标识伴学教练/学管身份
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* 归属学管（仅伴学教练） */}
       {editForm.roles?.includes(Role.TUTOR) && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">归属学管</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
             <Input
               placeholder="输入学管 ID 或姓名搜索"
               value={managerSearchTerm}

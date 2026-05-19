@@ -23,6 +23,7 @@ export default function ProfilePage() {
     campusName: user?.campusName || "",
     campusAccount: user?.campusAccount || "",
     branchCompanyId: user?.branchCompanyId || "",
+    tutorId: user?.tutorId || "",
   })
   const [passwords, setPasswords] = useState({ newPassword: "", confirmPassword: "" })
   const [selectedAvatar, setSelectedAvatar] = useState(user?.avatar || DEFAULT_AVATAR)
@@ -102,6 +103,7 @@ export default function ProfilePage() {
         branchCompanyId: formData.branchCompanyId,
         avatar: selectedAvatar,
         wechatQrCode: qrCode || undefined,
+        tutorId: formData.tutorId || undefined,
       }
 
       if (passwordsMatch) {
@@ -192,6 +194,22 @@ export default function ProfilePage() {
                 />
               </div>
             </div>
+
+            {/* Tutor ID for TUTOR and MANAGER roles */}
+            {(user?.roles.includes(Role.TUTOR) || user?.roles.includes(Role.MANAGER)) && (
+              <div className="space-y-2">
+                <Label htmlFor="tutorId">伴学教练ID</Label>
+                <Input
+                  id="tutorId"
+                  name="tutorId"
+                  value={formData.tutorId}
+                  onChange={handleInputChange}
+                  placeholder="请输入25位伴学教练ID"
+                  maxLength={25}
+                />
+                <p className="text-xs text-muted-foreground">25位业务侧展示ID，用于标识伴学教练/学管身份</p>
+              </div>
+            )}
 
             {/* Campus info for SALES role */}
             {user?.roles.includes(Role.SALES) && (
