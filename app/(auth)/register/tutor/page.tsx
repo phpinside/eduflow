@@ -122,12 +122,12 @@ export default function TutorRegisterPage() {
         createdAt: new Date(),
         updatedAt: new Date(),
         avatar: `https://api.dicebear.com/7.x/notionists/svg?seed=${values.name}`,
-        status: UserStatus.PENDING,
+        status: UserStatus.ACTIVE,
       }
 
       const updatedUsers = [...currentUsers, newUser]
       saveMockData(STORAGE_KEYS.USERS, updatedUsers)
-      toast.success("注册申请已提交，请等待审核")
+      toast.success("注册成功！")
       setIsSubmitted(true)
     } catch (error) {
       console.error(error)
@@ -143,30 +143,22 @@ export default function TutorRegisterPage() {
       <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 py-10 px-4">
         <Card className="w-full max-w-md shadow-lg border-0 bg-white/80 backdrop-blur-sm dark:bg-gray-900/80">
           <CardHeader className="space-y-4 text-center">
-            <div className="mx-auto bg-yellow-100 p-3 rounded-full w-fit">
-              <CheckCircle2 className="h-10 w-10 text-yellow-600" />
+            <div className="mx-auto bg-green-100 p-3 rounded-full w-fit">
+              <CheckCircle2 className="h-10 w-10 text-green-600" />
             </div>
-            <CardTitle className="text-2xl font-bold text-primary">等待审核</CardTitle>
+            <CardTitle className="text-2xl font-bold text-primary">注册成功</CardTitle>
             <CardDescription className="text-lg">
-              您的账号正在审核中...
+              欢迎加入 EduFlow！
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6 flex flex-col items-center">
-            <div className="text-center space-y-2">
-              <p className="text-muted-foreground">
-                伴学教练账号需要管理员审核通过后才能登录
-              </p>
-              <p className="text-sm text-muted-foreground">请扫码，加运营老师，加快账号审核速度</p>
-            </div>
-            <div className="relative w-48 h-48 border rounded-lg overflow-hidden bg-white p-2 shadow-sm">
-              <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400 text-sm border-2 border-dashed">
-                运营老师微信二维码
-              </div>
-            </div>
+          <CardContent className="space-y-4 flex flex-col items-center">
+            <p className="text-muted-foreground text-center">
+              您的伴学教练账号已创建完成，现在可以登录使用了
+            </p>
           </CardContent>
           <CardFooter className="flex justify-center">
-            <Button variant="outline" onClick={() => router.push("/login")}>
-              返回登录
+            <Button onClick={() => router.push("/login")}>
+              前往登录
             </Button>
           </CardFooter>
         </Card>
@@ -188,7 +180,7 @@ export default function TutorRegisterPage() {
           </div>
           <CardTitle className="text-2xl font-bold text-center text-primary">伴学教练注册</CardTitle>
           <CardDescription className="text-center">
-            创建您的伴学教练账号，注册后需等待审核
+            创建您的伴学教练账号，开始您的教学之旅
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -374,7 +366,7 @@ export default function TutorRegisterPage() {
 
               <Button type="submit" className="w-full mt-2" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                提交注册申请
+                立即注册
               </Button>
             </form>
           </Form>
