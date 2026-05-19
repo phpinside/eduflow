@@ -122,7 +122,7 @@ export default function TutorRegisterPage() {
         createdAt: new Date(),
         updatedAt: new Date(),
         avatar: `https://api.dicebear.com/7.x/notionists/svg?seed=${values.name}`,
-        status: UserStatus.ACTIVE,
+        status: UserStatus.APPROVED,
       }
 
       const updatedUsers = [...currentUsers, newUser]
