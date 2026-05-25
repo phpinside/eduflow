@@ -24,6 +24,7 @@ import {
   ImageIcon,
   Check,
   UserMinus,
+  Eye,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -480,14 +481,24 @@ export default function TutorDetailPage() {
 
   return (
     <div className="container mx-auto py-8">
-      <Button
-        variant="ghost"
-        className="mb-6 gap-2"
-        onClick={() => router.push("/team-management/tutor-search")}
-      >
-        <ArrowLeft className="h-4 w-4" />
-        返回列表
-      </Button>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <Button
+          variant="ghost"
+          className="gap-2"
+          onClick={() => router.push("/team-management/tutor-search")}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          返回列表
+        </Button>
+        <Button
+          variant="outline"
+          className="gap-2"
+          onClick={() => router.push(`/coach-library/${tutor.id}`)}
+        >
+          <Eye className="h-4 w-4" />
+          查看展示页
+        </Button>
+      </div>
 
       <div className="flex flex-col gap-6">
 

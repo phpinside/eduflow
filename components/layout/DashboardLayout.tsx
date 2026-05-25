@@ -160,22 +160,28 @@ const navItems: NavItem[] = [
     roles: [Role.SALES,]
   },
   {
+    title: "伴学教练库",
+    href: "/coach-library",
+    icon: UsersRound,
+    roles: [Role.SALES]
+  },
+  {
     title: "订单搜索",
     href: "/manager-order-search",
     icon: Search,
     roles: [Role.MANAGER],
   },
   {
-    title: "学员档案",
-    href: "/students",
-    icon: UserSearch,
-    roles: [Role.SALES,]
-  },
-  {
     title: "接单中心",
     href: "/orders/market",
     icon: Store,
     roles: [Role.TUTOR , Role.MANAGER, ]
+  },
+  {
+    title: "我的展示页",
+    href: "/coach-profile",
+    icon: Sparkles,
+    roles: [Role.TUTOR]
   },
   {
     title: "学员中心",
