@@ -51,6 +51,7 @@ import {
   Megaphone,
   Compass,
   Landmark,
+  ArrowRightLeft,
 } from "lucide-react"
 import { MessageCenterBell } from "@/components/messages/MessageCenterBell"
 import { Button } from "@/components/ui/button"
@@ -108,6 +109,12 @@ const navItems: NavItem[] = [
         icon: FilePlus,
         roles: [Role.OPERATOR],
       },
+      {
+        title: "课程转移",
+        href: "/course-transfer",
+        icon: ArrowRightLeft,
+        roles: [Role.OPERATOR],
+      },
     ],
   },
   {
@@ -124,6 +131,12 @@ const navItems: NavItem[] = [
       {
         title: "退款审核",
         href: "/manager-refund",
+        icon: RefreshCcwDot,
+        roles: [Role.OPERATOR],
+      },
+      {
+        title: "转移审核",
+        href: "/transfer-review",
         icon: RefreshCcwDot,
         roles: [Role.OPERATOR],
       },

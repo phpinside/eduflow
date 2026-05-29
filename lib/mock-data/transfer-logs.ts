@@ -1,0 +1,40 @@
+import { TransferOperationLog } from '@/types'
+
+export const mockTransferOperationLogs: TransferOperationLog[] = [
+  {
+    id: 'tol-demo-1',
+    transferId: 'ct-demo-1',
+    sourceOrderId: 'ord-sales1-4',
+    targetOrderId: 'ord-extra-4',
+    actorRole: 'OPERATOR',
+    actorUserId: 'user-operator-1',
+    actorName: '运营专员',
+    action: '提交转移申请',
+    detail: '高二→高三年级升级，转移30课时',
+    createdAt: new Date('2025-06-01T10:00:00'),
+  },
+  {
+    id: 'tol-demo-2',
+    transferId: 'ct-demo-1',
+    sourceOrderId: 'ord-sales1-4',
+    targetOrderId: 'ord-extra-4',
+    actorRole: 'OPERATOR',
+    actorUserId: 'user-operator-1',
+    actorName: '财务专员',
+    action: '一审通过',
+    detail: '信息核实无误',
+    createdAt: new Date('2025-06-01T10:30:00'),
+  },
+  {
+    id: 'tol-demo-3',
+    transferId: 'ct-demo-1',
+    sourceOrderId: 'ord-sales1-4',
+    targetOrderId: 'ord-extra-4',
+    actorRole: 'OPERATOR',
+    actorUserId: 'user-operator-1',
+    actorName: '财务主管',
+    action: '二审通过',
+    detail: '已确认鼎伴学课时转移完成',
+    createdAt: new Date('2025-06-01T11:00:00'),
+  },
+]

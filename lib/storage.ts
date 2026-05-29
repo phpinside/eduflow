@@ -25,6 +25,9 @@ import type { TutorCreditRule, TutorCreditLog } from '@/types'
 import { initializeSiteMessages } from '@/lib/site-messages'
 import { mockHeaderNavConfigs } from './mock-data/header-nav'
 import type { HeaderNavConfig } from '@/types'
+import { mockCourseTransfers } from './mock-data/course-transfers'
+import { mockTransferOperationLogs } from './mock-data/transfer-logs'
+import type { CourseTransfer, TransferOperationLog } from '@/types'
 
 export const STORAGE_KEYS = {
   USERS: 'eduflow:users',
@@ -48,6 +51,8 @@ export const STORAGE_KEYS = {
   MANAGEMENT_INCOME: 'eduflow:management-income',
   HEADER_NAV_CONFIGS: 'eduflow:header-nav-configs',
   PAYMENT_ACCOUNTS: 'eduflow:payment-accounts',
+  COURSE_TRANSFERS: 'eduflow:course-transfers',
+  TRANSFER_OPERATION_LOGS: 'eduflow:transfer-operation-logs',
 }
 
 const isBrowser = typeof window !== 'undefined'
@@ -329,6 +334,8 @@ export const initializeMockData = () => {
     }
   }
   if (!localStorage.getItem(STORAGE_KEYS.HEADER_NAV_CONFIGS)) saveMockData(STORAGE_KEYS.HEADER_NAV_CONFIGS, mockHeaderNavConfigs)
+  if (!localStorage.getItem(STORAGE_KEYS.COURSE_TRANSFERS)) saveMockData(STORAGE_KEYS.COURSE_TRANSFERS, mockCourseTransfers)
+  if (!localStorage.getItem(STORAGE_KEYS.TRANSFER_OPERATION_LOGS)) saveMockData(STORAGE_KEYS.TRANSFER_OPERATION_LOGS, mockTransferOperationLogs)
   initializeSiteMessages()
 }
 
@@ -465,3 +472,17 @@ export const getBillMonth = (): { year: number; month: number } => {
   const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1)
   return { year: prev.getFullYear(), month: prev.getMonth() + 1 }
 }
+
+// === 课程转移记录 ===
+
+export const getStoredCourseTransfers = (): CourseTransfer[] =>
+  getMockData(STORAGE_KEYS.COURSE_TRANSFERS, mockCourseTransfers)
+
+export const saveStoredCourseTransfers = (data: CourseTransfer[]) =>
+  saveMockData(STORAGE_KEYS.COURSE_TRANSFERS, data)
+
+export const getStoredTransferOperationLogs = (): TransferOperationLog[] =>
+  getMockData(STORAGE_KEYS.TRANSFER_OPERATION_LOGS, mockTransferOperationLogs)
+
+export const saveStoredTransferOperationLogs = (data: TransferOperationLog[]) =>
+  saveMockData(STORAGE_KEYS.TRANSFER_OPERATION_LOGS, data)

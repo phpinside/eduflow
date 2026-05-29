@@ -48,6 +48,9 @@ export enum OperationAction {
   
   // 学生管理相关
   STUDENT_HOURS_ADJUST = 'STUDENT_HOURS_ADJUST',       // 学生课时调整
+
+  // 课程转移相关
+  COURSE_TRANSFER = 'COURSE_TRANSFER',                 // 课程转移
 }
 
 /** 操作日志记录 */
