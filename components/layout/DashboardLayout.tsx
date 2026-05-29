@@ -115,6 +115,12 @@ const navItems: NavItem[] = [
         icon: ArrowRightLeft,
         roles: [Role.OPERATOR],
       },
+      {
+        title: "全局订单处理",
+        href: "/operator-order-search",
+        icon: Search,
+        roles: [Role.OPERATOR],
+      },
     ],
   },
   {

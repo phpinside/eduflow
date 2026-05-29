@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -28,7 +28,6 @@ import {
   Loader2,
   CheckCircle2,
   Clock,
-  XCircle,
   ChevronLeft,
   ChevronRight,
   Info,
@@ -44,13 +43,11 @@ import {
   TransferType,
   TransferStatus,
   Transaction,
-  Student,
   TransferOperationLog,
 } from "@/types"
 import {
   getStoredOrders,
   saveStoredOrders,
-  getStoredStudents,
   getStoredCourseTransfers,
   saveStoredCourseTransfers,
   getStoredTransferOperationLogs,
@@ -94,12 +91,103 @@ function isSecondStageProcessed(t: CourseTransfer): boolean {
   return t.secondReviewedAt != null || t.status === TransferStatus.APPROVED
 }
 
+function paginate(list: CourseTransfer[], page: number) {
+  const start = (page - 1) * PAGE_SIZE
+  return { items: list.slice(start, start + PAGE_SIZE), total: list.length, pages: Math.max(1, Math.ceil(list.length / PAGE_SIZE)) }
+}
+
+function TransferTable({
+  list,
+  page,
+  setPage,
+  showActions,
+  onViewDetail,
+  onAction,
+}: {
+  list: CourseTransfer[]
+  page: number
+  setPage: (p: number) => void
+  showActions: "first" | "second"
+  onViewDetail: (t: CourseTransfer) => void
+  onAction: (t: CourseTransfer, type: ActionType) => void
+}) {
+  const { items, total, pages } = paginate(list, page)
+  if (items.length === 0) return <div className="text-center py-8 text-muted-foreground">暂无记录</div>
+  return (
+    <>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>申请时间</TableHead>
+            <TableHead>类型</TableHead>
+            <TableHead>源订单</TableHead>
+            <TableHead>目标</TableHead>
+            <TableHead>转移课时</TableHead>
+            <TableHead>获得课时</TableHead>
+            <TableHead>差额</TableHead>
+            <TableHead>状态</TableHead>
+            <TableHead>操作</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {items.map(t => (
+            <TableRow key={t.id}>
+              <TableCell className="whitespace-nowrap text-sm">{new Date(t.createdAt).toLocaleDateString("zh-CN")}</TableCell>
+              <TableCell><Badge variant="outline">{t.type === TransferType.GRADE_UPGRADE ? "年级升级" : "跨学员"}</Badge></TableCell>
+              <TableCell className="text-sm">
+                <div>{t.sourceStudentName}</div>
+                <div className="text-muted-foreground text-xs">{t.sourceSubject}·{t.sourceGrade}</div>
+              </TableCell>
+              <TableCell className="text-sm">
+                <div>{t.targetStudentName}</div>
+                <div className="text-muted-foreground text-xs">{t.targetSubject}·{t.targetGrade}</div>
+              </TableCell>
+              <TableCell className="text-sm">{t.sourceTransferredHours}</TableCell>
+              <TableCell className="text-sm">{t.targetReceivedHours}</TableCell>
+              <TableCell className="text-sm">
+                {t.priceDifference > 0 ? <span className="text-orange-600">+{t.priceDifference}</span> :
+                 t.priceDifference < 0 ? <span className="text-green-600">{t.priceDifference}</span> : "0"}
+              </TableCell>
+              <TableCell><Badge variant={STATUS_COLOR[t.status] ?? "outline"}>{STATUS_LABEL[t.status] ?? t.status}</Badge></TableCell>
+              <TableCell>
+                <div className="flex gap-1">
+                  <Button size="sm" variant="ghost" onClick={() => onViewDetail(t)}>详情</Button>
+                  {showActions === "first" && t.status === TransferStatus.PENDING_FIRST_REVIEW && (
+                    <>
+                      <Button size="sm" variant="default" onClick={() => onAction(t, "first_ok")}>通过</Button>
+                      <Button size="sm" variant="destructive" onClick={() => onAction(t, "first_reject")}>驳回</Button>
+                    </>
+                  )}
+                  {showActions === "second" && t.status === TransferStatus.PENDING_SECOND_REVIEW && (
+                    <>
+                      <Button size="sm" variant="default" onClick={() => onAction(t, "second_ok")}>通过</Button>
+                      <Button size="sm" variant="destructive" onClick={() => onAction(t, "second_reject")}>驳回</Button>
+                    </>
+                  )}
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      {pages > 1 && (
+        <div className="flex items-center justify-between mt-4">
+          <span className="text-sm text-muted-foreground">第 {page}/{pages} 页（共 {total} 条）</span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(page - 1)}><ChevronLeft className="h-4 w-4" /></Button>
+            <Button size="sm" variant="outline" disabled={page >= pages} onClick={() => setPage(page + 1)}><ChevronRight className="h-4 w-4" /></Button>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
 export default function TransferReviewPage() {
   const { user } = useAuth()
 
   const [transfers, setTransfers] = React.useState<CourseTransfer[]>([])
   const [orders, setOrders] = React.useState<Order[]>([])
-  const [students, setStudents] = React.useState<Student[]>([])
   const [logs, setLogs] = React.useState<TransferOperationLog[]>([])
 
   const [tab, setTab] = React.useState("first")
@@ -124,13 +212,10 @@ export default function TransferReviewPage() {
   const reload = React.useCallback(() => {
     setTransfers(getStoredCourseTransfers())
     setOrders(getStoredOrders())
-    setStudents(getStoredStudents())
     setLogs(getStoredTransferOperationLogs())
   }, [])
 
   React.useEffect(() => { reload() }, [reload])
-
-  const getStudentName = (id: string) => students.find(s => s.id === id)?.name ?? id
 
   const firstQueue = React.useMemo(() => transfers.filter(t => t.status === TransferStatus.PENDING_FIRST_REVIEW), [transfers])
   const secondQueue = React.useMemo(() => transfers.filter(t => t.status === TransferStatus.PENDING_SECOND_REVIEW), [transfers])
@@ -173,10 +258,6 @@ export default function TransferReviewPage() {
     return list
   }, [secondProcessed, searchId])
 
-  const paginate = (list: CourseTransfer[], page: number) => {
-    const start = (page - 1) * PAGE_SIZE
-    return { items: list.slice(start, start + PAGE_SIZE), total: list.length, pages: Math.max(1, Math.ceil(list.length / PAGE_SIZE)) }
-  }
 
   const filteredLogs = React.useMemo(() => {
     let list = [...logs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -388,77 +469,9 @@ export default function TransferReviewPage() {
     setIsProcessing(false)
   }
 
-  const TransferTable = ({ list, page, setPage, showActions }: { list: CourseTransfer[]; page: number; setPage: (p: number) => void; showActions: "first" | "second" }) => {
-    const { items, total, pages } = paginate(list, page)
-    if (items.length === 0) return <div className="text-center py-8 text-muted-foreground">暂无记录</div>
-    return (
-      <>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>申请时间</TableHead>
-              <TableHead>类型</TableHead>
-              <TableHead>源订单</TableHead>
-              <TableHead>目标</TableHead>
-              <TableHead>转移课时</TableHead>
-              <TableHead>获得课时</TableHead>
-              <TableHead>差额</TableHead>
-              <TableHead>状态</TableHead>
-              <TableHead>操作</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map(t => (
-              <TableRow key={t.id}>
-                <TableCell className="whitespace-nowrap text-sm">{new Date(t.createdAt).toLocaleDateString("zh-CN")}</TableCell>
-                <TableCell><Badge variant="outline">{t.type === TransferType.GRADE_UPGRADE ? "年级升级" : "跨学员"}</Badge></TableCell>
-                <TableCell className="text-sm">
-                  <div>{t.sourceStudentName}</div>
-                  <div className="text-muted-foreground text-xs">{t.sourceSubject}·{t.sourceGrade}</div>
-                </TableCell>
-                <TableCell className="text-sm">
-                  <div>{t.targetStudentName}</div>
-                  <div className="text-muted-foreground text-xs">{t.targetSubject}·{t.targetGrade}</div>
-                </TableCell>
-                <TableCell className="text-sm">{t.sourceTransferredHours}</TableCell>
-                <TableCell className="text-sm">{t.targetReceivedHours}</TableCell>
-                <TableCell className="text-sm">
-                  {t.priceDifference > 0 ? <span className="text-orange-600">+{t.priceDifference}</span> :
-                   t.priceDifference < 0 ? <span className="text-green-600">{t.priceDifference}</span> : "0"}
-                </TableCell>
-                <TableCell><Badge variant={STATUS_COLOR[t.status] ?? "outline"}>{STATUS_LABEL[t.status] ?? t.status}</Badge></TableCell>
-                <TableCell>
-                  <div className="flex gap-1">
-                    <Button size="sm" variant="ghost" onClick={() => { setDetailTransfer(t); setDetailOpen(true) }}>详情</Button>
-                    {showActions === "first" && t.status === TransferStatus.PENDING_FIRST_REVIEW && (
-                      <>
-                        <Button size="sm" variant="default" onClick={() => openAction(t, "first_ok")}>通过</Button>
-                        <Button size="sm" variant="destructive" onClick={() => openAction(t, "first_reject")}>驳回</Button>
-                      </>
-                    )}
-                    {showActions === "second" && t.status === TransferStatus.PENDING_SECOND_REVIEW && (
-                      <>
-                        <Button size="sm" variant="default" onClick={() => openAction(t, "second_ok")}>通过</Button>
-                        <Button size="sm" variant="destructive" onClick={() => openAction(t, "second_reject")}>驳回</Button>
-                      </>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        {pages > 1 && (
-          <div className="flex items-center justify-between mt-4">
-            <span className="text-sm text-muted-foreground">第 {page}/{pages} 页（共 {total} 条）</span>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(page - 1)}><ChevronLeft className="h-4 w-4" /></Button>
-              <Button size="sm" variant="outline" disabled={page >= pages} onClick={() => setPage(page + 1)}><ChevronRight className="h-4 w-4" /></Button>
-            </div>
-          </div>
-        )}
-      </>
-    )
+  const handleViewDetail = (t: CourseTransfer) => {
+    setDetailTransfer(t)
+    setDetailOpen(true)
   }
 
   return (
@@ -498,10 +511,10 @@ export default function TransferReviewPage() {
               <TabsTrigger value="processed">已处理 ({firstProcessed.length})</TabsTrigger>
             </TabsList>
             <TabsContent value="pending">
-              <TransferTable list={filteredFirstPending} page={firstPage} setPage={setFirstPage} showActions="first" />
+              <TransferTable list={filteredFirstPending} page={firstPage} setPage={setFirstPage} showActions="first" onViewDetail={handleViewDetail} onAction={openAction} />
             </TabsContent>
             <TabsContent value="processed">
-              <TransferTable list={filteredFirstProcessed} page={firstPage} setPage={setFirstPage} showActions="first" />
+              <TransferTable list={filteredFirstProcessed} page={firstPage} setPage={setFirstPage} showActions="first" onViewDetail={handleViewDetail} onAction={openAction} />
             </TabsContent>
           </Tabs>
         </TabsContent>
@@ -513,10 +526,10 @@ export default function TransferReviewPage() {
               <TabsTrigger value="processed">已处理 ({secondProcessed.length})</TabsTrigger>
             </TabsList>
             <TabsContent value="pending">
-              <TransferTable list={filteredSecondPending} page={secondPage} setPage={setSecondPage} showActions="second" />
+              <TransferTable list={filteredSecondPending} page={secondPage} setPage={setSecondPage} showActions="second" onViewDetail={handleViewDetail} onAction={openAction} />
             </TabsContent>
             <TabsContent value="processed">
-              <TransferTable list={filteredSecondProcessed} page={secondPage} setPage={setSecondPage} showActions="second" />
+              <TransferTable list={filteredSecondProcessed} page={secondPage} setPage={setSecondPage} showActions="second" onViewDetail={handleViewDetail} onAction={openAction} />
             </TabsContent>
           </Tabs>
         </TabsContent>
