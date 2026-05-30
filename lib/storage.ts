@@ -27,7 +27,7 @@ import { mockHeaderNavConfigs } from './mock-data/header-nav'
 import type { HeaderNavConfig } from '@/types'
 import { mockCourseTransfers } from './mock-data/course-transfers'
 import { mockTransferOperationLogs } from './mock-data/transfer-logs'
-import type { CourseTransfer, TransferOperationLog } from '@/types'
+import type { CourseTransfer, TransferOperationLog, CoachChangeRecord } from '@/types'
 
 export const STORAGE_KEYS = {
   USERS: 'eduflow:users',
@@ -53,6 +53,7 @@ export const STORAGE_KEYS = {
   PAYMENT_ACCOUNTS: 'eduflow:payment-accounts',
   COURSE_TRANSFERS: 'eduflow:course-transfers',
   TRANSFER_OPERATION_LOGS: 'eduflow:transfer-operation-logs',
+  COACH_CHANGE_RECORDS: 'eduflow:coach-change-records',
 }
 
 const isBrowser = typeof window !== 'undefined'
@@ -486,3 +487,11 @@ export const getStoredTransferOperationLogs = (): TransferOperationLog[] =>
 
 export const saveStoredTransferOperationLogs = (data: TransferOperationLog[]) =>
   saveMockData(STORAGE_KEYS.TRANSFER_OPERATION_LOGS, data)
+
+// === 教练更换记录 ===
+
+export const getStoredCoachChangeRecords = (): CoachChangeRecord[] =>
+  getMockData<CoachChangeRecord[]>(STORAGE_KEYS.COACH_CHANGE_RECORDS, [])
+
+export const saveStoredCoachChangeRecords = (data: CoachChangeRecord[]) =>
+  saveMockData(STORAGE_KEYS.COACH_CHANGE_RECORDS, data)

@@ -701,3 +701,28 @@ export interface TransferOperationLog {
   detail?: string
   createdAt: Date
 }
+
+export type CoachChangeReason = 'TEMP_SUBSTITUTE' | 'COMPLAINT' | 'RESIGNATION' | 'OTHER'
+
+export const COACH_CHANGE_REASON_LABELS: Record<CoachChangeReason, string> = {
+  TEMP_SUBSTITUTE: '临时代课',
+  COMPLAINT: '原教练被投诉',
+  RESIGNATION: '原教练离职',
+  OTHER: '其它',
+}
+
+export interface CoachChangeRecord {
+  id: string
+  orderId: string
+  previousCoachId: string
+  previousCoachName: string
+  newCoachId: string
+  newCoachName: string
+  reason: CoachChangeReason
+  reasonDetail?: string
+  note?: string
+  operatorId: string
+  operatorName: string
+  operatorRole: 'MANAGER' | 'OPERATOR'
+  createdAt: Date
+}

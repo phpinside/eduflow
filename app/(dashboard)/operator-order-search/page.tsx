@@ -34,10 +34,12 @@ import {
 import {
   RefreshCw,
   ArrowRight,
+  ArrowRightLeft,
   Plus,
   Loader2,
   ShoppingCart,
   Copy,
+  History,
 } from "lucide-react"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/AuthContext"
@@ -58,10 +60,12 @@ import {
   getStoredRefundApplications,
   saveRefundApplications,
   getStoredPriceRules,
+  getStoredCoachChangeRecords,
 } from "@/lib/storage"
 import { getLatestUnitPriceByGrade, LATEST_GRADE_UNIT_PRICE } from "@/lib/course-pricing"
 import { computePricingBreakdown, resolveTrialRewardFromRules, DINGBANXUE_FEE_PER_HOUR } from "@/lib/order-pricing"
 import { RefundApplyDialog } from "@/components/refund/refund-apply-dialog"
+import { ChangeCoachDialog, CoachChangeHistoryDialog } from "@/components/order/change-coach-dialog"
 import { ORDER_STATUS_MAP, ORDER_STATUS_COLOR_MAP } from "@/lib/order-constants"
 
 const GRADES = [
@@ -121,6 +125,11 @@ export default function OperatorOrderSearchPage() {
 
   const [refundOpen, setRefundOpen] = React.useState(false)
   const [refundOrder, setRefundOrder] = React.useState<Order | null>(null)
+
+  const [changeCoachOpen, setChangeCoachOpen] = React.useState(false)
+  const [changeCoachOrder, setChangeCoachOrder] = React.useState<Order | null>(null)
+  const [coachHistoryOpen, setCoachHistoryOpen] = React.useState(false)
+  const [coachHistoryOrder, setCoachHistoryOrder] = React.useState<Order | null>(null)
 
   const [trialOpen, setTrialOpen] = React.useState(false)
   const [regularOpen, setRegularOpen] = React.useState(false)
@@ -662,6 +671,16 @@ export default function OperatorOrderSearchPage() {
                         <RefreshCw className="h-3 w-3 mr-1" />续费
                       </Button>
                     )}
+                    {order.type === OrderType.REGULAR && order.assignedTeacherId && (
+                      <Button size="sm" variant="outline" className="h-7 text-xs text-orange-700 border-orange-300 hover:bg-orange-50" onClick={() => { setChangeCoachOrder(order); setChangeCoachOpen(true) }}>
+                        <ArrowRightLeft className="h-3 w-3 mr-1" />换教练
+                      </Button>
+                    )}
+                    {order.type === OrderType.REGULAR && getStoredCoachChangeRecords().some(r => r.orderId === order.id) && (
+                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setCoachHistoryOrder(order); setCoachHistoryOpen(true) }}>
+                        <History className="h-3 w-3 mr-1" />记录
+                      </Button>
+                    )}
                     {canRefund && (
                       <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setRefundOrder(order); setRefundOpen(true) }}>
                         退费
@@ -1177,6 +1196,20 @@ export default function OperatorOrderSearchPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ChangeCoachDialog
+        open={changeCoachOpen}
+        onOpenChange={setChangeCoachOpen}
+        order={changeCoachOrder}
+        operatorUser={user ?? null}
+        operatorRole="OPERATOR"
+        onDone={reload}
+      />
+      <CoachChangeHistoryDialog
+        open={coachHistoryOpen}
+        onOpenChange={setCoachHistoryOpen}
+        order={coachHistoryOrder}
+      />
     </div>
   )
 }

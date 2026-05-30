@@ -4,14 +4,15 @@ import * as React from "react"
 import Link from "next/link"
 import { format } from "date-fns"
 import { zhCN } from "date-fns/locale"
-import { Search as SearchIcon, UserRound, BookOpen, IdCard } from "lucide-react"
+import { Search as SearchIcon, UserRound, BookOpen, IdCard, ArrowRightLeft, History } from "lucide-react"
 
-import { getStoredOrders, getStoredUsers } from "@/lib/storage"
+import { getStoredOrders, getStoredUsers, getStoredCoachChangeRecords } from "@/lib/storage"
 import { mockStudents } from "@/lib/mock-data/students"
 import type { Order, User } from "@/types"
 import { OrderType } from "@/types"
 import { ORDER_STATUS_MAP } from "@/lib/order-constants"
 import { SalesOrderPipeline } from "@/components/orders/sales-order-pipeline"
+import { ChangeCoachDialog, CoachChangeHistoryDialog } from "@/components/order/change-coach-dialog"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -54,9 +55,23 @@ export default function ManagerOrderSearchPage() {
   const [studentName, setStudentName] = React.useState("")
   const [gAccount, setGAccount] = React.useState("")
 
+  const [changeCoachOrder, setChangeCoachOrder] = React.useState<Order | null>(null)
+  const [changeCoachOpen, setChangeCoachOpen] = React.useState(false)
+  const [historyOrder, setHistoryOrder] = React.useState<Order | null>(null)
+  const [historyOpen, setHistoryOpen] = React.useState(false)
+  const [loggedInUser, setLoggedInUser] = React.useState<User | null>(null)
+
   React.useEffect(() => {
     setOrders(getStoredOrders())
     setUsers(getStoredUsers())
+    const raw = typeof window !== "undefined" ? localStorage.getItem("eduflow:session_user") : null
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw)
+        const all = getStoredUsers()
+        setLoggedInUser(all.find(u => u.id === parsed.id) ?? parsed ?? null)
+      } catch { setLoggedInUser(null) }
+    }
   }, [])
 
   const subjectOptions = React.useMemo(() => {
@@ -87,6 +102,14 @@ export default function ManagerOrderSearchPage() {
       })
       .sort((a, b) => new Date(b.order.createdAt).getTime() - new Date(a.order.createdAt).getTime())
   }, [orders, subject, type, studentName, gAccount])
+
+  const reload = () => {
+    setOrders(getStoredOrders())
+  }
+
+  const hasCoachChangeHistory = React.useCallback((orderId: string) => {
+    return getStoredCoachChangeRecords().some(r => r.orderId === orderId)
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -198,6 +221,21 @@ export default function ManagerOrderSearchPage() {
                       <Button variant="outline" size="sm" asChild>
                         <Link href={`/orders/${order.id}`}>查看订单详情</Link>
                       </Button>
+                      {order.type === OrderType.REGULAR && order.assignedTeacherId && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-orange-700 border-orange-300 hover:bg-orange-50"
+                          onClick={() => { setChangeCoachOrder(order); setChangeCoachOpen(true) }}
+                        >
+                          <ArrowRightLeft className="h-3.5 w-3.5 mr-1" />更换教练
+                        </Button>
+                      )}
+                      {order.type === OrderType.REGULAR && hasCoachChangeHistory(order.id) && (
+                        <Button variant="ghost" size="sm" onClick={() => { setHistoryOrder(order); setHistoryOpen(true) }}>
+                          <History className="h-3.5 w-3.5 mr-1" />更换记录
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardHeader>
@@ -267,6 +305,20 @@ export default function ManagerOrderSearchPage() {
           })}
         </div>
       )}
+
+      <ChangeCoachDialog
+        open={changeCoachOpen}
+        onOpenChange={setChangeCoachOpen}
+        order={changeCoachOrder}
+        operatorUser={loggedInUser}
+        operatorRole="MANAGER"
+        onDone={reload}
+      />
+      <CoachChangeHistoryDialog
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        order={historyOrder}
+      />
     </div>
   )
 }

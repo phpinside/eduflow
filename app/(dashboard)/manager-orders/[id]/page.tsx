@@ -24,6 +24,8 @@ import {
   CreditCard,
   ChevronLeft,
   ChevronRight,
+  ArrowRightLeft,
+  History,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -60,6 +62,7 @@ import {
   saveRefundApplications,
   getStoredRefundOperationLogs,
   saveRefundOperationLogs,
+  getStoredCoachChangeRecords,
 } from "@/lib/storage"
 import type { Order } from "@/types"
 import { OrderStatus, OrderType, Role, RefundApplication, RefundApplicationStatus } from "@/types"
@@ -70,6 +73,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import { logOrderOperation, logRefundOperation } from "@/lib/operation-log-helper"
 import { OperationAction } from "@/types/operation-log"
 import { computePricingBreakdown, resolveTrialRewardFromRules } from "@/lib/order-pricing"
+import { ChangeCoachDialog, CoachChangeHistoryDialog } from "@/components/order/change-coach-dialog"
 import {
   createRefundLog,
   findActiveRefundApplication,
@@ -347,6 +351,10 @@ export default function ManagerOrderDetailsPage() {
   // 相关订单分页状态
   const [relatedOrdersPage, setRelatedOrdersPage] = React.useState(1)
   const RELATED_ORDERS_PER_PAGE = 5
+
+  // 更换教练状态
+  const [isChangeCoachOpen, setIsChangeCoachOpen] = React.useState(false)
+  const [isCoachHistoryOpen, setIsCoachHistoryOpen] = React.useState(false)
 
   const student = React.useMemo(
     () => (order ? mockStudents.find((s) => s.id === order.studentId) : null),
@@ -960,6 +968,24 @@ export default function ManagerOrderDetailsPage() {
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               重新进入接单中心
+            </Button>
+          )}
+
+          {order.type === OrderType.REGULAR && order.assignedTeacherId && (
+            <Button
+              variant="outline"
+              className="text-orange-700 border-orange-300 hover:bg-orange-50"
+              onClick={() => setIsChangeCoachOpen(true)}
+            >
+              <ArrowRightLeft className="mr-2 h-4 w-4" />
+              更换教练
+            </Button>
+          )}
+
+          {order.type === OrderType.REGULAR && getStoredCoachChangeRecords().some(r => r.orderId === order.id) && (
+            <Button variant="ghost" onClick={() => setIsCoachHistoryOpen(true)}>
+              <History className="mr-2 h-4 w-4" />
+              更换记录
             </Button>
           )}
         </div>
@@ -2547,6 +2573,27 @@ export default function ManagerOrderDetailsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 更换教练对话框 */}
+      <ChangeCoachDialog
+        open={isChangeCoachOpen}
+        onOpenChange={setIsChangeCoachOpen}
+        order={order ?? null}
+        operatorUser={user ?? null}
+        operatorRole="OPERATOR"
+        onDone={() => {
+          const fresh = getStoredOrders()
+          const updated = fresh.find(o => o.id === order?.id)
+          if (updated) setOrder(updated)
+        }}
+      />
+
+      {/* 更换教练历史记录 */}
+      <CoachChangeHistoryDialog
+        open={isCoachHistoryOpen}
+        onOpenChange={setIsCoachHistoryOpen}
+        order={order ?? null}
+      />
     </div>
   )
 }
