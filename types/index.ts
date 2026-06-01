@@ -129,6 +129,12 @@ export interface Order {
   conversionRewardFee?: number
   /** 转正红包支付方式：OFFLINE(线下已付) / BUNDLED(与正课费用合并支付) */
   conversionRewardPaidMode?: 'OFFLINE' | 'BUNDLED'
+  /** 转正红包具体支付渠道（仅试课转正时填写） */
+  conversionRewardPaidMethod?: 'ALIPAY' | 'WECHAT' | 'OFFLINE_TRANSFER'
+  /** 转正红包归属教练ID */
+  conversionRewardCoachId?: string
+  /** 转正红包归属教练姓名 */
+  conversionRewardCoachName?: string
   /** 鼎伴学代收费用是否并入本次支付：默认视为 true（与 needsDingbanxueRecharge 搭配使用） */
   includeDingbanxueFeeInPayment?: boolean
 

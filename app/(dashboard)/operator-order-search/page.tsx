@@ -51,6 +51,7 @@ import {
   Student,
   User,
   RefundApplication,
+  Role,
 } from "@/types"
 import {
   getStoredOrders,
@@ -59,11 +60,10 @@ import {
   getStoredUsers,
   getStoredRefundApplications,
   saveRefundApplications,
-  getStoredPriceRules,
   getStoredCoachChangeRecords,
 } from "@/lib/storage"
 import { getLatestUnitPriceByGrade, LATEST_GRADE_UNIT_PRICE } from "@/lib/course-pricing"
-import { computePricingBreakdown, resolveTrialRewardFromRules, DINGBANXUE_FEE_PER_HOUR } from "@/lib/order-pricing"
+import { computePricingBreakdown, DINGBANXUE_FEE_PER_HOUR } from "@/lib/order-pricing"
 import { RefundApplyDialog } from "@/components/refund/refund-apply-dialog"
 import { ChangeCoachDialog, CoachChangeHistoryDialog } from "@/components/order/change-coach-dialog"
 import { ORDER_STATUS_MAP, ORDER_STATUS_COLOR_MAP } from "@/lib/order-constants"
@@ -95,6 +95,16 @@ const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
 })
 
 const PAGE_SIZE = 10
+
+const CONVERSION_REWARD_BY_GRADE: Record<string, number> = {
+  "四年级": 100, "五年级": 100, "六年级": 100,
+  "初一": 150, "初二": 150, "初三": 150,
+  "高一": 200, "高二": 200, "高三": 200,
+}
+
+function getConversionRewardFee(grade: string): number {
+  return CONVERSION_REWARD_BY_GRADE[grade] ?? 100
+}
 
 interface WeeklyScheduleItem {
   day: string
@@ -189,6 +199,9 @@ export default function OperatorOrderSearchPage() {
   })
   const [regularWeeklySchedule, setRegularWeeklySchedule] = React.useState<WeeklyScheduleItem[]>([])
   const [includeConversionReward, setIncludeConversionReward] = React.useState(false)
+  const [conversionRewardCoachId, setConversionRewardCoachId] = React.useState("")
+  const [conversionRewardCoachName, setConversionRewardCoachName] = React.useState("")
+  const [conversionRewardCoachSearch, setConversionRewardCoachSearch] = React.useState("")
 
   const reload = React.useCallback(() => {
     setOrders(getStoredOrders())
@@ -361,6 +374,10 @@ export default function OperatorOrderSearchPage() {
       toast.error("不代充鼎伴学费用时，校区名称/校区账号/学生账号为必填")
       return
     }
+    if (regularForm.fromTrialConversion && !conversionRewardCoachId) {
+      toast.error("请选择转正红包归属教练")
+      return
+    }
     setIsSubmitting(true)
 
     const now = new Date()
@@ -376,9 +393,8 @@ export default function OperatorOrderSearchPage() {
       regularForm.gender,
     )
 
-    const rules = getStoredPriceRules()
     const conversionRewardFee = regularForm.fromTrialConversion
-      ? resolveTrialRewardFromRules(rules, regularForm.subject, regularForm.grade)
+      ? getConversionRewardFee(regularForm.grade)
       : 0
 
     const pricing = computePricingBreakdown({
@@ -388,7 +404,7 @@ export default function OperatorOrderSearchPage() {
       courseFee,
       fromTrialConversion: regularForm.fromTrialConversion,
       conversionRewardFee,
-      includeConversionRewardInPayment: includeConversionReward,
+      includeConversionRewardInPayment: regularForm.fromTrialConversion && includeConversionReward,
       dingbanxueFeeApplicable: true,
       includeDingbanxueFeeInPayment: regularForm.needsDingbanxueRecharge,
     })
@@ -418,6 +434,8 @@ export default function OperatorOrderSearchPage() {
       includeDingbanxueFeeInPayment: regularForm.needsDingbanxueRecharge,
       conversionRewardFee: regularForm.fromTrialConversion && includeConversionReward ? conversionRewardFee : undefined,
       conversionRewardPaidMode: regularForm.fromTrialConversion && includeConversionReward ? "BUNDLED" : undefined,
+      conversionRewardCoachId: regularForm.fromTrialConversion ? conversionRewardCoachId || undefined : undefined,
+      conversionRewardCoachName: regularForm.fromTrialConversion ? conversionRewardCoachName || undefined : undefined,
       weeklySchedule: regularForm.schedulingPattern === "WEEKLY" && regularWeeklySchedule.length > 0 ? regularWeeklySchedule : undefined,
       firstLessonTime: regularForm.firstClassDate ? `${regularForm.firstClassDate} ${regularForm.firstClassStartTime || ""}-${regularForm.firstClassEndTime || ""}` : undefined,
       remarks: regularForm.remarks || undefined,
@@ -445,6 +463,9 @@ export default function OperatorOrderSearchPage() {
     setRegularOpen(false)
     setRegularWeeklySchedule([])
     setIncludeConversionReward(false)
+    setConversionRewardCoachId("")
+    setConversionRewardCoachName("")
+    setConversionRewardCoachSearch("")
     setRegularForm({
       studentName: "", gender: "男", subject: "", grade: "",
       region: "", school: "",
@@ -476,14 +497,20 @@ export default function OperatorOrderSearchPage() {
   const tf = (field: keyof typeof trialForm, value: string) => setTrialForm(f => ({ ...f, [field]: value }))
   const rf = (field: keyof typeof regularForm, value: string | number | boolean) => setRegularForm(f => ({ ...f, [field]: value }))
 
+  const tutors = React.useMemo(() => users.filter(u => u.roles?.includes(Role.TUTOR)), [users])
+  const filteredCoachOptions = React.useMemo(() => {
+    if (!conversionRewardCoachSearch.trim()) return tutors
+    const q = conversionRewardCoachSearch.toLowerCase()
+    return tutors.filter(t => t.name.toLowerCase().includes(q))
+  }, [tutors, conversionRewardCoachSearch])
+
   // ====== Regular pricing computed ======
   const regPricePerHour = regularForm.grade ? getLatestUnitPriceByGrade(regularForm.grade) : 0
   const regTotalCost = regPricePerHour * regularForm.totalHours
   const regDingbanxueDeduction = regularForm.needsDingbanxueRecharge ? 0 : DINGBANXUE_FEE_PER_HOUR * regularForm.totalHours
   const regCourseFee = Math.max(0, regTotalCost - regDingbanxueDeduction)
   const regDingbanxueFee = DINGBANXUE_FEE_PER_HOUR * regularForm.totalHours
-  const regRules = getStoredPriceRules()
-  const regConversionRewardFee = regularForm.fromTrialConversion ? resolveTrialRewardFromRules(regRules, regularForm.subject, regularForm.grade) : 0
+  const regConversionRewardFee = regularForm.fromTrialConversion ? getConversionRewardFee(regularForm.grade) : 0
   const regPricing = computePricingBreakdown({
     subject: regularForm.subject,
     grade: regularForm.grade,
@@ -491,7 +518,7 @@ export default function OperatorOrderSearchPage() {
     courseFee: regCourseFee,
     fromTrialConversion: regularForm.fromTrialConversion,
     conversionRewardFee: regConversionRewardFee,
-    includeConversionRewardInPayment: includeConversionReward,
+    includeConversionRewardInPayment: regularForm.fromTrialConversion && includeConversionReward,
     dingbanxueFeeApplicable: true,
     includeDingbanxueFeeInPayment: regularForm.needsDingbanxueRecharge,
   })
@@ -632,6 +659,7 @@ export default function OperatorOrderSearchPage() {
                     {isTrialCompleted && (
                       <Button size="sm" variant="default" className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700" onClick={() => {
                         const student = getStudent(order.studentId)
+                        const trialCoach = users.find(u => u.id === order.assignedTeacherId)
                         setRegularForm({
                           studentName: sn,
                           gender: student?.gender ?? "男",
@@ -661,6 +689,7 @@ export default function OperatorOrderSearchPage() {
                         })
                         setRegularWeeklySchedule([])
                         setIncludeConversionReward(false)
+                        setConversionRewardCoachSearch(trialCoach?.name ?? "")
                         setRegularOpen(true)
                       }}>
                         <ArrowRight className="h-3 w-3 mr-1" />转正课
@@ -1109,21 +1138,78 @@ export default function OperatorOrderSearchPage() {
             </div>
 
             {/* Conversion Reward (only for trial conversion) */}
-            {regularForm.fromTrialConversion && regConversionRewardFee > 0 && (
+            {regularForm.fromTrialConversion && (
               <div className="space-y-4 border-t pt-4">
-                <h3 className="text-sm font-medium text-muted-foreground">转正红包</h3>
-                <div className="flex items-start gap-3 rounded-md border p-3">
-                  <Checkbox
-                    checked={includeConversionReward}
-                    onCheckedChange={(v) => setIncludeConversionReward(Boolean(v))}
-                  />
-                  <div className="space-y-1 text-sm">
-                    <span className="font-medium">转正红包费用与本次一起支付（¥{regConversionRewardFee}）</span>
-                    <p className="text-muted-foreground text-xs">
-                      试课转正红包金额为 ¥{regConversionRewardFee}，勾选后将并入本次订单费用。
-                    </p>
-                  </div>
+                <h3 className="text-sm font-medium text-muted-foreground">转正红包（试课转正专属）</h3>
+
+                <div className="flex items-center justify-between rounded-md border p-3 bg-muted/30">
+                  <span className="text-sm">转正红包金额（按年级 {regularForm.grade} 自动带出）</span>
+                  <span className="font-bold text-lg text-primary">¥{regConversionRewardFee}</span>
                 </div>
+
+                <div className="space-y-2">
+                  <Label>转正红包归属教练 *</Label>
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="输入教练姓名搜索..."
+                      value={conversionRewardCoachSearch}
+                      onChange={e => {
+                        setConversionRewardCoachSearch(e.target.value)
+                        if (conversionRewardCoachId) {
+                          setConversionRewardCoachId("")
+                          setConversionRewardCoachName("")
+                        }
+                      }}
+                    />
+                    {conversionRewardCoachSearch && !conversionRewardCoachId && (
+                      <div className="border rounded-md max-h-32 overflow-y-auto">
+                        {filteredCoachOptions.length === 0 ? (
+                          <div className="px-3 py-2 text-sm text-muted-foreground">无匹配教练</div>
+                        ) : (
+                          filteredCoachOptions.map(t => (
+                            <button
+                              key={t.id}
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex justify-between"
+                              onClick={() => {
+                                setConversionRewardCoachId(t.id)
+                                setConversionRewardCoachName(t.name)
+                                setConversionRewardCoachSearch(t.name)
+                              }}
+                            >
+                              <span>{t.name}</span>
+                              <span className="text-muted-foreground">{t.phone}</span>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                    {conversionRewardCoachId && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Badge variant="secondary">已选择：{conversionRewardCoachName}</Badge>
+                        <button className="text-muted-foreground hover:text-foreground text-xs" onClick={() => {
+                          setConversionRewardCoachId("")
+                          setConversionRewardCoachName("")
+                          setConversionRewardCoachSearch("")
+                        }}>清除</button>
+                      </div>
+                    )}
+                   </div>
+                 </div>
+
+                {regConversionRewardFee > 0 && (
+                  <div className="flex items-start gap-3 rounded-md border p-3">
+                    <Checkbox
+                      checked={includeConversionReward}
+                      onCheckedChange={(v) => setIncludeConversionReward(Boolean(v))}
+                    />
+                    <div className="space-y-1 text-sm">
+                      <span className="font-medium">转正红包纳入线上实付（¥{regConversionRewardFee}）</span>
+                      <p className="text-muted-foreground text-xs">
+                        勾选后红包金额 ¥{regConversionRewardFee} 计入应付总计，不勾选则视为线下单独结算。
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1165,10 +1251,13 @@ export default function OperatorOrderSearchPage() {
                   <span className="text-muted-foreground">课时费用</span>
                   <span className="font-medium">¥{regCourseFee.toLocaleString()}</span>
                 </div>
-                {regularForm.fromTrialConversion && includeConversionReward && regConversionRewardFee > 0 && (
+                {regularForm.fromTrialConversion && regConversionRewardFee > 0 && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">转正红包</span>
-                    <span className="font-medium">¥{regConversionRewardFee}</span>
+                    <span className="font-medium">
+                      ¥{regConversionRewardFee}
+                      {!includeConversionReward && <span className="text-muted-foreground text-xs ml-1">（未纳入线上实付）</span>}
+                    </span>
                   </div>
                 )}
                 <div className="flex justify-between pt-2 border-t">
