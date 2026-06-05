@@ -26,6 +26,8 @@ import {
   ChevronRight,
   ArrowRightLeft,
   History,
+  Sparkles,
+  RefreshCw,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -74,6 +76,13 @@ import { logOrderOperation, logRefundOperation } from "@/lib/operation-log-helpe
 import { OperationAction } from "@/types/operation-log"
 import { computePricingBreakdown, resolveTrialRewardFromRules } from "@/lib/order-pricing"
 import { ChangeCoachDialog, CoachChangeHistoryDialog } from "@/components/order/change-coach-dialog"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { TutorRecommendationList } from "@/components/order/tutor-recommendation-card"
+import {
+  getMockRecommendations,
+  getMockApplicantScores,
+} from "@/lib/tutor-recommendation-api"
+import type { TutorCandidate } from "@/types/tutor-recommendation"
 import {
   createRefundLog,
   findActiveRefundApplication,
@@ -356,6 +365,12 @@ export default function ManagerOrderDetailsPage() {
   const [isChangeCoachOpen, setIsChangeCoachOpen] = React.useState(false)
   const [isCoachHistoryOpen, setIsCoachHistoryOpen] = React.useState(false)
 
+  // 教练推荐 & Tab 状态
+  const [tutorTab, setTutorTab] = React.useState<"applicants" | "recommendations">("applicants")
+  const [applicantScores, setApplicantScores] = React.useState<TutorCandidate[]>([])
+  const [recommendedTutors, setRecommendedTutors] = React.useState<TutorCandidate[]>([])
+  const [tutorDataLoading, setTutorDataLoading] = React.useState(false)
+
   const student = React.useMemo(
     () => (order ? mockStudents.find((s) => s.id === order.studentId) : null),
     [order]
@@ -393,6 +408,40 @@ export default function ManagerOrderDetailsPage() {
         : null,
     [order]
   )
+
+  const assignedTutorNumericId = React.useMemo(() => {
+    if (!order?.assignedTeacherId) return null
+    const m = order.assignedTeacherId.match(/tutor-(\d+)/)
+    return m ? parseInt(m[1], 10) : null
+  }, [order])
+
+  React.useEffect(() => {
+    if (!order?.id || !storageReady) return
+    setTutorDataLoading(true)
+    try {
+      const recResp = getMockRecommendations(order.id)
+      setRecommendedTutors(recResp.candidates)
+
+      if (order.applicantIds && order.applicantIds.length > 0) {
+        const tutorIds = order.applicantIds
+          .map((aid) => {
+            const m = aid.match(/tutor-(\d+)/)
+            return m ? parseInt(m[1], 10) : null
+          })
+          .filter((id): id is number => id != null)
+        if (tutorIds.length > 0) {
+          const appResp = getMockApplicantScores(order.id, tutorIds)
+          setApplicantScores(appResp.candidates)
+        } else {
+          setApplicantScores([])
+        }
+      } else {
+        setApplicantScores([])
+      }
+    } finally {
+      setTutorDataLoading(false)
+    }
+  }, [order?.id, order?.applicantIds, storageReady])
 
   if (!storageReady) {
     return (
@@ -1177,107 +1226,150 @@ export default function ManagerOrderDetailsPage() {
             </CardContent>
           </Card>
 
-          {/* 申请接课老师名单 */}
+          {/* 教练选派 */}
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-3">
               <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-base">
                 <span className="flex items-center gap-2">
-                  <Users className="h-5 w-5 shrink-0" /> 申请接课老师名单
+                  <Users className="h-5 w-5 shrink-0" /> 教练选派
                 </span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 shrink-0"
-                  onClick={handleOpenAddApplicant}
-                >
-                  <UserPlus className="h-3.5 w-3.5" />
-                  手动添加老师
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 shrink-0"
+                    onClick={handleOpenAddApplicant}
+                  >
+                    <UserPlus className="h-3.5 w-3.5" />
+                    手动添加老师
+                  </Button>
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {applicants.length > 0 ? (
-                <div className="space-y-4">
-                  {applicants.map((applicant) => {
-                    const isAssigned =
-                      order.assignedTeacherId === applicant.id
-                    return (
-                      <div
-                        key={applicant.id}
-                        className={`flex flex-col gap-3 p-3 rounded-lg border ${
-                          isAssigned
-                            ? "bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800"
-                            : "bg-card"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <Avatar>
-                              <AvatarImage src={applicant.avatar} />
-                              <AvatarFallback>
-                                {applicant.name[0]}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="font-medium flex items-center gap-2">
-                                {applicant.name}
-                                {isAssigned && (
-                                  <Badge className="bg-green-600 hover:bg-green-700">
-                                    已分配
-                                  </Badge>
+              <Tabs value={tutorTab} onValueChange={(v) => setTutorTab(v as "applicants" | "recommendations")}>
+                <TabsList variant="line" className="mb-4">
+                  <TabsTrigger value="applicants" className="gap-1.5">
+                    <Users className="h-3.5 w-3.5" />
+                    申请接课老师名单
+                    {applicantScores.length > 0 && (
+                      <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">
+                        {applicantScores.length}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger value="recommendations" className="gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    系统推荐教练
+                    {recommendedTutors.length > 0 && (
+                      <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">
+                        {recommendedTutors.length}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="applicants">
+                  {tutorDataLoading ? (
+                    <div className="flex items-center justify-center py-8 text-muted-foreground text-sm gap-2">
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      加载教练评分数据…
+                    </div>
+                  ) : applicantScores.length > 0 ? (
+                    <TutorRecommendationList
+                      candidates={applicantScores}
+                      assignedTutorId={assignedTutorNumericId}
+                      canAssign={order.status === OrderStatus.PENDING}
+                      onAssign={(tutorId) => {
+                        const uid = `user-tutor-${tutorId}`
+                        handleAssign(uid)
+                      }}
+                      emptyText="暂无老师申请"
+                    />
+                  ) : applicants.length > 0 ? (
+                    <div className="space-y-4">
+                      {applicants.map((applicant) => {
+                        const isAssigned = order.assignedTeacherId === applicant.id
+                        return (
+                          <div
+                            key={applicant.id}
+                            className={`flex flex-col gap-3 p-3 rounded-lg border ${
+                              isAssigned
+                                ? "bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800"
+                                : "bg-card"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <Avatar>
+                                  <AvatarImage src={applicant.avatar} />
+                                  <AvatarFallback>{applicant.name[0]}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <div className="font-medium flex items-center gap-2">
+                                    {applicant.name}
+                                    {isAssigned && (
+                                      <Badge className="bg-green-600 hover:bg-green-700">
+                                        已分配
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {applicant.phone}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                {!isAssigned && order.status === OrderStatus.PENDING && (
+                                  <Button size="sm" onClick={() => handleAssign(applicant.id)}>
+                                    选择匹配
+                                  </Button>
                                 )}
                               </div>
-                              <div className="text-xs text-muted-foreground">
-                                {applicant.phone}
-                              </div>
                             </div>
                           </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6 text-muted-foreground">
+                      暂无老师申请
+                    </div>
+                  )}
+                </TabsContent>
 
-                          <div className="flex items-center gap-4">
-                            {!isAssigned &&
-                              order.status === OrderStatus.PENDING && (
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleAssign(applicant.id)}
-                                >
-                                  选择匹配
-                                </Button>
-                              )}
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-3 pt-2 border-t">
-                          <div className="text-center">
-                            <div className="text-xs text-muted-foreground mb-1">
-                              试课成功率
-                            </div>
-                            <div className="text-sm font-medium">
-                              50% (10/20)
-                            </div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-xs text-muted-foreground mb-1">
-                              正课学员数
-                            </div>
-                            <div className="text-sm font-medium">8</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-xs text-muted-foreground mb-1">
-                              累计课时
-                            </div>
-                            <div className="text-sm font-medium">156</div>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-6 text-muted-foreground">
-                  暂无老师申请
-                </div>
-              )}
+                <TabsContent value="recommendations">
+                  <div className="mb-3 p-2.5 rounded-md bg-muted/50 border text-[11px] text-muted-foreground leading-relaxed">
+                    <div className="flex items-start gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-500" />
+                      <span>
+                        以下教练由系统推荐引擎基于规则评分 + 精排模型综合排序，仅供排课参考，不影响派单流程。
+                      </span>
+                    </div>
+                  </div>
+                  {tutorDataLoading ? (
+                    <div className="flex items-center justify-center py-8 text-muted-foreground text-sm gap-2">
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      加载推荐数据…
+                    </div>
+                  ) : (
+                    <TutorRecommendationList
+                      candidates={recommendedTutors}
+                      assignedTutorId={assignedTutorNumericId}
+                      canAssign={order.status === OrderStatus.PENDING}
+                      onAssign={(tutorId) => {
+                        const uid = `user-tutor-${tutorId}`
+                        if (!order.applicantIds?.includes(uid)) {
+                          handleAddApplicant(uid)
+                        }
+                        handleAssign(uid)
+                      }}
+                      emptyText="暂无推荐教练"
+                    />
+                  )}
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
 
