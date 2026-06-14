@@ -9,9 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { toast } from "sonner"
 import { Upload, Camera } from "lucide-react"
-import { Role, BranchCompany } from "@/types"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { getStoredBranchCompanies } from "@/lib/storage"
+import { Role } from "@/types"
 
 const DEFAULT_AVATAR = "https://api.dicebear.com/7.x/notionists/svg?seed=default"
 
@@ -22,7 +20,6 @@ export default function ProfilePage() {
     name: user?.name || "",
     campusName: user?.campusName || "",
     campusAccount: user?.campusAccount || "",
-    branchCompanyId: user?.branchCompanyId || "",
     tutorId: user?.tutorId || "",
   })
   const [passwords, setPasswords] = useState({ newPassword: "", confirmPassword: "" })
@@ -31,11 +28,6 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const avatarInputRef = useRef<HTMLInputElement>(null)
   const qrFileInputRef = useRef<HTMLInputElement>(null)
-  const [branchCompanies, setBranchCompanies] = useState<BranchCompany[]>([])
-
-  useEffect(() => {
-    setBranchCompanies(getStoredBranchCompanies().filter(c => c.enabled))
-  }, [])
 
   if (!user) return null
 
@@ -100,7 +92,6 @@ export default function ProfilePage() {
         name: formData.name,
         campusName: formData.campusName,
         campusAccount: formData.campusAccount,
-        branchCompanyId: formData.branchCompanyId,
         avatar: selectedAvatar,
         wechatQrCode: qrCode || undefined,
         tutorId: formData.tutorId || undefined,
@@ -214,26 +205,6 @@ export default function ProfilePage() {
             {/* Campus info for SALES role */}
             {user?.roles.includes(Role.SALES) && (
               <>
-                {/* Branch Company Selection */}
-                <div className="space-y-2">
-                  <Label>所属鼎伴学分公司</Label>
-                  <Select
-                    value={formData.branchCompanyId}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, branchCompanyId: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="请选择所属分公司" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {branchCompanies.map(company => (
-                        <SelectItem key={company.id} value={company.id}>
-                          {company.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="campusName">9800校区名称</Label>

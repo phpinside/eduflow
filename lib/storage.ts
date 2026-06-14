@@ -8,7 +8,7 @@ import { mockSubjects } from './mock-data/subjects'
 import { mockOrderAccordRecords } from './mock-data/order-accord'
 import { mockTeacherAccordRecords } from './mock-data/teacher-accord'
 import { mockFinancialRecords } from './mock-data/financial-records'
-import type { Order, OrderStatus, Student, IncomeRecord, ManagementIncomeDetail } from '@/types'
+import type { Order, Student, IncomeRecord, ManagementIncomeDetail } from '@/types'
 import { OrderStatus as OrderStatusEnum } from '@/types'
 import { mockRefundApplications } from './mock-data/refund-applications'
 import { mockRefundOperationLogs } from './mock-data/refund-logs'
@@ -24,7 +24,8 @@ import { mockManagementIncomeDetails } from './mock-data/management-income'
 import type { TutorCreditRule, TutorCreditLog } from '@/types'
 import { initializeSiteMessages } from '@/lib/site-messages'
 import { mockHeaderNavConfigs } from './mock-data/header-nav'
-import type { HeaderNavConfig } from '@/types'
+import { mockStudentProfiles, mockWorkbenchTasks, mockWorkbenchTaskTypes } from './mock-data/workbench'
+import type { HeaderNavConfig, StudentProfile, User, WorkbenchTask, WorkbenchTaskType } from '@/types'
 
 export const STORAGE_KEYS = {
   USERS: 'eduflow:users',
@@ -48,6 +49,9 @@ export const STORAGE_KEYS = {
   MANAGEMENT_INCOME: 'eduflow:management-income',
   HEADER_NAV_CONFIGS: 'eduflow:header-nav-configs',
   PAYMENT_ACCOUNTS: 'eduflow:payment-accounts',
+  WORKBENCH_TASK_TYPES: 'eduflow:task-types',
+  WORKBENCH_TASKS: 'eduflow:workbench-tasks',
+  STUDENT_PROFILES: 'eduflow:student-profiles',
 }
 
 const isBrowser = typeof window !== 'undefined'
@@ -91,6 +95,18 @@ export const getStoredLessons = () => getMockData(STORAGE_KEYS.LESSONS, mockLess
 export const getStoredIncomeRecords = () => getMockData(STORAGE_KEYS.INCOME_RECORDS, mockIncomeRecords)
 export const getStoredTutorIncomeSummary = () => getMockData(STORAGE_KEYS.TUTOR_INCOME_SUMMARY, mockTutorIncomeSummary)
 export const getStoredSubjects = () => getMockData(STORAGE_KEYS.SUBJECTS, mockSubjects)
+export const getStoredWorkbenchTaskTypes = (): WorkbenchTaskType[] =>
+  getMockData(STORAGE_KEYS.WORKBENCH_TASK_TYPES, mockWorkbenchTaskTypes)
+export const saveStoredWorkbenchTaskTypes = (data: WorkbenchTaskType[]) =>
+  saveMockData(STORAGE_KEYS.WORKBENCH_TASK_TYPES, data)
+export const getStoredWorkbenchTasks = (): WorkbenchTask[] =>
+  getMockData(STORAGE_KEYS.WORKBENCH_TASKS, mockWorkbenchTasks)
+export const saveStoredWorkbenchTasks = (data: WorkbenchTask[]) =>
+  saveMockData(STORAGE_KEYS.WORKBENCH_TASKS, data)
+export const getStoredStudentProfiles = (): StudentProfile[] =>
+  getMockData(STORAGE_KEYS.STUDENT_PROFILES, mockStudentProfiles)
+export const saveStoredStudentProfiles = (data: StudentProfile[]) =>
+  saveMockData(STORAGE_KEYS.STUDENT_PROFILES, data)
 export const getStoredPriceRules = (): PriceRule[] =>
   getMockData(STORAGE_KEYS.PRICE_RULES, mockPriceRules)
 export const saveStoredPriceRules = (rules: PriceRule[]) =>
@@ -210,7 +226,7 @@ export const initializeMockData = () => {
                 return new Date(value)
             }
             return value
-        }) as any[]
+        }) as User[]
         
         const storedIds = new Set(storedUsers.map(u => u.id))
         const newUsers = mockUsers.filter(u => !storedIds.has(u.id))
@@ -306,6 +322,9 @@ export const initializeMockData = () => {
   if (!localStorage.getItem(STORAGE_KEYS.OPERATION_LOGS)) saveMockData(STORAGE_KEYS.OPERATION_LOGS, mockOperationLogs)
   if (!localStorage.getItem(STORAGE_KEYS.TUTOR_CREDIT_RULES)) saveMockData(STORAGE_KEYS.TUTOR_CREDIT_RULES, mockTutorCreditRules)
   if (!localStorage.getItem(STORAGE_KEYS.TUTOR_CREDIT_LOGS)) saveMockData(STORAGE_KEYS.TUTOR_CREDIT_LOGS, mockTutorCreditLogs)
+  mergeMockArrayById(STORAGE_KEYS.WORKBENCH_TASK_TYPES, mockWorkbenchTaskTypes, 'task types')
+  mergeMockArrayById(STORAGE_KEYS.WORKBENCH_TASKS, mockWorkbenchTasks, 'workbench tasks')
+  mergeMockArrayById(STORAGE_KEYS.STUDENT_PROFILES, mockStudentProfiles, 'student profiles')
   // Management income: merge new records by id
   const storedMgmtStr = localStorage.getItem(STORAGE_KEYS.MANAGEMENT_INCOME)
   if (!storedMgmtStr) {
@@ -328,8 +347,33 @@ export const initializeMockData = () => {
       console.error('Failed to merge management income', e)
     }
   }
-  if (!localStorage.getItem(STORAGE_KEYS.HEADER_NAV_CONFIGS)) saveMockData(STORAGE_KEYS.HEADER_NAV_CONFIGS, mockHeaderNavConfigs)
+  mergeMockArrayById(STORAGE_KEYS.HEADER_NAV_CONFIGS, mockHeaderNavConfigs, 'header nav configs')
   initializeSiteMessages()
+}
+
+function mergeMockArrayById<T extends { id: string }>(key: string, defaultData: T[], label: string) {
+  const storedStr = localStorage.getItem(key)
+  if (!storedStr) {
+    saveMockData(key, defaultData)
+    return
+  }
+
+  try {
+    const stored = JSON.parse(storedStr, (parseKey, value) => {
+      if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
+        return new Date(value)
+      }
+      return value
+    }) as T[]
+    const storedIds = new Set(stored.map((item) => item.id))
+    const newItems = defaultData.filter((item) => !storedIds.has(item.id))
+    if (newItems.length > 0) {
+      console.log(`Merging ${newItems.length} new ${label} into storage`)
+      saveMockData(key, [...stored, ...newItems])
+    }
+  } catch (e) {
+    console.error(`Failed to merge ${label}`, e)
+  }
 }
 
 // === 伴学信用分规则 ===

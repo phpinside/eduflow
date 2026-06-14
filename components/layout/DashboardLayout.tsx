@@ -154,6 +154,12 @@ const navItems: NavItem[] = [
     roles: [Role.OPERATOR],
   },
   {
+    title: "任务类型配置",
+    href: "/task-settings",
+    icon: ClipboardCheck,
+    roles: [Role.OPERATOR, Role.ADMIN]
+  },
+  {
     title: "订单管理",
     href: "/orders",
     icon: ClipboardList,

@@ -39,6 +39,7 @@ export const mockUsers: User[] = [
     wechatQrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=wxid_sales_demo1',
     branchCompanyId: 'branch-1',
     branchCompanyName: '上海鼎伴学分公司',
+    salesLevel: '二星',
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01')
   },
@@ -52,6 +53,7 @@ export const mockUsers: User[] = [
     wechatQrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=wxid_sales1',
     branchCompanyId: 'branch-2',
     branchCompanyName: '北京鼎伴学分公司',
+    salesLevel: '三星',
     createdAt: new Date('2023-01-01'),
     updatedAt: new Date('2023-01-01')
   },
@@ -65,6 +67,7 @@ export const mockUsers: User[] = [
     wechatQrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=wxid_sales2',
     branchCompanyId: 'branch-1',
     branchCompanyName: '上海鼎伴学分公司',
+    salesLevel: '二星',
     createdAt: new Date('2023-01-01'),
     updatedAt: new Date('2023-01-01')
   },
@@ -78,6 +81,7 @@ export const mockUsers: User[] = [
     wechatQrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=wxid_sales3',
     branchCompanyId: 'branch-3',
     branchCompanyName: '广州鼎伴学分公司',
+    salesLevel: '一星',
     createdAt: new Date('2023-01-01'),
     updatedAt: new Date('2023-01-01')
   },
@@ -91,6 +95,7 @@ export const mockUsers: User[] = [
     wechatQrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=wxid_sales4',
     branchCompanyId: 'branch-4',
     branchCompanyName: '深圳鼎伴学分公司',
+    salesLevel: '三星',
     createdAt: new Date('2023-01-01'),
     updatedAt: new Date('2023-01-01')
   },
@@ -104,6 +109,7 @@ export const mockUsers: User[] = [
     wechatQrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=wxid_sales5',
     branchCompanyId: 'branch-2',
     branchCompanyName: '北京鼎伴学分公司',
+    salesLevel: '二星',
     createdAt: new Date('2023-01-01'),
     updatedAt: new Date('2023-01-01')
   },

@@ -49,6 +49,8 @@ export interface User {
   dedicatedSchedulerId?: string
   /** 专属排课老师姓名（冗余字段，便于展示） */
   dedicatedSchedulerName?: string
+  /** 招生老师星级分层，用于派单优先级展示 */
+  salesLevel?: '三星' | '二星' | '一星'
   createdAt: Date
   updatedAt: Date
 }
@@ -603,6 +605,72 @@ export interface HeaderNavConfig {
   visibleRoles: Role[]
   sortOrder: number
   enabled: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
+// ========== EDU3.0 工作台任务配置 ==========
+
+export type WorkbenchTaskPriority = 'HIGH' | 'MEDIUM' | 'LOW'
+export type WorkbenchTaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE' | 'OVERDUE'
+
+export interface WorkbenchTaskType {
+  id: string
+  name: string
+  description: string
+  applicableRoles: Role[]
+  defaultDeadlineHours: number
+  defaultPriority: WorkbenchTaskPriority
+  countsTowardAssessment: boolean
+  parentVisible: boolean
+  enabled: boolean
+  sortOrder: number
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface WorkbenchTask {
+  id: string
+  taskTypeId: string
+  ownerRole: Role
+  ownerUserId?: string
+  studentId?: string
+  studentName?: string
+  orderId?: string
+  title: string
+  description: string
+  status: WorkbenchTaskStatus
+  priority: WorkbenchTaskPriority
+  dueAt: Date
+  completedAt?: Date
+  progress: number
+  actionLabel: string
+  metricLabel?: string
+  escalationFrom?: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface StudentProfileTimelineItem {
+  id: string
+  type: 'PLAN' | 'HOMEWORK' | 'FEEDBACK' | 'REPORT'
+  title: string
+  summary: string
+  date: Date
+  parentVisible: boolean
+}
+
+export interface StudentProfile {
+  id: string
+  studentId: string
+  abilityProfile: string
+  personality: string
+  homeworkHabit: string
+  learningPlan: string
+  parentSummary: string
+  growthScore: number
+  visibleToParent: boolean
+  timeline: StudentProfileTimelineItem[]
   createdAt: Date
   updatedAt: Date
 }
