@@ -18,17 +18,15 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react"
-import { toast } from "sonner"
 
 import { useAuth } from "@/contexts/AuthContext"
 import { Role, type StudentProfile, type User, type WorkbenchTask, type WorkbenchTaskType } from "@/types"
 import {
   getStoredStudentProfiles,
   getStoredUsers,
-  getStoredWorkbenchTasks,
   getStoredWorkbenchTaskTypes,
-  saveStoredWorkbenchTasks,
 } from "@/lib/storage"
+import { detectWorkbenchTasks, getTasksForRole } from "@/lib/workbench-detectors"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -77,13 +75,6 @@ function rate(done: number, total: number) {
   return `${Math.round((done / total) * 100)}%`
 }
 
-function getRoleTasks(tasks: WorkbenchTask[], role: Role, user: User | null) {
-  return tasks
-    .filter((task) => task.ownerRole === role)
-    .filter((task) => !task.ownerUserId || !user || task.ownerUserId === user.id || role === Role.OPERATOR)
-    .sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime())
-}
-
 function MetricCard({
   title,
   value,
@@ -121,12 +112,10 @@ function TaskList({
   title,
   tasks,
   taskTypes,
-  onComplete,
 }: {
   title: string
   tasks: WorkbenchTask[]
   taskTypes: WorkbenchTaskType[]
-  onComplete: (task: WorkbenchTask) => void
 }) {
   const typeMap = useMemo(() => new Map(taskTypes.map((type) => [type.id, type])), [taskTypes])
 
@@ -177,9 +166,15 @@ function TaskList({
                   </div>
                   <div className="flex shrink-0 flex-col gap-2 lg:w-36">
                     {task.metricLabel && <Badge className="justify-center" variant="secondary">{task.metricLabel}</Badge>}
-                    <Button size="sm" disabled={isDone} onClick={() => onComplete(task)}>
-                      {isDone ? "已闭环" : task.actionLabel}
-                    </Button>
+                    {isDone ? (
+                      <Button size="sm" disabled>已闭环</Button>
+                    ) : task.actionHref ? (
+                      <Button size="sm" asChild>
+                        <Link href={task.actionHref}>{task.actionLabel}</Link>
+                      </Button>
+                    ) : (
+                      <Button size="sm" disabled>{task.actionLabel}</Button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -339,25 +334,14 @@ function AdminConfigPanel({ taskTypes, tasks }: { taskTypes: WorkbenchTaskType[]
 
 export default function DashboardPage() {
   const { currentRole, user } = useAuth()
-  const [tasks, setTasks] = useState<WorkbenchTask[]>(() => getStoredWorkbenchTasks())
   const [taskTypes] = useState<WorkbenchTaskType[]>(() => getStoredWorkbenchTaskTypes())
   const [profiles] = useState<StudentProfile[]>(() => getStoredStudentProfiles())
   const [allUsers] = useState<User[]>(() => getStoredUsers())
+  const tasks = useMemo(() => detectWorkbenchTasks(taskTypes), [taskTypes])
   const role = currentRole
-  const roleTasks = useMemo(() => role ? getRoleTasks(tasks, role, user) : [], [role, tasks, user])
+  const roleTasks = useMemo(() => role ? getTasksForRole(tasks, role, user) : [], [role, tasks, user])
 
   if (!role) return null
-
-  const completeTask = (task: WorkbenchTask) => {
-    const updated = tasks.map((item) =>
-      item.id === task.id
-        ? { ...item, status: "DONE" as const, progress: 100, completedAt: new Date(), updatedAt: new Date() }
-        : item
-    )
-    setTasks(updated)
-    saveStoredWorkbenchTasks(updated)
-    toast.success("任务已标记闭环，工作台指标已更新")
-  }
 
   const teamTutors = allUsers.filter((item) => item.roles.includes(Role.TUTOR) && item.managerId === user?.id)
 
@@ -382,7 +366,6 @@ export default function DashboardPage() {
           title={role === Role.MANAGER ? `团队任务清单（下属教练 ${teamTutors.length} 人）` : "今日任务清单"}
           tasks={roleTasks}
           taskTypes={taskTypes}
-          onComplete={completeTask}
         />
       )}
 

@@ -620,12 +620,44 @@ export interface HeaderNavConfig {
 
 export type WorkbenchTaskPriority = 'HIGH' | 'MEDIUM' | 'LOW'
 export type WorkbenchTaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE' | 'OVERDUE'
+export type WorkbenchTaskDetectorId =
+  | 'trialPrep'
+  | 'lessonFeedback'
+  | 'homework'
+  | 'trialFollow'
+  | 'renewal'
+  | 'hoursWarning'
+  | 'complaint'
+  | 'incomeAudit'
+
+export interface WorkbenchDetectorConfig {
+  orderTypes?: OrderType[]
+  orderStatuses?: OrderStatus[]
+  preStartHours?: number
+  postEndHours?: number
+  ownerField?: 'assignedTeacherId' | 'salesPersonId' | 'managerId'
+  dueOffsetHours?: number
+  maxRemainingHours?: number
+  actionHrefTemplate?: string
+}
+
+export interface WorkbenchCompletionConfig {
+  requireSubmission?: boolean
+  submittedOnly?: boolean
+  requiredFields?: string[]
+  requireAttachmentOrText?: boolean
+  allowDraft?: boolean
+}
 
 export interface WorkbenchTaskType {
   id: string
   name: string
   description: string
   applicableRoles: Role[]
+  detectorId: WorkbenchTaskDetectorId
+  detectorConfig: WorkbenchDetectorConfig
+  completionConfig: WorkbenchCompletionConfig
+  actionHrefTemplate: string
   defaultDeadlineHours: number
   defaultPriority: WorkbenchTaskPriority
   countsTowardAssessment: boolean
@@ -649,11 +681,28 @@ export interface WorkbenchTask {
   status: WorkbenchTaskStatus
   priority: WorkbenchTaskPriority
   dueAt: Date
+  actionHref?: string
+  subjectId?: string
+  evidenceId?: string
   completedAt?: Date
   progress: number
   actionLabel: string
   metricLabel?: string
   escalationFrom?: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface TrialPrepSubmission {
+  id: string
+  orderId: string
+  tutorId: string
+  diagnosisNotes: string
+  teachingGoals: string
+  lessonPlanText?: string
+  attachments: string[]
+  status: 'DRAFT' | 'SUBMITTED'
+  submittedAt?: Date
   createdAt: Date
   updatedAt: Date
 }

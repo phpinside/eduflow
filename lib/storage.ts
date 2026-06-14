@@ -25,6 +25,7 @@ import type { TutorCreditRule, TutorCreditLog } from '@/types'
 import { initializeSiteMessages } from '@/lib/site-messages'
 import { mockHeaderNavConfigs } from './mock-data/header-nav'
 import { mockStudentProfiles, mockWorkbenchTasks, mockWorkbenchTaskTypes } from './mock-data/workbench'
+import { mockTrialPrepSubmissions } from './mock-data/trial-prep-submissions'
 import { mockCourseTransfers } from './mock-data/course-transfers'
 import { mockTransferOperationLogs } from './mock-data/transfer-logs'
 import type {
@@ -33,6 +34,7 @@ import type {
   HeaderNavConfig,
   StudentProfile,
   TransferOperationLog,
+  TrialPrepSubmission,
   User,
   WorkbenchTask,
   WorkbenchTaskType,
@@ -63,6 +65,7 @@ export const STORAGE_KEYS = {
   WORKBENCH_TASK_TYPES: 'eduflow:task-types',
   WORKBENCH_TASKS: 'eduflow:workbench-tasks',
   STUDENT_PROFILES: 'eduflow:student-profiles',
+  TRIAL_PREP_SUBMISSIONS: 'eduflow:trial-prep-submissions',
   COURSE_TRANSFERS: 'eduflow:course-transfers',
   TRANSFER_OPERATION_LOGS: 'eduflow:transfer-operation-logs',
   COACH_CHANGE_RECORDS: 'eduflow:coach-change-records',
@@ -121,6 +124,10 @@ export const getStoredStudentProfiles = (): StudentProfile[] =>
   getMockData(STORAGE_KEYS.STUDENT_PROFILES, mockStudentProfiles)
 export const saveStoredStudentProfiles = (data: StudentProfile[]) =>
   saveMockData(STORAGE_KEYS.STUDENT_PROFILES, data)
+export const getStoredTrialPrepSubmissions = (): TrialPrepSubmission[] =>
+  getMockData(STORAGE_KEYS.TRIAL_PREP_SUBMISSIONS, mockTrialPrepSubmissions)
+export const saveStoredTrialPrepSubmissions = (data: TrialPrepSubmission[]) =>
+  saveMockData(STORAGE_KEYS.TRIAL_PREP_SUBMISSIONS, data)
 export const getStoredPriceRules = (): PriceRule[] =>
   getMockData(STORAGE_KEYS.PRICE_RULES, mockPriceRules)
 export const saveStoredPriceRules = (rules: PriceRule[]) =>
@@ -339,6 +346,7 @@ export const initializeMockData = () => {
   mergeMockArrayById(STORAGE_KEYS.WORKBENCH_TASK_TYPES, mockWorkbenchTaskTypes, 'task types')
   mergeMockArrayById(STORAGE_KEYS.WORKBENCH_TASKS, mockWorkbenchTasks, 'workbench tasks')
   mergeMockArrayById(STORAGE_KEYS.STUDENT_PROFILES, mockStudentProfiles, 'student profiles')
+  mergeMockArrayById(STORAGE_KEYS.TRIAL_PREP_SUBMISSIONS, mockTrialPrepSubmissions, 'trial prep submissions')
   // Management income: merge new records by id
   const storedMgmtStr = localStorage.getItem(STORAGE_KEYS.MANAGEMENT_INCOME)
   if (!storedMgmtStr) {
@@ -383,9 +391,15 @@ function mergeMockArrayById<T extends { id: string }>(key: string, defaultData: 
     }) as T[]
     const storedIds = new Set(stored.map((item) => item.id))
     const newItems = defaultData.filter((item) => !storedIds.has(item.id))
-    if (newItems.length > 0) {
-      console.log(`Merging ${newItems.length} new ${label} into storage`)
-      saveMockData(key, [...stored, ...newItems])
+    const defaultsById = new Map(defaultData.map((item) => [item.id, item]))
+    const backfilled = stored.map((item) => ({ ...(defaultsById.get(item.id) ?? {}), ...item }))
+    const shouldBackfill = JSON.stringify(backfilled) !== JSON.stringify(stored)
+
+    if (newItems.length > 0 || shouldBackfill) {
+      if (newItems.length > 0) {
+        console.log(`Merging ${newItems.length} new ${label} into storage`)
+      }
+      saveMockData(key, [...backfilled, ...newItems])
     }
   } catch (e) {
     console.error(`Failed to merge ${label}`, e)
