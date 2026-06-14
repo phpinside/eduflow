@@ -131,6 +131,12 @@ export interface Order {
   conversionRewardFee?: number
   /** 转正红包支付方式：OFFLINE(线下已付) / BUNDLED(与正课费用合并支付) */
   conversionRewardPaidMode?: 'OFFLINE' | 'BUNDLED'
+  /** 转正红包具体支付渠道（仅试课转正时填写） */
+  conversionRewardPaidMethod?: 'ALIPAY' | 'WECHAT' | 'OFFLINE_TRANSFER'
+  /** 转正红包归属教练ID */
+  conversionRewardCoachId?: string
+  /** 转正红包归属教练姓名 */
+  conversionRewardCoachName?: string
   /** 鼎伴学代收费用是否并入本次支付：默认视为 true（与 needsDingbanxueRecharge 搭配使用） */
   includeDingbanxueFeeInPayment?: boolean
 
@@ -250,10 +256,11 @@ export interface RefundOperationLog {
 
 export interface Transaction {
   id: string
-  type: 'INITIAL' | 'RENEWAL' | 'REFUND' | 'REWARD'  // 新增 REFUND(退款) 和 REWARD(转正奖励)
+  type: 'INITIAL' | 'RENEWAL' | 'REFUND' | 'REWARD' | 'TRANSFER_OUT' | 'TRANSFER_IN'
   amount: number
   hours: number
   createdAt: Date
+  remark?: string
 }
 
 export interface Student {
@@ -689,4 +696,107 @@ export interface BranchCompany {
   enabled: boolean                   // 是否启用
   createdAt: Date
   updatedAt: Date
+}
+
+// ========== 课程转移 ==========
+
+export enum TransferType {
+  GRADE_UPGRADE = 'GRADE_UPGRADE',
+  CROSS_STUDENT = 'CROSS_STUDENT',
+}
+
+export enum TransferStatus {
+  PENDING_FIRST_REVIEW = 'PENDING_FIRST_REVIEW',
+  PENDING_SECOND_REVIEW = 'PENDING_SECOND_REVIEW',
+  FIRST_REJECTED = 'FIRST_REJECTED',
+  SECOND_REJECTED = 'SECOND_REJECTED',
+  APPROVED = 'APPROVED',
+  CANCELLED = 'CANCELLED',
+}
+
+export interface CourseTransfer {
+  id: string
+  type: TransferType
+
+  sourceOrderId: string
+  sourceStudentId: string
+  sourceStudentName: string
+  sourceSubject: string
+  sourceGrade: string
+  sourceUnitPrice: number
+  sourceNetUnitPrice: number
+  sourceTransferredHours: number
+  sourceRemainingBefore: number
+
+  targetOrderId: string
+  targetStudentId: string
+  targetStudentName: string
+  targetSubject: string
+  targetGrade: string
+  targetUnitPrice: number
+  targetNetUnitPrice: number
+  targetReceivedHours: number
+
+  sourceValue: number
+  targetValue: number
+  priceDifference: number
+
+  status: TransferStatus
+  remarks?: string
+  supplementaryVouchers?: string[]
+  refundApplicationId?: string
+  dingbanxueReminderStatus: 'PENDING' | 'CONFIRMED'
+  createdBy: string
+  createdByName: string
+  createdAt: Date
+  updatedAt: Date
+
+  firstReviewNote?: string
+  firstReviewerId?: string
+  firstReviewerName?: string
+  firstReviewedAt?: Date
+  secondReviewNote?: string
+  secondReviewerId?: string
+  secondReviewerName?: string
+  secondReviewedAt?: Date
+  firstRejectApplicantNote?: string
+  secondRejectApplicantNote?: string
+}
+
+export interface TransferOperationLog {
+  id: string
+  transferId: string
+  sourceOrderId: string
+  targetOrderId: string
+  actorRole: 'OPERATOR' | 'SYSTEM'
+  actorUserId?: string
+  actorName?: string
+  action: string
+  detail?: string
+  createdAt: Date
+}
+
+export type CoachChangeReason = 'TEMP_SUBSTITUTE' | 'COMPLAINT' | 'RESIGNATION' | 'OTHER'
+
+export const COACH_CHANGE_REASON_LABELS: Record<CoachChangeReason, string> = {
+  TEMP_SUBSTITUTE: '临时代课',
+  COMPLAINT: '原教练被投诉',
+  RESIGNATION: '原教练离职',
+  OTHER: '其它',
+}
+
+export interface CoachChangeRecord {
+  id: string
+  orderId: string
+  previousCoachId: string
+  previousCoachName: string
+  newCoachId: string
+  newCoachName: string
+  reason: CoachChangeReason
+  reasonDetail?: string
+  note?: string
+  operatorId: string
+  operatorName: string
+  operatorRole: 'MANAGER' | 'OPERATOR'
+  createdAt: Date
 }

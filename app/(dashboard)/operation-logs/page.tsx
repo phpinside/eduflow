@@ -89,6 +89,9 @@ const OPERATION_ACTION_MAP: Record<OperationAction, string> = {
   
   // 学生管理相关
   [OperationAction.STUDENT_HOURS_ADJUST]: "学生课时调整",
+
+  // 课程转移相关
+  [OperationAction.COURSE_TRANSFER]: "课程转移",
 }
 
 // 操作类型颜色映射

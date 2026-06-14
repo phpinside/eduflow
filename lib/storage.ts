@@ -25,7 +25,18 @@ import type { TutorCreditRule, TutorCreditLog } from '@/types'
 import { initializeSiteMessages } from '@/lib/site-messages'
 import { mockHeaderNavConfigs } from './mock-data/header-nav'
 import { mockStudentProfiles, mockWorkbenchTasks, mockWorkbenchTaskTypes } from './mock-data/workbench'
-import type { HeaderNavConfig, StudentProfile, User, WorkbenchTask, WorkbenchTaskType } from '@/types'
+import { mockCourseTransfers } from './mock-data/course-transfers'
+import { mockTransferOperationLogs } from './mock-data/transfer-logs'
+import type {
+  CoachChangeRecord,
+  CourseTransfer,
+  HeaderNavConfig,
+  StudentProfile,
+  TransferOperationLog,
+  User,
+  WorkbenchTask,
+  WorkbenchTaskType,
+} from '@/types'
 
 export const STORAGE_KEYS = {
   USERS: 'eduflow:users',
@@ -52,6 +63,9 @@ export const STORAGE_KEYS = {
   WORKBENCH_TASK_TYPES: 'eduflow:task-types',
   WORKBENCH_TASKS: 'eduflow:workbench-tasks',
   STUDENT_PROFILES: 'eduflow:student-profiles',
+  COURSE_TRANSFERS: 'eduflow:course-transfers',
+  TRANSFER_OPERATION_LOGS: 'eduflow:transfer-operation-logs',
+  COACH_CHANGE_RECORDS: 'eduflow:coach-change-records',
 }
 
 const isBrowser = typeof window !== 'undefined'
@@ -348,6 +362,8 @@ export const initializeMockData = () => {
     }
   }
   mergeMockArrayById(STORAGE_KEYS.HEADER_NAV_CONFIGS, mockHeaderNavConfigs, 'header nav configs')
+  mergeMockArrayById(STORAGE_KEYS.COURSE_TRANSFERS, mockCourseTransfers, 'course transfers')
+  mergeMockArrayById(STORAGE_KEYS.TRANSFER_OPERATION_LOGS, mockTransferOperationLogs, 'transfer operation logs')
   initializeSiteMessages()
 }
 
@@ -509,3 +525,25 @@ export const getBillMonth = (): { year: number; month: number } => {
   const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1)
   return { year: prev.getFullYear(), month: prev.getMonth() + 1 }
 }
+
+// === 课程转移记录 ===
+
+export const getStoredCourseTransfers = (): CourseTransfer[] =>
+  getMockData(STORAGE_KEYS.COURSE_TRANSFERS, mockCourseTransfers)
+
+export const saveStoredCourseTransfers = (data: CourseTransfer[]) =>
+  saveMockData(STORAGE_KEYS.COURSE_TRANSFERS, data)
+
+export const getStoredTransferOperationLogs = (): TransferOperationLog[] =>
+  getMockData(STORAGE_KEYS.TRANSFER_OPERATION_LOGS, mockTransferOperationLogs)
+
+export const saveStoredTransferOperationLogs = (data: TransferOperationLog[]) =>
+  saveMockData(STORAGE_KEYS.TRANSFER_OPERATION_LOGS, data)
+
+// === 教练更换记录 ===
+
+export const getStoredCoachChangeRecords = (): CoachChangeRecord[] =>
+  getMockData<CoachChangeRecord[]>(STORAGE_KEYS.COACH_CHANGE_RECORDS, [])
+
+export const saveStoredCoachChangeRecords = (data: CoachChangeRecord[]) =>
+  saveMockData(STORAGE_KEYS.COACH_CHANGE_RECORDS, data)
